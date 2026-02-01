@@ -19,7 +19,7 @@ export function IntroSection() {
             variant="outline"
             className="border-matrix-green/50 bg-matrix-green/10 px-4 py-1.5 text-matrix-green font-mono text-xs tracking-widest"
           >
-            CS2535 • TEAM 3 • DISCRETE STRUCTURES
+            CS2535 • TEAM 3 • Microchip Materials Science
           </Badge>
           <h1 className="font-mono text-4xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
             <span className="text-shadow-matrix">MACE</span>
