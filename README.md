@@ -1,4 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CS2535 Water Analysis System
+
+Matrix-themed water quality report presentation for CS2535 Environmental Science. Built with Next.js, shadcn/ui, and Tailwind CSS.
+
+## Features
+
+- **Futuristic Matrix Design**: Green & black theme with scan-line effects and glowing typography
+- **Introduction Page**: Project overview and navigation to report
+- **Water Results Report**: Structured data view + full HTML report (iframe)
+- **Vercel Ready**: Deploy with one click
+
+## Adding Your Report
+
+1. **HTML Report**: Copy your `water_results_report.html` to `public/water_results_report.html`
+2. **Structured Data**: Edit `data/water_report.ts` with your lab parameters
 
 ## Getting Started
 
