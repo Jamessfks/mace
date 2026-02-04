@@ -160,7 +160,7 @@
     0 0 60px rgba(0, 255, 65, 0.2);
 }
 
-/* Scan line overlay */
+/* Scan line overlay — persistent after boot */
 .scan-lines::before {
   content: "";
   position: absolute;
@@ -169,10 +169,95 @@
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.1) 2px,
-    rgba(0, 0, 0, 0.1) 4px
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
   );
   pointer-events: none;
+}
+
+/* Neon scan beam — runs once on load, then stable */
+.neon-scan-beam {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 100;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 255, 65, 0.3) 20%,
+    #00ff41 50%,
+    rgba(0, 255, 65, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 20px #00ff41,
+    0 0 40px rgba(0, 255, 65, 0.6),
+    0 0 80px rgba(0, 255, 65, 0.3);
+  animation: neon-scan-sweep 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes neon-scan-sweep {
+  0% {
+    top: 0;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  70% {
+    top: 100%;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: scaleY(0.5);
+    visibility: hidden;
+  }
+}
+
+/* Stable state: subtle edge glow after scan completes */
+.neon-stable-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 255, 65, 0.03) 0%,
+    transparent 15%,
+    transparent 85%,
+    rgba(0, 255, 65, 0.02) 100%
+  );
+  animation: neon-stable-fade-in 0.8s 2s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes neon-stable-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hero content: fades in after scan passes, “system ready” */
+.neon-hero-reveal {
+  animation: neon-hero-reveal 1.2s 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes neon-hero-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Glow border */

@@ -9,7 +9,11 @@ import { IntroSection } from "@/components/intro-section";
 export default function Home() {
   return (
     <div className="relative min-h-screen matrix-bg">
-      {/* Scan lines overlay for Matrix effect */}
+      {/* Neon scan: sweeps down once on load, then fades — leaves stable look */}
+      <div className="neon-scan-beam" aria-hidden />
+      <div className="neon-stable-glow" aria-hidden />
+
+      {/* Scan lines overlay — persistent Matrix texture */}
       <div className="scan-lines pointer-events-none fixed inset-0 z-50" />
 
       {/* Main content */}

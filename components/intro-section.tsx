@@ -12,7 +12,7 @@ export function IntroSection() {
         <div className="matrix-rain absolute inset-0" />
       </div>
 
-      <div className="relative flex max-w-4xl flex-col items-center gap-8 text-center">
+      <div className="neon-hero-reveal relative flex max-w-4xl flex-col items-center gap-8 text-center">
         {/* Glowing title */}
         <div className="space-y-4">
           <Badge
@@ -51,27 +51,49 @@ export function IntroSection() {
           </div>
           <div className="h-8 w-px bg-matrix-green/30" />
           <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">DFT</span>
+            <span className="text-matrix-green text-2xl">DFT / XTB</span>
             <span className="text-zinc-500">Reference Data</span>
           </div>
           <div className="h-8 w-px bg-matrix-green/30" />
           <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">H₂O</span>
-            <span className="text-zinc-500">Liquid Water</span>
+            <span className="text-matrix-green text-2xl">H₂O + Solvents</span>
+            <span className="text-zinc-500">Materials</span>
           </div>
         </div>
 
-        {/* CTA Button */}
-        <Button
-          asChild
-          size="lg"
-          className="group relative overflow-hidden border-2 border-matrix-green bg-transparent font-mono text-matrix-green transition-all hover:bg-matrix-green hover:text-black"
+        {/* CTA Buttons — two reports */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+          <Button
+            asChild
+            size="lg"
+            className="group relative overflow-hidden border-2 border-matrix-green bg-transparent font-mono text-matrix-green transition-all hover:bg-matrix-green hover:text-black"
+          >
+            <Link href="/report">
+              <span className="relative z-10">LIQUID WATER REPORT</span>
+              <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
+          >
+            <Link href="/tutorial1">
+              <span className="relative z-10">TUTORIAL 1 — SOLVENT (DEC/EC)</span>
+              <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
+          </Button>
+        </div>
+        <p className="font-mono text-xs text-zinc-500">
+          Liquid water (ab-initio-thermodynamics) • Tutorial 1: organic solvents H/C/O, XTB reference
+        </p>
+        <Link
+          href="/tutorial1/run"
+          className="font-mono text-xs text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
         >
-          <Link href="/report">
-            <span className="relative z-10">VIEW LIQUID WATER REPORT</span>
-            <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
-          </Link>
-        </Button>
+          Run Tutorial 1 in browser →
+        </Link>
       </div>
 
       {/* Scroll indicator */}

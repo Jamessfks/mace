@@ -1,0 +1,10 @@
+# For Binder / Tutorial 1 (MACE in Practice I — solvent DEC/EC)
+# Used when launching "Run Tutorial 1" via mybinder.org
+jupyter
+jupyterlab
+mace-torch
+ase
+matplotlib
+pandas
+numpy
+scipy
