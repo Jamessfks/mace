@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 
 const BINDER_REPO = "Jamessfks/mace";
-const BINDER_BRANCH = "main";
+/** Use HEAD so Binder/Colab always use the repo's default branch (avoids "Could not resolve ref main") */
+const REF = "HEAD";
 const NOTEBOOK_PATH = "notebooks/TUTORIAL_1_FIXES.ipynb";
 
-const binderUrl = `https://mybinder.org/v2/gh/${BINDER_REPO}/${BINDER_BRANCH}?urlpath=lab%2Ftree%2F${encodeURIComponent(NOTEBOOK_PATH)}`;
-const colabUrl = `https://colab.research.google.com/github/${BINDER_REPO}/blob/${BINDER_BRANCH}/${NOTEBOOK_PATH}`;
+const binderUrl = `https://mybinder.org/v2/gh/${BINDER_REPO}/${REF}?urlpath=lab%2Ftree%2F${encodeURIComponent(NOTEBOOK_PATH)}`;
+const colabUrl = `https://colab.research.google.com/github/${BINDER_REPO}/blob/${REF}/${NOTEBOOK_PATH}`;
 
 export default function RunTutorial1Page() {
   const [iframeLoaded, setIframeLoaded] = useState(false);
