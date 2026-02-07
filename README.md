@@ -1,18 +1,39 @@
-# CS2535 Water Analysis System
+# MACE Force Fields — Team 3
 
-Matrix-themed water quality report presentation for CS2535 Environmental Science. Built with Next.js, shadcn/ui, and Tailwind CSS.
+**CS2535 ORNL #3.** Machine learning for understanding materials inside microchips. Matrix-themed web platform with MACE training reports and web calculator.
+
+**Team:** Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri, Zicheng Zhao
 
 ## Features
 
-- **Futuristic Matrix Design**: Green & black theme with scan-line effects and glowing typography
-- **Introduction Page**: Project overview and navigation to report
-- **Water Results Report**: Structured data view + full HTML report (iframe)
+- **Matrix-Themed Landing**: Neon scan animation, futuristic green/black design
+- **Liquid Water Report**: DFT training results, 3D visualizations, interactive plots
+- **Tutorial 1 (Solvent)**: MACE in Practice I — DEC/EC organic solvents (XTB reference)
+  - View static HTML report
+  - Run live in browser via Binder
+- **MACE Web Calculator**: No-code interface for running MACE calculations
+  - Upload structures (.xyz, .cif, .poscar, .pdb)
+  - Configure model & parameters
+  - View energy, forces, 3D structure
+  - Download results as JSON
 - **Vercel Ready**: Deploy with one click
 
-## Adding Your Report
+## Project Structure
 
-1. **HTML Report**: Copy your `water_results_report.html` to `public/water_results_report.html`
-2. **Structured Data**: Edit `data/water_report.ts` with your lab parameters
+### Routes
+- `/` — Matrix intro with neon scan, links to reports and calculator
+- `/report` — Liquid Water results (training curves, validation metrics, 3D)
+- `/tutorial1` — MACE in Practice I static report
+- `/tutorial1/run` — Run Tutorial 1 in Binder (live notebook)
+- `/calculate` — MACE Web Calculator (no-code interface)
+
+### Key Files
+- `app/page.tsx` — Main landing page
+- `components/intro-section.tsx` — Matrix hero section
+- `app/calculate/page.tsx` — Calculator interface
+- `notebooks/TUTORIAL_1_FIXES.ipynb` — Tutorial notebook for Binder
+- `requirements.txt` — Python deps for Binder
+- See `CALCULATOR_README.md` for calculator architecture
 
 ## Getting Started
 

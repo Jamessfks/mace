@@ -88,12 +88,21 @@ export function IntroSection() {
         <p className="font-mono text-xs text-zinc-500">
           Liquid water (ab-initio-thermodynamics) • Tutorial 1: organic solvents H/C/O, XTB reference
         </p>
-        <Link
-          href="/tutorial1/run"
-          className="font-mono text-xs text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
-        >
-          Run Tutorial 1 in browser →
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4 font-mono text-xs">
+          <Link
+            href="/tutorial1/run"
+            className="text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
+          >
+            Run Tutorial 1 in browser →
+          </Link>
+          <span className="text-zinc-600">|</span>
+          <Link
+            href="/calculate"
+            className="text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
+          >
+            MACE Web Calculator →
+          </Link>
+        </div>
       </div>
 
       {/* Scroll indicator */}
