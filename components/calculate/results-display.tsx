@@ -2,6 +2,7 @@
 
 import { Download } from "lucide-react";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
+import { PDFReportButton } from "./pdf-report";
 import type { CalculationResult } from "@/types/mace";
 
 interface ResultsDisplayProps {
@@ -23,17 +24,20 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-mono text-lg font-bold text-matrix-green">
           CALCULATION RESULTS
         </h2>
-        <button
-          onClick={downloadJSON}
-          className="flex items-center gap-2 rounded border border-matrix-green/50 bg-matrix-green/10 px-3 py-1.5 font-mono text-xs text-matrix-green transition-colors hover:bg-matrix-green/20"
-        >
-          <Download className="h-3 w-3" />
-          Download JSON
-        </button>
+        <div className="flex items-center gap-2">
+          <PDFReportButton result={result} />
+          <button
+            onClick={downloadJSON}
+            className="flex items-center gap-2 rounded border border-matrix-green/50 bg-matrix-green/10 px-3 py-1.5 font-mono text-xs text-matrix-green transition-colors hover:bg-matrix-green/20"
+          >
+            <Download className="h-3 w-3" />
+            Download JSON
+          </button>
+        </div>
       </div>
 
       {/* Energy & Forces Cards */}

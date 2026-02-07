@@ -102,11 +102,17 @@ async def calculate(
         device = params_obj.get("device", "cpu")
 
         if model_path and model_path.exists():
-            # Load MACE calculator for custom-trained models (.model format)
-            from mace.calculators import mace
+            # Load MACE calculator — mace-torch ASE API
+            try:
+                from mace.calculators import MACECalculator
 
-            calc = mace(model_paths=str(model_path), device=device, default_dtype="float32")
-            atoms.calc = calc
+                calc = MACECalculator(model_path=str(model_path), device=device)
+                atoms.calc = calc
+            except ImportError as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"mace-torch not installed. Run: pip install mace-torch. {e}",
+                )
             energy = atoms.get_potential_energy()
             forces = atoms.get_forces()
 

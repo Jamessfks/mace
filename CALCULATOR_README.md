@@ -27,24 +27,30 @@ Production-ready web interface for MACE calculations without coding knowledge.
   - Download JSON option
   - 3D molecular viewer integration
 
-### Phase 3: Backend Integration ⚠️ Mock Data
+### Phase 3: Backend Integration ✅
 - [x] API route structure (`/api/calculate`)
-- [x] Mock data response for testing
-- [ ] **TODO:** Python MACE backend integration
-- [ ] **TODO:** File parsing (XYZ, CIF, POSCAR, PDB)
-- [ ] **TODO:** Actual MACE calculations
-- [ ] **TODO:** Job queue for long-running tasks
+- [x] Mock data fallback when MACE_API_URL not set
+- [x] **Python MACE API** (`mace-api/`) — FastAPI with MACE-torch
+  - ASE file parsing (XYZ, CIF, POSCAR, PDB)
+  - Loads CS2535 trained models (water_1k_small.model)
+  - Single-point energy/forces
+  - EMT fallback when model not found
+- [x] Next.js proxies to Python API when `MACE_API_URL` env var set
+- [ ] **TODO:** Job queue for long-running (>10min) calculations
 
-### Phase 4: Visualization ✅ Basic / ⚠️ Advanced Pending
+### Phase 4: Visualization ✅ / ⚠️ Advanced Pending
 - [x] 3D molecular viewer (3Dmol.js)
   - Ball-and-stick representation
   - CPK element coloring
   - Force vectors overlay (green arrows)
   - Mouse controls (rotate, zoom)
+- [x] **PDF Report** — @react-pdf/renderer
+  - Summary (energy, forces, atom count, volume)
+  - Atomic forces table (first 50 atoms)
+  - "Download PDF Report" button in results
 - [ ] **TODO:** Dynamic energy/force plots (Chart.js)
 - [ ] **TODO:** MD trajectory animation
 - [ ] **TODO:** Export plots as PNG/SVG
-- [ ] **TODO:** Generate PDF reports
 
 ## Usage
 

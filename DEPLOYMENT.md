@@ -30,15 +30,51 @@ For `/tutorial1/run` to work:
 
 First launch takes 1–2 minutes while Binder builds the environment.
 
-## Environment Variables (if needed later)
+## MACE Python Backend
 
-For real MACE backend integration:
+### Deploy mace-api
+
+The `mace-api/` folder contains a FastAPI backend for real MACE calculations:
 
 ```bash
-# Add these in Vercel dashboard → Settings → Environment Variables
-PYTHON_BACKEND_URL=https://your-python-api.com
-MACE_API_KEY=your-secret-key
+cd mace-api
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
+
+Deploy to Railway, Render, or Cloud Run. Example (Railway):
+
+```bash
+cd mace-api
+railway init
+railway up
+```
+
+### Connect Next.js to MACE API
+
+In Vercel → Settings → Environment Variables:
+
+```bash
+MACE_API_URL=https://your-mace-api.railway.app
+```
+
+When set, `/api/calculate` forwards requests to the Python backend instead of returning mock data.
+
+### Local development
+
+```bash
+# Terminal 1: Run MACE API
+cd mace-api && uvicorn main:app --reload --port 8000
+
+# Terminal 2: Run Next.js
+MACE_API_URL=http://localhost:8000 npm run dev
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `MACE_API_URL` | URL of deployed MACE Python API (optional; if unset, mock data is used) |
 
 ## Routes Overview
 
