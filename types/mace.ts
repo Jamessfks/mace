@@ -28,13 +28,15 @@ export interface CalculationParams {
   temperature?: number;
   pressure?: number;
   timeStep?: number;
+  friction?: number; // Langevin thermostat (ASE default ~5e-3)
+  mdSteps?: number; // Number of MD steps
+  mdEnsemble?: "NVE" | "NVT" | "NPT";
+  forceThreshold?: number; // fmax for geometry optimization (eV/Å)
+  energyThreshold?: number;
 
   // Advanced Options (optional)
   cutoffRadius?: number;
   maxOptSteps?: number;
-  forceThreshold?: number;
-  energyThreshold?: number;
-  mdEnsemble?: "NVE" | "NVT" | "NPT";
 }
 
 export interface CalculationResult {

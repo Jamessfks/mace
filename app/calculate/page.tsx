@@ -23,6 +23,10 @@ export default function CalculatePage() {
     temperature: 300,
     pressure: 0,
     timeStep: 1.0,
+    friction: 0.005,
+    mdSteps: 100,
+    mdEnsemble: "NVT",
+    forceThreshold: 0.05,
   });
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);

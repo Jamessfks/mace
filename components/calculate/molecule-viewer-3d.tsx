@@ -10,13 +10,22 @@ interface MoleculeViewer3DProps {
 /**
  * 3D Molecular Viewer using 3Dmol.js
  * Renders atomic structure with CPK coloring and force vectors
+ * Container must have explicit width/height and position:relative per 3Dmol docs
  */
 export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const viewerInstance = useRef<any>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (!viewerRef.current || !result.positions || !result.symbols) return;
+
+    const resize = () => {
+      if (viewerInstance.current && viewerRef.current) {
+        viewerInstance.current.resize?.();
+        viewerInstance.current.render?.();
+      }
+    };
 
     // Dynamically import 3Dmol to avoid SSR issues
     import("3dmol").then(($3Dmol) => {
@@ -25,7 +34,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       // Clear previous viewer
       viewerRef.current.innerHTML = "";
 
-      // Create viewer
+      // Create viewer (container must have explicit dimensions per 3Dmol docs)
       const config = { backgroundColor: "black" };
       viewerInstance.current = $3Dmol.createViewer(viewerRef.current, config);
       const viewer = viewerInstance.current;
@@ -67,12 +76,18 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       viewer.zoomTo();
       viewer.render();
 
-      // Enable mouse controls
+      // Ensure viewer matches container size (fixes wrong placement when layout settles)
+      resize();
+      resizeObserverRef.current = new ResizeObserver(resize);
+      resizeObserverRef.current.observe(viewerRef.current);
+
       viewer.enableFog(false);
     });
 
     return () => {
-      viewerInstance.current?.clear();
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      viewerInstance.current?.clear?.();
     };
   }, [result]);
 
@@ -86,10 +101,16 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
           {result.symbols?.length || 0} atoms
         </span>
       </div>
+      {/* 3Dmol requires explicit dimensions and position:relative per docs */}
       <div
         ref={viewerRef}
-        className="aspect-video w-full rounded bg-black"
-        style={{ minHeight: "400px" }}
+        className="w-full overflow-hidden rounded bg-black"
+        style={{
+          position: "relative",
+          width: "100%",
+          height: 400,
+          minHeight: 400,
+        }}
       />
       <p className="mt-2 font-mono text-xs text-zinc-500">
         Drag to rotate • Scroll to zoom • Green arrows = force vectors

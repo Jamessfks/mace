@@ -126,6 +126,18 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             </span>
           </label>
 
+          <ParamSelect
+            label="MD Ensemble"
+            value={params.mdEnsemble || "NVT"}
+            onChange={(v) => updateParam("mdEnsemble", v as "NVE" | "NVT" | "NPT")}
+            options={[
+              { value: "NVE", label: "NVE (microcanonical)" },
+              { value: "NVT", label: "NVT (canonical)" },
+              { value: "NPT", label: "NPT (isothermal-isobaric)" },
+            ]}
+            tooltip="Thermodynamic ensemble for MD"
+          />
+
           <ParamInput
             label="Temperature (K)"
             value={params.temperature || 300}
@@ -150,6 +162,38 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             max={10}
             step={0.1}
           />
+
+          <ParamInput
+            label="Langevin Friction"
+            value={params.friction ?? 0.005}
+            onChange={(v) => updateParam("friction", v)}
+            min={0.0001}
+            max={0.1}
+            step={0.001}
+          />
+          <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
+            Thermostat coupling for NVT (ASE default 5e-3)
+          </span>
+
+          <ParamInput
+            label="MD Steps"
+            value={params.mdSteps ?? 100}
+            onChange={(v) => updateParam("mdSteps", v)}
+            min={1}
+            max={100000}
+          />
+
+          <ParamInput
+            label="Force Threshold (eV/Å)"
+            value={params.forceThreshold ?? 0.05}
+            onChange={(v) => updateParam("forceThreshold", v)}
+            min={0.001}
+            max={1}
+            step={0.01}
+          />
+          <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
+            fmax for geometry optimization
+          </span>
         </div>
       </div>
 
