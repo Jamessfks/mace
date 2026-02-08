@@ -3,7 +3,7 @@
  */
 
 export type ModelSize = "small" | "medium" | "large" | "custom";
-export type ModelType = "MACE-MP-0" | "MACE-OFF";
+export type ModelType = "MACE-MP-0" | "MACE-OFF" | "MACE-Water";
 export type Precision = "float32" | "float64";
 export type Device = "cpu" | "cuda";
 export type CalculationType =

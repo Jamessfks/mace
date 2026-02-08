@@ -45,9 +45,11 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             value={params.modelType}
             onChange={(v) => updateParam("modelType", v as any)}
             options={[
-              { value: "MACE-MP-0", label: "MACE-MP-0 (materials)" },
-              { value: "MACE-OFF", label: "MACE-OFF (molecules)" },
+              { value: "MACE-MP-0", label: "MACE-MP-0 (materials, 89 elements)" },
+              { value: "MACE-OFF", label: "MACE-OFF (organic molecules, ethanol, H2O)" },
+              { value: "MACE-Water", label: "Water (CS2535, if available)" },
             ]}
+            tooltip="MACE-MP: bulk crystals. MACE-OFF: organic molecules."
           />
 
           <ParamSelect
