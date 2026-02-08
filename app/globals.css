@@ -6,6 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-matrix-green: #00ff41;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -46,106 +47,136 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Matrix theme: green on black, futuristic */
 :root {
-  --radius: 0.5rem;
-  --matrix-green: #00ff88;
-  --matrix-green-dim: #00cc6a;
-  --matrix-green-glow: rgba(0, 255, 136, 0.15);
-  --matrix-black: #0a0a0a;
-  --matrix-black-elevated: #111111;
-  --background: var(--matrix-black);
-  --foreground: var(--matrix-green);
-  --card: var(--matrix-black-elevated);
-  --card-foreground: #b8ffdd;
-  --popover: var(--matrix-black-elevated);
-  --popover-foreground: var(--matrix-green);
-  --primary: var(--matrix-green);
-  --primary-foreground: var(--matrix-black);
-  --secondary: oklch(0.18 0.04 165);
-  --secondary-foreground: var(--matrix-green);
-  --muted: #1a1a1a;
-  --muted-foreground: var(--matrix-green-dim);
-  --accent: oklch(0.22 0.06 165);
-  --accent-foreground: var(--matrix-green);
-  --destructive: oklch(0.6 0.2 25);
-  --border: oklch(0.25 0.05 165);
-  --input: oklch(0.22 0.04 165);
-  --ring: var(--matrix-green);
-  --chart-1: var(--matrix-green);
-  --chart-2: var(--matrix-green-dim);
-  --chart-3: #00ff8840;
-  --chart-4: #00ff8820;
-  --chart-5: #00ff8810;
-  --sidebar: var(--matrix-black-elevated);
-  --sidebar-foreground: var(--matrix-green);
-  --sidebar-primary: var(--matrix-green);
-  --sidebar-primary-foreground: var(--matrix-black);
-  --sidebar-accent: oklch(0.22 0.06 165);
-  --sidebar-accent-foreground: var(--matrix-green);
-  --sidebar-border: oklch(0.25 0.05 165);
-  --sidebar-ring: var(--matrix-green);
+  --radius: 0.625rem;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
 }
 
 .dark {
-  --background: var(--matrix-black);
-  --foreground: var(--matrix-green);
-  --card: var(--matrix-black-elevated);
-  --card-foreground: #b8ffdd;
-  --primary: var(--matrix-green);
-  --primary-foreground: var(--matrix-black);
-  --muted: #1a1a1a;
-  --muted-foreground: var(--matrix-green-dim);
-  --border: oklch(0.25 0.05 165);
-  --ring: var(--matrix-green);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  html {
-    scroll-behavior: smooth;
-  }
   body {
-    @apply bg-background text-foreground min-h-screen;
+    @apply bg-background text-foreground;
   }
 }
 
-/* Matrix-style scanline overlay (optional creative touch) */
-.matrix-scanlines::before {
+/* Matrix theme - green & black */
+.matrix-bg {
+  background: linear-gradient(180deg, #000000 0%, #0a0f0a 50%, #000000 100%);
+}
+
+/* Matrix rain effect */
+.matrix-rain {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 65, 0.03) 2px,
+    rgba(0, 255, 65, 0.03) 4px
+  );
+  animation: matrix-scan 8s linear infinite;
+}
+
+@keyframes matrix-scan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+/* Text shadows for Matrix glow */
+.text-shadow-matrix {
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.3),
+    0 0 20px rgba(0, 255, 65, 0.2),
+    0 0 40px rgba(0, 255, 65, 0.1);
+}
+
+.text-shadow-matrix-green {
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6),
+    0 0 30px rgba(0, 255, 65, 0.4),
+    0 0 60px rgba(0, 255, 65, 0.2);
+}
+
+/* Scan line overlay */
+.scan-lines::before {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.08) 2px,
-    rgba(0, 0, 0, 0.08) 4px
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
   );
   pointer-events: none;
-  z-index: 9999;
 }
 
-/* Subtle green glow for focus/links */
-.glow-text {
-  text-shadow: 0 0 8px var(--matrix-green-glow), 0 0 20px var(--matrix-green-glow);
-}
+/* Glow border */
 .glow-border {
-  box-shadow: 0 0 12px var(--matrix-green-glow), inset 0 0 12px rgba(0, 255, 136, 0.03);
-}
-@keyframes matrix-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-.animate-matrix-pulse {
-  animation: matrix-pulse 3s ease-in-out infinite;
-}
-@keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-.animate-cursor-blink {
-  animation: cursor-blink 1s step-end infinite;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2),
+    inset 0 0 20px rgba(0, 255, 65, 0.05);
 }

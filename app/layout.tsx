@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MACE Force Fields | CS2535 Team 3 — Liquid Water & Tutorial 1",
+  title: "MACE Force Fields | CS2535 Team 3 — Liquid Water",
   description:
-    "MACE ML force fields for many-body atomic interactions. Liquid water report (DFT) and Tutorial 1: organic solvents DEC/EC (XTB). Team 3: Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri, Zicheng Zhao.",
+    "MACE machine learning for predicting many-body atomic interactions and generating force fields. Liquid water training results. Team 3: Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri, Zicheng Zhao.",
 };
 
 export default function RootLayout({

@@ -1,13 +1,21 @@
-import { IntroSection } from "@/components/IntroSection";
-import { ReportSection } from "@/components/ReportSection";
-import { Footer } from "@/components/Footer";
+"use client";
 
+import { IntroSection } from "@/components/intro-section";
+
+/**
+ * MACE Force Fields - Team 3 project overview
+ * Matrix-themed intro with link to Liquid Water results report
+ */
 export default function Home() {
   return (
-    <div className="dark matrix-scanlines">
-      <IntroSection />
-      <ReportSection />
-      <Footer />
+    <div className="relative min-h-screen matrix-bg">
+      {/* Scan lines overlay for Matrix effect */}
+      <div className="scan-lines pointer-events-none fixed inset-0 z-50" />
+
+      {/* Main content */}
+      <main className="relative z-10">
+        <IntroSection />
+      </main>
     </div>
   );
 }
