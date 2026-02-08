@@ -13,6 +13,9 @@ const MACE_API_URL = process.env.MACE_API_URL;
  *
  * If MACE_API_URL is set, forwards to Python MACE backend.
  * Otherwise returns mock data for development.
+ *
+ * Note: On Vercel, request body is limited to 4.5 MB (FUNCTION_PAYLOAD_TOO_LARGE).
+ * Keep total upload size under ~4 MB; client enforces this.
  */
 export async function POST(request: NextRequest) {
   try {
