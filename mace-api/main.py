@@ -100,6 +100,7 @@ async def calculate(
         # Get MACE model and run calculation
         model_path = get_model_path(params_obj.get("modelType", "MACE-MP-0"))
         device = params_obj.get("device", "cpu")
+        calc_type = params_obj.get("calculationType", "single-point")
 
         if model_path and model_path.exists():
             # Load MACE calculator — mace-torch ASE API
@@ -113,8 +114,98 @@ async def calculate(
                     status_code=500,
                     detail=f"mace-torch not installed. Run: pip install mace-torch. {e}",
                 )
-            energy = atoms.get_potential_energy()
-            forces = atoms.get_forces()
+
+            if calc_type == "geometry-opt":
+                # Geometry optimization: fmax (eV/Å), max steps
+                fmax = float(params_obj.get("forceThreshold", 0.05))
+                max_steps = int(params_obj.get("maxOptSteps", 500))
+                from ase.optimize import BFGS
+
+                opt = BFGS(atoms, logfile=None)
+                opt.run(fmax=fmax, steps=max_steps)
+                energy = atoms.get_potential_energy()
+                forces = atoms.get_forces()
+                msg = f"Geometry optimization completed for {file.filename} (fmax={fmax}, steps={opt.nsteps})"
+            elif calc_type == "molecular-dynamics":
+                # MD: temperature, time step, friction, steps, ensemble
+                temp_K = float(params_obj.get("temperature", 300))
+                dt_fs = float(params_obj.get("timeStep", 1.0))
+                friction = float(params_obj.get("friction", 0.005))
+                md_steps = int(params_obj.get("mdSteps", 100))
+                ensemble = params_obj.get("mdEnsemble", "NVT")
+
+                from ase import units
+
+                traj_energies: list[float] = []
+                traj_positions: list[list[list[float]]] = []
+                traj_steps: list[int] = []
+
+                def write_frame():
+                    traj_energies.append(float(atoms.get_potential_energy()))
+                    traj_positions.append(atoms.get_positions().tolist())
+                    traj_steps.append(dyn.get_number_of_steps())
+
+                if ensemble == "NVT":
+                    from ase.md.langevin import Langevin
+
+                    dyn = Langevin(
+                        atoms,
+                        dt_fs * units.fs,
+                        temperature_K=temp_K,
+                        friction=friction,
+                    )
+                elif ensemble == "NPT":
+                    from ase.md.npt import NPT
+
+                    # NPT: thermostat + barostat
+                    pressure_bar = float(params_obj.get("pressure", 0)) * 1e4  # GPa -> bar
+                    dyn = NPT(
+                        atoms,
+                        dt_fs * units.fs,
+                        temperature_K=temp_K,
+                        externalstress=pressure_bar,
+                        ttime=25 * units.fs,
+                        pfactor=75 * units.fs**2,
+                    )
+                else:
+                    # NVE
+                    from ase.md.verlet import VelocityVerlet
+
+                    from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+
+                    MaxwellBoltzmannDistribution(atoms, temperature_K=temp_K)
+                    dyn = VelocityVerlet(atoms, dt_fs * units.fs)
+
+                dyn.attach(write_frame, interval=1)
+                dyn.run(md_steps)
+
+                energy = float(atoms.get_potential_energy())
+                forces = atoms.get_forces().tolist()
+                positions = atoms.get_positions().tolist()
+                symbols = [a.symbol for a in atoms]
+                lattice = atoms.get_cell().tolist() if atoms.pbc.any() else None
+                return {
+                    "status": "success",
+                    "energy": energy,
+                    "forces": forces,
+                    "positions": positions,
+                    "symbols": symbols,
+                    "lattice": lattice,
+                    "trajectory": {
+                        "energies": traj_energies,
+                        "positions": traj_positions,
+                        "step": traj_steps,
+                    },
+                    "properties": {
+                        "volume": float(atoms.get_volume()) if atoms.pbc.any() else None,
+                    },
+                    "message": f"MD ({ensemble}) completed for {file.filename} ({md_steps} steps)",
+                }
+            else:
+                # single-point (default)
+                energy = atoms.get_potential_energy()
+                forces = atoms.get_forces()
+                msg = f"Calculation completed for {file.filename} using MACE"
 
             symbols = [a.symbol for a in atoms]
             positions = atoms.get_positions().tolist()
@@ -135,7 +226,7 @@ async def calculate(
                 "properties": {
                     "volume": float(atoms.get_volume()) if atoms.pbc.any() else None,
                 },
-                "message": f"Calculation completed for {file.filename} using MACE",
+                "message": msg,
             }
 
         else:
