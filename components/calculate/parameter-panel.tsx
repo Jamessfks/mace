@@ -306,7 +306,7 @@ function ParamInput({
         min={min}
         max={max}
         step={step || 1}
-        className="w-full rounded border border-matrix-green/30 bg-black/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-matrix-green focus:outline-none"
+        className="no-spinner w-full rounded border border-matrix-green/30 bg-black/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-matrix-green focus:outline-none"
       />
     </div>
   );

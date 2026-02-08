@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FileUploadSection,
@@ -33,7 +33,20 @@ export default function CalculatePage() {
   });
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Elapsed time while calculating
+  useEffect(() => {
+    if (!isCalculating) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const start = Date.now();
+    const tick = () => setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isCalculating]);
 
   const handleCalculate = async () => {
     if (uploadedFiles.length === 0) {
@@ -140,6 +153,21 @@ export default function CalculatePage() {
                   "RUN MACE CALCULATION"
                 )}
               </button>
+
+              {/* Progress bar + elapsed time */}
+              {isCalculating && (
+                <div className="mt-3 space-y-2">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-matrix-green/20">
+                    <div
+                      className="h-full w-1/3 rounded-full bg-matrix-green"
+                      style={{ animation: "shimmer 1.5s ease-in-out infinite" }}
+                    />
+                  </div>
+                  <p className="font-mono text-xs text-zinc-500">
+                    Elapsed: {elapsedSeconds}s — MACE calculations may take 30s–2min
+                  </p>
+                </div>
+              )}
             </div>
 
             {error && (

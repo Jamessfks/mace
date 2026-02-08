@@ -147,6 +147,12 @@
   100% { background-position: 0 100px; }
 }
 
+/* Indeterminate progress bar — slides left to right */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 /* Text shadows for Matrix glow */
 .text-shadow-matrix {
   text-shadow: 0 0 10px rgba(0, 255, 65, 0.3),
@@ -179,4 +185,14 @@
 .glow-border {
   box-shadow: 0 0 20px rgba(0, 255, 65, 0.2),
     inset 0 0 20px rgba(0, 255, 65, 0.05);
+}
+
+/* Number inputs without spin buttons — type directly */
+input[type="number"].no-spinner::-webkit-outer-spin-button,
+input[type="number"].no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"].no-spinner {
+  -moz-appearance: textfield;
 }
