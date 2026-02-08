@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { CalculationResult } from "@/types/mace";
 
-const MACE_API_URL = process.env.MACE_API_URL;
+const MACE_API_URL = (() => {
+  const url = process.env.MACE_API_URL?.trim();
+  if (!url) return undefined;
+  // Ensure URL has scheme (https://) for valid fetch
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return `https://${url}`;
+  }
+  return url;
+})();
 
 /**
  * MACE Calculation API
