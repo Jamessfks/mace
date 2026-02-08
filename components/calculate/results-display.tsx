@@ -3,7 +3,7 @@
 import { Download } from "lucide-react";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
 import { PDFReportButton } from "./pdf-report";
-import type { CalculationResult } from "@/types/mace";
+import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 interface ResultsDisplayProps {
   result: CalculationResult;
@@ -39,6 +39,23 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
           </button>
         </div>
       </div>
+
+      {/* Time taken & Physical Parameters */}
+      {(result.timeTaken != null || result.params) && (
+        <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-4">
+          <h3 className="mb-3 font-mono text-sm font-bold text-matrix-green">
+            RUN INFO
+          </h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-zinc-400">
+            {result.timeTaken != null && (
+              <span>Time: <span className="text-matrix-green">{result.timeTaken}s</span></span>
+            )}
+            {result.params && (
+              <span className="text-zinc-500">{formatParamsInline(result.params)}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Energy & Forces Cards */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -111,6 +128,19 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
       )}
     </div>
   );
+}
+
+function formatParamsInline(params: Partial<CalculationParams>): string {
+  const parts: string[] = [];
+  if (params.calculationType) parts.push(params.calculationType);
+  if (params.temperature != null) parts.push(`${params.temperature} K`);
+  if (params.pressure != null) parts.push(`${params.pressure} GPa`);
+  if (params.timeStep != null) parts.push(`${params.timeStep} fs`);
+  if (params.friction != null) parts.push(`friction ${params.friction}`);
+  if (params.mdSteps != null) parts.push(`${params.mdSteps} MD steps`);
+  if (params.mdEnsemble) parts.push(params.mdEnsemble);
+  if (params.forceThreshold != null) parts.push(`fmax ${params.forceThreshold}`);
+  return parts.length ? parts.join(" · ") : "";
 }
 
 function PropertyCard({

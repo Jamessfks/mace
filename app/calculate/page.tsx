@@ -63,6 +63,8 @@ export default function CalculatePage() {
     setIsCalculating(true);
     setError(null);
 
+    const startTime = Date.now();
+
     try {
       const formData = new FormData();
       uploadedFiles.forEach((file) => formData.append("files", file));
@@ -84,7 +86,8 @@ export default function CalculatePage() {
       }
 
       const data: CalculationResult = await response.json();
-      setResult(data);
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+      setResult({ ...data, params, timeTaken });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Calculation failed");
     } finally {
@@ -202,6 +205,12 @@ export default function CalculatePage() {
                       {result.status}
                     </span>
                   </div>
+                  {result.timeTaken != null && (
+                    <div>
+                      <span className="text-zinc-500">Time:</span>
+                      <span className="ml-2 text-white">{result.timeTaken}s</span>
+                    </div>
+                  )}
                   <div>
                     <span className="text-zinc-500">Energy:</span>
                     <span className="ml-2 text-white">

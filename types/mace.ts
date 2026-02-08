@@ -57,6 +57,10 @@ export interface CalculationResult {
     pressure?: number;
   };
   message?: string;
+  /** Physical parameters used for this calculation (set by frontend) */
+  params?: Partial<CalculationParams>;
+  /** Time taken for calculation in seconds (set by frontend) */
+  timeTaken?: number;
 }
 
 export interface UploadedStructure {

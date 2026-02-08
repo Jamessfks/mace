@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import { FileText } from "lucide-react";
-import type { CalculationResult } from "@/types/mace";
+import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 const styles = StyleSheet.create({
   page: {
@@ -71,6 +71,21 @@ const styles = StyleSheet.create({
   },
 });
 
+function formatParams(params: Partial<CalculationParams> | undefined): string {
+  if (!params) return "N/A";
+  const parts: string[] = [];
+  if (params.calculationType) parts.push(`Type: ${params.calculationType}`);
+  if (params.temperature != null) parts.push(`Temperature: ${params.temperature} K`);
+  if (params.pressure != null) parts.push(`Pressure: ${params.pressure} GPa`);
+  if (params.timeStep != null) parts.push(`Time step: ${params.timeStep} fs`);
+  if (params.friction != null) parts.push(`Friction: ${params.friction}`);
+  if (params.mdSteps != null) parts.push(`MD steps: ${params.mdSteps}`);
+  if (params.mdEnsemble) parts.push(`Ensemble: ${params.mdEnsemble}`);
+  if (params.forceThreshold != null) parts.push(`Force threshold: ${params.forceThreshold} eV/Å`);
+  if (params.modelSize) parts.push(`Model: ${params.modelType || "N/A"} (${params.modelSize})`);
+  return parts.length ? parts.join("; ") : "N/A";
+}
+
 function MACEReportPDF({ result }: { result: CalculationResult }) {
   const forceMag = (f: number[]) =>
     Math.sqrt(f[0] ** 2 + f[1] ** 2 + f[2] ** 2).toFixed(4);
@@ -86,6 +101,12 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
             <Text style={styles.label}>Status:</Text>
             <Text style={styles.value}>{result.status}</Text>
           </View>
+          {result.timeTaken != null && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Time taken:</Text>
+              <Text style={styles.value}>{result.timeTaken} s</Text>
+            </View>
+          )}
           <View style={styles.row}>
             <Text style={styles.label}>Total Energy:</Text>
             <Text style={styles.value}>{result.energy?.toFixed(6)} eV</Text>
@@ -116,6 +137,13 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
             </View>
           )}
         </View>
+
+        {result.params && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Physical Parameters</Text>
+            <Text style={styles.value}>{formatParams(result.params)}</Text>
+          </View>
+        )}
 
         {result.forces && result.symbols && (
           <View style={styles.section}>
