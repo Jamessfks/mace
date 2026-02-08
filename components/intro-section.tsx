@@ -90,13 +90,6 @@ export function IntroSection() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4 font-mono text-xs">
           <Link
-            href="/tutorial1/run"
-            className="text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
-          >
-            Run Tutorial 1 in browser →
-          </Link>
-          <span className="text-zinc-600">|</span>
-          <Link
             href="/calculate"
             className="text-matrix-green/80 underline-offset-2 hover:text-matrix-green"
           >

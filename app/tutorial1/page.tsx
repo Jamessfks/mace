@@ -15,12 +15,6 @@ export default function Tutorial1Page() {
           >
             ← Back to MACE Project
           </Link>
-          <Link
-            href="/tutorial1/run"
-            className="rounded bg-emerald-600 px-3 py-1.5 font-mono text-sm text-white transition-colors hover:bg-emerald-700"
-          >
-            Run Tutorial 1
-          </Link>
         </div>
         <span className="font-mono text-xs text-zinc-400">
           MACE in Practice I • Solvent (DEC/EC) • Team 3

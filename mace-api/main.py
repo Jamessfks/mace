@@ -182,7 +182,7 @@ async def health():
 async def root():
     """API info."""
     return {
-        "name": "MACE Calculation API",
+        "name": "MACE API",
         "version": "1.0.0",
         "endpoints": {
             "POST /calculate": "Run MACE calculation on uploaded structure",
