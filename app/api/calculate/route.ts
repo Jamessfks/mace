@@ -4,7 +4,6 @@ import type { CalculationResult } from "@/types/mace";
 const MACE_API_URL = (() => {
   const url = process.env.MACE_API_URL?.trim();
   if (!url) return undefined;
-  // Ensure URL has scheme (https://) for valid fetch
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     return `https://${url}`;
   }
@@ -19,11 +18,10 @@ const MACE_API_URL = (() => {
  * - files: structure files (.xyz, .cif, etc.)
  * - params: JSON string of CalculationParams
  *
- * If MACE_API_URL is set, forwards to Python MACE backend.
- * Otherwise returns mock data for development.
- *
- * Note: On Vercel, request body is limited to 4.5 MB (FUNCTION_PAYLOAD_TOO_LARGE).
- * Keep total upload size under ~4 MB; client enforces this.
+ * Mode selection:
+ * 1. MACE_API_URL set → forward to remote backend (e.g. Railway)
+ * 2. MACE_API_URL not set → run MACE locally via Python subprocess
+ *    (requires Python + mace-torch + ase installed on the machine)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,16 +36,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const params = JSON.parse(paramsStr);
-
-    // Call Python MACE API if configured
+    // ── Remote backend (Railway / any hosted MACE API) ──
     if (MACE_API_URL) {
       const maceFormData = new FormData();
       files.forEach((file) => maceFormData.append("files", file));
       maceFormData.append("params", paramsStr);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 min
+      const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
 
       try {
         const response = await fetch(`${MACE_API_URL}/calculate`, {
@@ -66,40 +62,55 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(data);
       } catch (err) {
         clearTimeout(timeoutId);
-        if (err instanceof Error) {
-          throw err;
-        }
+        if (err instanceof Error) throw err;
         throw new Error("MACE API request failed");
       }
     }
 
-    // Fallback: mock data (when MACE_API_URL not set)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // ── Local mode: run MACE on this machine via Python subprocess ──
+    const { writeFile, mkdtemp, unlink, rmdir } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFile);
+    const os = await import("node:os");
 
-    const mockResult: CalculationResult = {
-      status: "success",
-      energy: -156.234567,
-      forces: [
-        [0.0123, -0.0045, 0.0067],
-        [-0.0089, 0.0134, -0.0023],
-        [0.0045, -0.0078, 0.0091],
-        [-0.0012, 0.0056, -0.0034],
-      ],
-      positions: [
-        [0, 0, 0],
-        [1.5, 0, 0],
-        [0, 1.5, 0],
-        [0, 0, 1.5],
-      ],
-      symbols: ["O", "H", "H", "C"],
-      properties: {
-        volume: 125.6,
-        density: 0.98,
-      },
-      message: `Calculation completed for ${files[0].name} (mock — set MACE_API_URL for real MACE)`,
-    };
+    // Write uploaded file to a temp directory
+    const tmpDir = await mkdtemp(join(os.tmpdir(), "mace-"));
+    const file = files[0];
+    const tmpPath = join(tmpDir, file.name);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(tmpPath, fileBuffer);
 
-    return NextResponse.json(mockResult);
+    // Path to the local Python calculation script
+    const scriptPath = join(process.cwd(), "mace-api", "calculate_local.py");
+
+    try {
+      const { stdout, stderr } = await execFileAsync(
+        "python3",
+        [scriptPath, tmpPath, paramsStr],
+        {
+          timeout: 10 * 60 * 1000, // 10 min
+          maxBuffer: 50 * 1024 * 1024, // 50 MB stdout buffer
+          env: { ...process.env, PYTHONUNBUFFERED: "1" },
+        }
+      );
+
+      if (stderr) {
+        console.warn("[MACE local stderr]", stderr.slice(0, 500));
+      }
+
+      const data: CalculationResult = JSON.parse(stdout);
+      return NextResponse.json(data);
+    } finally {
+      // Cleanup temp files
+      try {
+        await unlink(tmpPath);
+        await rmdir(tmpDir);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
   } catch (error) {
     console.error("Calculation error:", error);
     return NextResponse.json(
@@ -116,6 +127,7 @@ export async function GET() {
   return NextResponse.json({
     name: "MACE Calculation API",
     version: "1.0.0",
+    mode: MACE_API_URL ? "remote" : "local",
     endpoints: {
       POST: "/api/calculate - Submit calculation",
     },

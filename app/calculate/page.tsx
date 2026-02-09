@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  FileUploadSection,
-  isOverSizeLimit,
-} from "@/components/calculate/file-upload-section";
+import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { ResultsDisplay } from "@/components/calculate/results-display";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
@@ -53,13 +50,6 @@ export default function CalculatePage() {
       setError("Please upload at least one structure file");
       return;
     }
-    if (isOverSizeLimit(uploadedFiles)) {
-      setError(
-        "Total file size is over 4 MB. Vercel has a 4.5 MB request limit. Use fewer or smaller structure files."
-      );
-      return;
-    }
-
     setIsCalculating(true);
     setError(null);
 
@@ -77,11 +67,6 @@ export default function CalculatePage() {
 
       if (!response.ok) {
         const text = await response.text();
-        if (response.status === 413 || text.includes("PAYLOAD_TOO_LARGE")) {
-          throw new Error(
-            "Request too large (Vercel 4.5 MB limit). Use fewer or smaller structure files."
-          );
-        }
         throw new Error(text || "Calculation failed");
       }
 
@@ -140,11 +125,7 @@ export default function CalculatePage() {
             <div className="mt-6">
               <button
                 onClick={handleCalculate}
-                disabled={
-                  isCalculating ||
-                  uploadedFiles.length === 0 ||
-                  isOverSizeLimit(uploadedFiles)
-                }
+                disabled={isCalculating || uploadedFiles.length === 0}
                 className="group relative w-full overflow-hidden border-2 border-matrix-green bg-matrix-green/10 px-8 py-4 font-mono text-lg font-bold text-matrix-green transition-all hover:bg-matrix-green hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isCalculating ? (

@@ -10,15 +10,8 @@ interface FileUploadSectionProps {
 
 const ACCEPTED_FORMATS = [".xyz", ".cif", ".poscar", ".contcar", ".pdb"];
 
-/** Vercel serverless request body limit; stay under to avoid FUNCTION_PAYLOAD_TOO_LARGE */
-const MAX_TOTAL_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB (Vercel limit is 4.5 MB)
-
 export function getTotalFilesSize(files: File[]): number {
   return files.reduce((sum, f) => sum + f.size, 0);
-}
-
-export function isOverSizeLimit(files: File[]): boolean {
-  return getTotalFilesSize(files) > MAX_TOTAL_SIZE_BYTES;
 }
 
 export function FileUploadSection({
@@ -79,15 +72,10 @@ export function FileUploadSection({
         </p>
       </div>
 
-      {/* Size limit warning (Vercel 4.5 MB limit) */}
+      {/* Total file size indicator */}
       {files.length > 0 && (
         <div className="mt-4 font-mono text-xs text-zinc-500">
           Total size: {(getTotalFilesSize(files) / 1024).toFixed(1)} KB
-          {isOverSizeLimit(files) && (
-            <p className="mt-1 text-amber-400">
-              Over 4 MB — request will fail on Vercel. Use fewer/smaller files.
-            </p>
-          )}
         </div>
       )}
 
