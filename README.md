@@ -226,11 +226,6 @@ Models are downloaded automatically on first use and cached locally.
 
 ## Next Step(For team members)
 
-
----
-
-## What the MACE founder is asking for
-
 He made **two specific suggestions** and one **future idea**:
 
 ### 1. Preview uploaded structure before running (the main ask)
