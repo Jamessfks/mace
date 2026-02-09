@@ -1,6 +1,6 @@
 # MACE Web Calculator
 
-Production-ready web interface for MACE calculations without coding knowledge.
+Production-ready web interface for MACE calculations without coding knowledge for scientist.
 
 ## Features Implemented
 
