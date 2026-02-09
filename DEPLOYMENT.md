@@ -8,7 +8,7 @@ Commit and push all changes:
 
 ```bash
 git add .
-git commit -m "Add MACE web calculator and Tutorial 1 interface"
+git commit -m "Add MACE web calculator"
 git push origin main
 ```
 
@@ -20,15 +20,6 @@ git push origin main
 4. Vercel auto-detects Next.js — click **"Deploy"**
 5. Wait ~2 minutes for build
 6. Your site is live!
-
-### 3. Binder Setup (for Tutorial 1 "Run" feature)
-
-For `/tutorial1/run` to work:
-- `notebooks/TUTORIAL_1_FIXES.ipynb` must be in your GitHub repo
-- `requirements.txt` must be in the repo root
-- Binder URL uses `HEAD` ref (always uses default branch)
-
-First launch takes 1–2 minutes while Binder builds the environment.
 
 ## MACE Python Backend
 
@@ -82,15 +73,12 @@ MACE_API_URL=http://localhost:8000 npm run dev
 |-------|-------------|------|
 | `/` | Matrix landing with neon scan animation | Static |
 | `/report` | Liquid Water report (DFT, training curves, 3D) | Static |
-| `/tutorial1` | MACE in Practice I (static HTML) | Static |
-| `/tutorial1/run` | Run Tutorial 1 via Binder iframe | Static |
 | `/calculate` | MACE Web Calculator interface | Static |
 | `/api/calculate` | Calculation API (mock data for now) | Dynamic |
 
 ## Post-Deployment Checklist
 
 - [ ] Test all routes on Vercel preview URL
-- [ ] Verify `/tutorial1/run` Binder link works
 - [ ] Check mobile responsiveness
 - [ ] Test calculator with sample XYZ file
 - [ ] Set up custom domain (optional)
@@ -102,7 +90,6 @@ MACE_API_URL=http://localhost:8000 npm run dev
 - **Calculator API**: Returns mock data (no real MACE integration yet)
 - **File parsing**: Files aren't validated/parsed before sending to API
 - **3D Viewer**: Only works with mock data format
-- **Binder**: First launch is slow (~2 min build time)
 
 ### Next Steps for Production
 1. **Python Backend**

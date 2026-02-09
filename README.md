@@ -8,9 +8,6 @@
 
 - **Matrix-Themed Landing**: Neon scan animation, futuristic green/black design
 - **Liquid Water Report**: DFT training results, 3D visualizations, interactive plots
-- **Tutorial 1 (Solvent)**: MACE in Practice I — DEC/EC organic solvents (XTB reference)
-  - View static HTML report
-  - Run live in browser via Binder
 - **MACE Web Calculator**: No-code interface for running MACE calculations
   - Upload structures (.xyz, .cif, .poscar, .pdb)
   - Configure model & parameters
@@ -23,16 +20,13 @@
 ### Routes
 - `/` — Matrix intro with neon scan, links to reports and calculator
 - `/report` — Liquid Water results (training curves, validation metrics, 3D)
-- `/tutorial1` — MACE in Practice I static report
-- `/tutorial1/run` — Run Tutorial 1 in Binder (live notebook)
 - `/calculate` — MACE Web Calculator (no-code interface)
 
 ### Key Files
 - `app/page.tsx` — Main landing page
 - `components/intro-section.tsx` — Matrix hero section
 - `app/calculate/page.tsx` — Calculator interface
-- `notebooks/TUTORIAL_1_FIXES.ipynb` — Tutorial notebook for Binder
-- `requirements.txt` — Python deps for Binder
+- `requirements.txt` — Python deps (optional)
 - See `CALCULATOR_README.md` for calculator architecture
 
 ## Getting Started
@@ -69,3 +63,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Using RailWay
+
+MACE is a Python program that needs PyTorch, etc. Browsers only run JavaScript. So the browser cannot run MACE by itself.Therefore, l need a backend server for the calculation. That server is a separate machine (or service) that runs your MACE API.
+
+Railway (or any hosted backend) means:
+The user does nothing: open the Vercel site, upload a file, click Run.
+You (or your team) handle one deployment; everyone shares it.

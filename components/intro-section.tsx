@@ -79,17 +79,6 @@ export function IntroSection() {
             variant="outline"
             className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
           >
-            <Link href="/tutorial1">
-              <span className="relative z-10">TUTORIAL 1</span>
-              <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
-          >
             <Link href="/calculate">
               <span className="relative z-10">MACE CALCULATOR</span>
               <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
