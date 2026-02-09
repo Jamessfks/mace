@@ -6,7 +6,6 @@ FastAPI backend for running MACE calculations on atomic structures.
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,37 +49,12 @@ def detect_format(filename: str) -> str:
     return "xyz"
 
 
-def get_model_path(model_type: str) -> Optional[Path]:
-    """Return path to custom MACE model (CS2535 water). None for foundation models."""
-    if model_type not in ("water", "MACE-Water"):
-        return None
-    base = Path(__file__).resolve().parent.parent / "CS2535"
-    for name in ("water_1k_small.model", "water_1k_small_stagetwo.model", "water_1k_small_compiled.model"):
-        p = base / name
-        if p.exists():
-            return p
-    return None
-
-
 def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool):
     """
     Return ASE calculator for MACE.
     Uses foundation models (MACE-MP, MACE-OFF) for materials and molecules.
-    Falls back to custom water model if available and selected.
     """
     model_size = model_size or "medium"
-
-    # Custom water model (CS2535) if available and selected
-    if model_type in ("water", "MACE-Water"):
-        path = get_model_path(model_type)
-        if path:
-            from mace.calculators import MACECalculator
-
-            return MACECalculator(model_path=str(path), device=device)
-        # No custom water model: use MACE-OFF (covers H2O, organic molecules)
-        from mace.calculators import mace_off
-
-        return mace_off(model=model_size, device=device)
 
     # MACE-OFF: organic molecules (ethanol, H2O, etc.) — H, C, N, O, P, S, F, Cl, Br, I
     if model_type in ("MACE-OFF", "MACE-OFF23"):
@@ -89,7 +63,6 @@ def get_mace_calculator(model_type: str, model_size: str, device: str, dispersio
         return mace_off(model=model_size, device=device)
 
     # MACE-MP: materials (bulk crystals, 89 elements) — default
-    # MACE-MP-0, MACE-MP
     from mace.calculators import mace_mp
 
     return mace_mp(model=model_size, device=device, dispersion=dispersion)
@@ -128,7 +101,7 @@ async def calculate(
         fmt = detect_format(file.filename or "")
         atoms = read(tmp_path, format=fmt)
 
-        # Get MACE calculator — foundation models (MACE-MP, MACE-OFF) or custom water
+        # Get MACE calculator — foundation models (MACE-MP, MACE-OFF)
         model_type = params_obj.get("modelType", "MACE-MP-0")
         model_size = params_obj.get("modelSize", "medium")
         device = params_obj.get("device", "cpu")

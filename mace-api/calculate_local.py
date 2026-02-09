@@ -12,8 +12,16 @@ Called by the Next.js API route when no MACE_API_URL is set.
 import json
 import sys
 import os
+import warnings
 from pathlib import Path
-from typing import Optional
+
+# Suppress all warnings so only JSON goes to stdout
+warnings.filterwarnings("ignore")
+os.environ["PYTHONWARNINGS"] = "ignore"
+
+# Redirect all non-JSON output (MACE/PyTorch info messages) to stderr
+import logging
+logging.disable(logging.CRITICAL)
 
 
 def detect_format(filename: str) -> str:
@@ -29,32 +37,14 @@ def detect_format(filename: str) -> str:
     return "xyz"
 
 
-def get_model_path(model_type: str) -> Optional[Path]:
-    if model_type not in ("water", "MACE-Water"):
-        return None
-    base = Path(__file__).resolve().parent.parent / "CS2535"
-    for name in ("water_1k_small.model", "water_1k_small_stagetwo.model", "water_1k_small_compiled.model"):
-        p = base / name
-        if p.exists():
-            return p
-    return None
-
-
 def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool):
     model_size = model_size or "medium"
-
-    if model_type in ("water", "MACE-Water"):
-        path = get_model_path(model_type)
-        if path:
-            from mace.calculators import MACECalculator
-            return MACECalculator(model_path=str(path), device=device)
-        from mace.calculators import mace_off
-        return mace_off(model=model_size, device=device)
 
     if model_type in ("MACE-OFF", "MACE-OFF23"):
         from mace.calculators import mace_off
         return mace_off(model=model_size, device=device)
 
+    # MACE-MP: materials (bulk crystals, 89 elements) — default
     from mace.calculators import mace_mp
     return mace_mp(model=model_size, device=device, dispersion=dispersion)
 

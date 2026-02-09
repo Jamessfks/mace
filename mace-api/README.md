@@ -37,14 +37,13 @@ Health check.
 
 API info.
 
-## Model Paths
+## Models
 
-Uses MACE models from `../CS2535/` if present:
-- `water_1k_small.model`
-- `water_1k_small_stagetwo.model`
-- `water_1k_small_compiled.model`
+Uses pre-trained MACE foundation models:
+- **MACE-MP-0** — materials (89 elements)
+- **MACE-OFF** — organic molecules (H, C, N, O, etc.)
 
-If no MACE model found, falls back to ASE EMT calculator (for testing).
+Models are downloaded and cached automatically on first use.
 
 ## Deployment
 

@@ -100,7 +100,12 @@ export async function POST(request: NextRequest) {
         console.warn("[MACE local stderr]", stderr.slice(0, 500));
       }
 
-      const data: CalculationResult = JSON.parse(stdout);
+      // MACE/PyTorch may print warnings before JSON; find the JSON object
+      const jsonStart = stdout.indexOf("{");
+      if (jsonStart === -1) {
+        throw new Error(stdout || "No JSON output from MACE");
+      }
+      const data: CalculationResult = JSON.parse(stdout.slice(jsonStart));
       return NextResponse.json(data);
     } finally {
       // Cleanup temp files

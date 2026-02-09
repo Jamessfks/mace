@@ -32,7 +32,7 @@ Production-ready web interface for MACE calculations without coding knowledge.
 - [x] Mock data fallback when MACE_API_URL not set
 - [x] **Python MACE API** (`mace-api/`) — FastAPI with MACE-torch
   - ASE file parsing (XYZ, CIF, POSCAR, PDB)
-  - Loads CS2535 trained models (water_1k_small.model)
+  - Loads pre-trained MACE foundation models (MACE-MP, MACE-OFF)
   - Single-point energy/forces
   - EMT fallback when model not found
 - [x] Next.js proxies to Python API when `MACE_API_URL` env var set

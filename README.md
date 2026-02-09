@@ -1,74 +1,229 @@
-# MACE Force Fields — Team 3
+# MACE Force Fields — Web Calculator
 
-**CS2535 ORNL #3.** Machine learning for understanding materials inside microchips. Matrix-themed web platform with MACE training reports and web calculator.
+**CS2535 ORNL #3.** A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
 
 **Team:** Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri, Zicheng Zhao
 
-## Features
+---
 
-- **Matrix-Themed Landing**: Neon scan animation, futuristic green/black design
-- **Liquid Water Report**: DFT training results, 3D visualizations, interactive plots
-- **MACE Web Calculator**: No-code interface for running MACE calculations
-  - Upload structures (.xyz, .cif, .poscar, .pdb)
-  - Configure model & parameters
-  - View energy, forces, 3D structure
-  - Download results as JSON
-- **Vercel Ready**: Deploy with one click
+## What This App Does
 
-## Project Structure
+- Upload molecular structure files (`.xyz`, `.cif`, `.poscar`, `.pdb`)
+- Choose a MACE model: **MACE-MP-0** (materials) or **MACE-OFF** (organic molecules)
+- Run calculations: single-point energy, geometry optimization, or molecular dynamics
+- View results: energy, forces, 3D molecule viewer, downloadable PDF report
 
-### Routes
-- `/` — Matrix intro with neon scan, links to reports and calculator
-- `/report` — Liquid Water results (training curves, validation metrics, 3D)
-- `/calculate` — MACE Web Calculator (no-code interface)
+---
 
-### Key Files
-- `app/page.tsx` — Main landing page
-- `components/intro-section.tsx` — Matrix hero section
-- `app/calculate/page.tsx` — Calculator interface
-- `requirements.txt` — Python deps (optional)
-- See `CALCULATOR_README.md` for calculator architecture
+## Run Locally (Step-by-Step Tutorial)
 
-## Getting Started
+Follow these steps to run the full app on your own computer. No cloud server needed.
 
-First, run the development server:
+### Prerequisites
+
+You need two things installed:
+
+1. **Node.js** (v18 or later) — for the website
+2. **Python 3.10+** — for the MACE calculations
+
+#### Install Node.js
+
+- Go to [https://nodejs.org](https://nodejs.org)
+- Download the **LTS** version
+- Run the installer (click Next/Continue through everything)
+- To verify, open a terminal and type:
+
+```bash
+node --version
+```
+
+You should see something like `v18.x.x` or `v20.x.x`.
+
+#### Install Python
+
+- Go to [https://www.python.org/downloads](https://www.python.org/downloads)
+- Download Python 3.10 or later
+- **Important (Windows):** Check the box that says **"Add Python to PATH"** during installation
+- To verify, open a terminal and type:
+
+```bash
+python3 --version
+```
+
+You should see something like `Python 3.10.x` or later.
+
+---
+
+### Step 1: Download the Project
+
+Open a terminal and run:
+
+```bash
+git clone https://github.com/Jamessfks/mace.git
+cd mace
+```
+
+If you don't have `git`, you can download the project as a ZIP from GitHub and unzip it.
+
+---
+
+### Step 2: Install Website Dependencies
+
+In the `mace` folder, run:
+
+```bash
+npm install
+```
+
+This downloads all the JavaScript packages the website needs. It may take 1–2 minutes.
+
+---
+
+### Step 3: Install Python / MACE Dependencies
+
+Still in the `mace` folder, run:
+
+```bash
+pip install mace-torch ase
+```
+
+This installs:
+- **mace-torch** — the MACE machine learning model
+- **ase** — Atomic Simulation Environment (reads structure files, runs MD, etc.)
+
+This may take a few minutes (it downloads PyTorch and other packages).
+
+> **Note:** If `pip` doesn't work, try `pip3` instead.
+
+---
+
+### Step 4: Start the App
+
+Run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open your browser and go to:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**[http://localhost:3000](http://localhost:3000)**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+That's it! The website is running locally. When you upload a structure and click "RUN MACE CALCULATION", the calculation runs directly on your computer using Python — no cloud server, no Railway, no sign-ups.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+### Step 5: Try a Calculation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Go to [http://localhost:3000/calculate](http://localhost:3000/calculate)
+2. Upload a `.xyz` file (e.g. an ethanol or water molecule)
+3. Choose a model (MACE-OFF for organic molecules, MACE-MP-0 for materials)
+4. Click **RUN MACE CALCULATION**
+5. Wait for the result (first run may take longer while the model downloads)
+6. View energy, forces, and the 3D structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## How It Works
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+Browser (localhost:3000)
+    |
+    |  Upload file + parameters
+    v
+Next.js API route (/api/calculate)
+    |
+    |  Spawns Python subprocess
+    v
+calculate_local.py (Python + MACE)
+    |
+    |  Returns JSON (energy, forces, etc.)
+    v
+Browser shows results
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The **website** (Next.js) runs in your browser
+- When you click "Run", it calls a local API route
+- That API route runs a **Python script** (`mace-api/calculate_local.py`) on your machine
+- The Python script loads the MACE model, computes energy/forces, and returns JSON
+- The website displays the results
 
+No external servers are used in local mode.
 
-## Using RailWay
+---
 
-MACE is a Python program that needs PyTorch, etc. Browsers only run JavaScript. So the browser cannot run MACE by itself.Therefore, l need a backend server for the calculation. That server is a separate machine (or service) that runs your MACE API.
+## Deploy Online (Optional)
 
-Railway (or any hosted backend) means:
-The user does nothing: open the Vercel site, upload a file, click Run.
-You (or your team) handle one deployment; everyone shares it.
+If you want the app accessible to others without them installing anything:
+
+### Frontend (Vercel)
+
+1. Push the project to GitHub
+2. Go to [vercel.com](https://vercel.com), import the repo, click Deploy
+3. Set the environment variable `MACE_API_URL` to your backend URL (see below)
+
+### Backend (Railway or any server)
+
+1. Go to [railway.app](https://railway.app)
+2. Create a new project from the `mace-api/` folder
+3. Railway will run the FastAPI backend (`main.py`)
+4. Copy the Railway URL and set it as `MACE_API_URL` in Vercel
+
+When `MACE_API_URL` is set, the app forwards calculations to that server instead of running Python locally.
+
+---
+
+## Project Structure
+
+```
+mace/
+  app/                    # Next.js pages
+    page.tsx              # Landing page
+    calculate/page.tsx    # Calculator page
+    report/page.tsx       # Liquid Water report
+    api/calculate/route.ts  # API route (local or remote)
+  components/             # UI components
+    calculate/            # Calculator components
+      file-upload-section.tsx
+      parameter-panel.tsx
+      results-display.tsx
+      molecule-viewer-3d.tsx  # 3Dmol.js 3D viewer
+      pdf-report.tsx
+  mace-api/               # Python backend
+    calculate_local.py    # Standalone script (no server needed)
+    main.py               # FastAPI server (for cloud deployment)
+    requirements.txt      # Python dependencies
+  types/mace.ts           # TypeScript type definitions
+  package.json            # Node.js dependencies
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `node: command not found` | Install Node.js from [nodejs.org](https://nodejs.org) |
+| `python3: command not found` | Install Python from [python.org](https://python.org). On Windows, try `python` instead of `python3` |
+| `pip: command not found` | Try `pip3` or `python3 -m pip install ...` |
+| `mace-torch` install fails | Make sure Python 3.10+ is installed. Try: `pip install torch` first, then `pip install mace-torch` |
+| First calculation is slow | Normal — MACE downloads the model on first use (~30s). Later runs are faster |
+| Calculation hangs or fails | Check the terminal for Python errors. Make sure `mace-torch` and `ase` are installed |
+| `npm run dev` fails | Run `npm install` first. Make sure Node.js 18+ is installed |
+
+---
+
+## Models
+
+| Model | Best for | Elements |
+|-------|----------|----------|
+| **MACE-MP-0** | Materials, crystals, bulk solids | 89 elements |
+| **MACE-OFF** | Organic molecules (ethanol, water, etc.) | H, C, N, O, P, S, F, Cl, Br, I |
+
+Models are downloaded automatically on first use and cached locally.
+
+---
+
+## License
+
+Academic use. MACE-OFF is under the [Academic Software License (ASL)](https://github.com/gabor1/ASL).
