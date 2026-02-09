@@ -258,9 +258,7 @@ ml-peg has a curated menu of benchmark structures (bulk crystals, molecules, sur
 
 ---
 
-## What you should do (in priority order)
-
-### Priority 1: Add "Preview Structure" button after upload
+## Priority 1: Add "Preview Structure" button after upload
 
 This is the most important change. In `file-upload-section.tsx`, after a file is uploaded, add a **"Preview Structure"** button. When clicked, it:
 - Parses the XYZ/CIF file client-side
@@ -269,7 +267,7 @@ This is the most important change. In `file-upload-section.tsx`, after a file is
 
 You could reuse your existing `MoleculeViewer3D` component by parsing the uploaded file into positions/symbols on the client side (no backend needed — just read the text file in JS).
 
-### Priority 2: Switch to (or add) WEAS viewer
+## Priority 2: Switch to (or add) WEAS viewer
 
 To align with ml-peg, consider using WEAS. From their code, it's as simple as embedding an HTML snippet with:
 
@@ -283,7 +281,7 @@ You could either:
 
 WEAS supports XYZ, CIF, and trajectory viewing out of the box.
 
-### Priority 3: Add structure info/warnings
+## Priority 3: Add structure info/warnings
 
 After parsing the uploaded file, show:
 - **Atom count** (e.g. "192 atoms")
@@ -293,7 +291,7 @@ After parsing the uploaded file, show:
 
 This directly addresses his concern about "catching huge or unexpected structures."
 
-### Priority 4 (future): ml-peg structure catalog integration
+## Priority 4 (future): ml-peg structure catalog integration
 
 Add a "Browse ml-peg structures" option alongside file upload. This would:
 - Fetch the ml-peg benchmark structure list (from their S3 bucket or API)
@@ -312,8 +310,6 @@ This connects the two tools as he envisions.
 | Show atom count + element warning on upload | Easy | **High** — catches large/wrong structures |
 | Switch viewer to WEAS (match ml-peg) | Medium | **Medium** — aligns with their ecosystem |
 | ml-peg structure catalog browser | Larger | **High** — the "fun future" he mentions |
-
-If you want me to implement any of these, switch to Agent mode and let me know which ones to start with. I'd recommend starting with the **structure preview + warnings** since that's the core of what he asked for.
 
 
 ## License
