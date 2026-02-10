@@ -66,45 +66,75 @@ export function FileUploadSection({
   };
 
   return (
-    <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-      <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
-        UPLOAD STRUCTURE
-      </h2>
+    <div className="space-y-6">
+      {/* ── Option A: Upload your own file ── */}
+      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
+        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+          OPTION A — UPLOAD YOUR FILE
+        </h2>
 
-      {/* Drag & Drop Zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        className="group relative cursor-pointer rounded-lg border-2 border-dashed border-matrix-green/30 bg-matrix-green/5 p-12 text-center transition-colors hover:border-matrix-green/50 hover:bg-matrix-green/10"
-      >
-        <input
-          type="file"
-          accept={ACCEPTED_FORMATS.join(",")}
-          onChange={handleFileInput}
-          className="absolute inset-0 cursor-pointer opacity-0"
-        />
-        <Upload className="mx-auto mb-3 h-12 w-12 text-matrix-green/60" />
-        <p className="mb-1 font-mono text-sm text-zinc-300">
-          Drag & drop a structure file here
-        </p>
-        <p className="font-mono text-xs text-zinc-500">
-          or click to browse
-        </p>
-        <p className="mt-2 font-mono text-xs text-zinc-600">
-          Supported: {ACCEPTED_FORMATS.join(", ")}
-        </p>
+        {/* Drag & Drop Zone */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="group relative cursor-pointer rounded-lg border-2 border-dashed border-matrix-green/30 bg-matrix-green/5 p-12 text-center transition-colors hover:border-matrix-green/50 hover:bg-matrix-green/10"
+        >
+          <input
+            type="file"
+            accept={ACCEPTED_FORMATS.join(",")}
+            onChange={handleFileInput}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+          <Upload className="mx-auto mb-3 h-12 w-12 text-matrix-green/60" />
+          <p className="mb-1 font-mono text-sm text-zinc-300">
+            Drag & drop a structure file here
+          </p>
+          <p className="font-mono text-xs text-zinc-500">
+            or click to browse
+          </p>
+          <p className="mt-2 font-mono text-xs text-zinc-600">
+            Supported: {ACCEPTED_FORMATS.join(", ")}
+          </p>
+        </div>
       </div>
 
-      {/* ── ml-peg Catalog (browse benchmark structures) ──
-           Users can select a benchmark structure from the ml-peg catalog
-           instead of uploading their own file. Connects this tool with
-           the MACE team's ml-peg ecosystem.
-           See: components/calculate/mlpeg-catalog.tsx */}
-      <MlPegCatalog onSelect={(file) => onFilesChange([file])} />
+      {/* ── "OR" divider ── */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-matrix-green/20" />
+        <span className="font-mono text-xs text-zinc-500">OR</span>
+        <div className="h-px flex-1 bg-matrix-green/20" />
+      </div>
 
-      {/* Uploaded file display (single file) */}
+      {/* ── Option B: Browse ml-peg benchmark structures ── */}
+      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
+        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+          OPTION B — BROWSE ML-PEG STRUCTURES
+        </h2>
+        <p className="mb-3 font-mono text-xs text-zinc-500">
+          Select a benchmark structure from the{" "}
+          <a
+            href="https://github.com/ddmms/ml-peg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-matrix-green/70 underline hover:text-matrix-green"
+          >
+            ml-peg
+          </a>{" "}
+          catalog — no file needed.
+        </p>
+
+        {/* ml-peg catalog browser */}
+        <MlPegCatalog onSelect={(file) => onFilesChange([file])} />
+      </div>
+
+      {/* ── Selected file + info + preview (shown after upload or catalog selection) ── */}
       {files.length > 0 && (
-        <div className="mt-4">
+        <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
+          <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+            SELECTED STRUCTURE
+          </h2>
+
+          {/* File card */}
           <div className="flex items-center justify-between rounded border border-matrix-green/20 bg-black/50 p-3">
             <div className="flex items-center gap-3">
               <File className="h-4 w-4 text-matrix-green/80" />
@@ -124,20 +154,16 @@ export function FileUploadSection({
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {/* ── Structure Info (auto, shown immediately) ──
+               See: components/calculate/structure-info.tsx */}
+          <StructureInfo file={files[0]} />
+
+          {/* ── Structure Preview (click-to-display 3D viewer) ──
+               See: components/calculate/structure-preview.tsx */}
+          <StructurePreview files={files} />
         </div>
       )}
-
-      {/* ── Structure Info (auto, shown immediately after upload) ──
-           Parses the file client-side and shows atom count, elements,
-           bounding box, and size warnings. No user action needed.
-           See: components/calculate/structure-info.tsx */}
-      {files.length > 0 && <StructureInfo file={files[0]} />}
-
-      {/* ── Structure Preview (click-to-display 3D viewer) ──
-           Shows a "Preview Structure" button. When clicked, renders the
-           structure in a 3D viewer (WEAS or 3Dmol.js).
-           See: components/calculate/structure-preview.tsx */}
-      <StructurePreview files={files} />
     </div>
   );
 }
