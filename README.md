@@ -171,30 +171,63 @@ If you want the app accessible to others without them installing anything:
 
 When `MACE_API_URL` is set, the app forwards calculations to that server instead of running Python locally.
 
+> **Note:** The public demo backend runs on Railway’s **Hobby Plan** ($5/month). This paid subscription reflects our team’s dedication to keeping the MACE calculator available online for the community.
+
 ---
 
 ## Project Structure
 
 ```
 mace/
-  app/                    # Next.js pages
-    page.tsx              # Landing page
-    calculate/page.tsx    # Calculator page
-    report/page.tsx       # Liquid Water report
-    api/calculate/route.ts  # API route (local or remote)
-  components/             # UI components
-    calculate/            # Calculator components
-      file-upload-section.tsx
-      parameter-panel.tsx
-      results-display.tsx
-      molecule-viewer-3d.tsx  # 3Dmol.js 3D viewer
-      pdf-report.tsx
-  mace-api/               # Python backend
-    calculate_local.py    # Standalone script (no server needed)
-    main.py               # FastAPI server (for cloud deployment)
-    requirements.txt      # Python dependencies
-  types/mace.ts           # TypeScript type definitions
-  package.json            # Node.js dependencies
+  app/
+    api/calculate/route.ts     # API route (local Python subprocess or remote MACE API)
+    calculate/page.tsx         # MACE Calculator page
+    report/page.tsx            # Liquid Water report page
+    favicon.ico
+    globals.css
+    layout.tsx
+    page.tsx                   # Landing page
+  components/
+    calculate/
+      file-upload-section.tsx  # Upload zone + ml-peg catalog + file card
+      mlpeg-catalog.tsx        # Browse ml-peg benchmark structures
+      molecule-viewer-3d.tsx    # 3Dmol.js + WEAS dual-engine viewer
+      parameter-panel.tsx      # Model, calculation type, physical params
+      pdf-report.tsx           # PDF report generation
+      results-display.tsx      # Energy, forces, viewer, forces table
+      structure-info.tsx       # Auto-parsed structure info + warnings
+      structure-preview.tsx    # Click-to-display 3D preview (WEAS/3Dmol)
+      weas-viewer.tsx         # WEAS iframe viewer (ml-peg compatible)
+    ui/                        # badge, button, card, scroll-area, tabs
+    Footer.tsx
+    intro-section.tsx
+    IntroSection.tsx
+    ReportSection.tsx
+    water-report-section.tsx
+  data/
+    water_report.ts           # Liquid Water report data
+  lib/
+    mlpeg-catalog.ts           # ml-peg benchmark structure catalog
+    parse-structure.ts         # Client-side XYZ/CIF/PDB/POSCAR parser
+    utils.ts
+  mace-api/
+    calculate_local.py         # Standalone script (no server, for local mode)
+    main.py                    # FastAPI server (for cloud deployment)
+    README.md
+    requirements.txt
+  public/                      # Static assets (SVGs, report HTML, images)
+  types/
+    mace.ts                    # CalculationParams, CalculationResult, etc.
+  CALCULATOR_README.md
+  DEPLOYMENT.md
+  components.json              # shadcn/ui config
+  eslint.config.mjs
+  next.config.ts
+  package.json
+  postcss.config.mjs
+  README.md
+  requirements.txt             # Optional Python deps
+  tsconfig.json
 ```
 
 ---
