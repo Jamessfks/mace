@@ -122,7 +122,7 @@ export default function CalculatePage() {
             />
 
             {/* Calculate Button */}
-            <div className="mt-6">
+            <div className="mt-8">
               <button
                 onClick={handleCalculate}
                 disabled={isCalculating || uploadedFiles.length === 0}
@@ -148,7 +148,7 @@ export default function CalculatePage() {
                     />
                   </div>
                   <p className="font-mono text-xs text-zinc-500">
-                    Elapsed: {elapsedSeconds}s — MACE calculations may take 30s–2min
+                    Elapsed: {elapsedSeconds}s
                   </p>
                 </div>
               )}
@@ -162,7 +162,7 @@ export default function CalculatePage() {
 
             {/* Results Display */}
             {result && (
-              <div className="mt-6">
+              <div className="mt-18">
                 <ResultsDisplay result={result} />
               </div>
             )}

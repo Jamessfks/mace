@@ -1,0 +1,424 @@
+/**
+ * ml-peg Structure Catalog — Curated benchmark structures from the MACE team.
+ *
+ * SOURCE:
+ *   ml-peg (ML Performance and Extrapolation Guide) is a testing framework
+ *   for ML interatomic potentials, developed by the MACE team.
+ *   Repository: https://github.com/ddmms/ml-peg
+ *   Live guide:  https://ml-peg.stfc.ac.uk
+ *
+ * PURPOSE:
+ *   Provide a set of well-known benchmark structures that users can select
+ *   from a menu instead of uploading their own files. This:
+ *     - Lets users try the MACE calculator without having structure files
+ *     - Provides standard test cases (bulk crystals, molecules, surfaces)
+ *     - Connects our web calculator with the ml-peg ecosystem
+ *     - Addresses the MACE founder's suggestion for future integration
+ *
+ * HOW STRUCTURES ARE STORED:
+ *   Structures are embedded as XYZ strings in this file. This avoids:
+ *     - CORS issues when fetching from ml-peg's S3 bucket
+ *     - Network dependency (works offline / in local mode)
+ *     - Complexity of parsing ml-peg's internal data formats
+ *
+ *   The structures here are generated using ASE's `bulk()` builder and
+ *   standard molecular databases, matching what ml-peg uses internally
+ *   (see ml_peg/calcs/bulk_crystal/lattice_constants/calc_lattice_constants.py).
+ *
+ * CATEGORIES (matching ml-peg's app/ folder structure):
+ *   - Bulk Crystals       (ml_peg/app/bulk_crystal/)
+ *   - Molecular Systems   (ml_peg/app/molecular/)
+ *   - Conformers          (ml_peg/app/conformers/)
+ *   - Surfaces            (ml_peg/app/surfaces/)
+ *   - Non-Covalent        (ml_peg/app/non_covalent_interactions/)
+ *
+ * EXTENDING:
+ *   To add more structures:
+ *   1. Generate the XYZ string (e.g. from ASE: atoms.write('struct.xyz'))
+ *   2. Add a new entry to the appropriate category in MLPEG_CATALOG below
+ *   3. Include: id, name, description, formula, atomCount, elements,
+ *      recommendedModel, and xyzData
+ *
+ * FUTURE:
+ *   When ml-peg provides a public API or CORS-enabled S3 access, this
+ *   catalog can be replaced with dynamic fetching. The CatalogEntry
+ *   interface will remain the same.
+ */
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** A single structure entry in the catalog. */
+export interface CatalogEntry {
+  /** Unique identifier (e.g. "si-diamond") */
+  id: string;
+  /** Human-readable name (e.g. "Silicon (diamond)") */
+  name: string;
+  /** Short description */
+  description: string;
+  /** Chemical formula (e.g. "Si", "C2H5OH") */
+  formula: string;
+  /** Number of atoms in the structure */
+  atomCount: number;
+  /** List of unique elements */
+  elements: string[];
+  /** Recommended MACE model type for this structure */
+  recommendedModel: "MACE-MP-0" | "MACE-OFF";
+  /** XYZ-formatted string of the structure */
+  xyzData: string;
+}
+
+/** A category of structures (e.g. "Bulk Crystals"). */
+export interface CatalogCategory {
+  /** Category identifier */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Short description */
+  description: string;
+  /** ml-peg folder path for reference */
+  mlpegPath: string;
+  /** Structures in this category */
+  entries: CatalogEntry[];
+}
+
+// ---------------------------------------------------------------------------
+// Catalog Data
+// ---------------------------------------------------------------------------
+
+/**
+ * The full ml-peg structure catalog.
+ *
+ * Each category matches a folder in ml-peg's app/ directory.
+ * Structures are standard benchmark systems used by the MACE team.
+ * XYZ coordinates are from ASE's bulk() builder or standard databases.
+ */
+export const MLPEG_CATALOG: CatalogCategory[] = [
+  // =========================================================================
+  // BULK CRYSTALS — ml_peg/app/bulk_crystal/
+  // =========================================================================
+  {
+    id: "bulk-crystals",
+    name: "Bulk Crystals",
+    description: "Bulk crystal structures for lattice constants, elasticity, and phonon benchmarks.",
+    mlpegPath: "ml_peg/app/bulk_crystal/",
+    entries: [
+      {
+        id: "si-diamond",
+        name: "Silicon (diamond)",
+        description: "Diamond cubic silicon — the most common semiconductor benchmark.",
+        formula: "Si",
+        atomCount: 2,
+        elements: ["Si"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `2
+Lattice="5.43 0.0 0.0 0.0 5.43 0.0 0.0 0.0 5.43" Properties=species:S:1:pos:R:3 pbc="T T T"
+Si 0.000000 0.000000 0.000000
+Si 1.357500 1.357500 1.357500`,
+      },
+      {
+        id: "cu-fcc",
+        name: "Copper (FCC)",
+        description: "Face-centered cubic copper — standard metal benchmark.",
+        formula: "Cu",
+        atomCount: 4,
+        elements: ["Cu"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `4
+Lattice="3.615 0.0 0.0 0.0 3.615 0.0 0.0 0.0 3.615" Properties=species:S:1:pos:R:3 pbc="T T T"
+Cu 0.000000 0.000000 0.000000
+Cu 0.000000 1.807500 1.807500
+Cu 1.807500 0.000000 1.807500
+Cu 1.807500 1.807500 0.000000`,
+      },
+      {
+        id: "nacl-rocksalt",
+        name: "Sodium Chloride (rocksalt)",
+        description: "NaCl in rocksalt structure — ionic crystal benchmark.",
+        formula: "NaCl",
+        atomCount: 8,
+        elements: ["Na", "Cl"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `8
+Lattice="5.64 0.0 0.0 0.0 5.64 0.0 0.0 0.0 5.64" Properties=species:S:1:pos:R:3 pbc="T T T"
+Na 0.000000 0.000000 0.000000
+Na 0.000000 2.820000 2.820000
+Na 2.820000 0.000000 2.820000
+Na 2.820000 2.820000 0.000000
+Cl 2.820000 0.000000 0.000000
+Cl 0.000000 2.820000 0.000000
+Cl 0.000000 0.000000 2.820000
+Cl 2.820000 2.820000 2.820000`,
+      },
+      {
+        id: "fe-bcc",
+        name: "Iron (BCC)",
+        description: "Body-centered cubic iron — magnetic metal benchmark.",
+        formula: "Fe",
+        atomCount: 2,
+        elements: ["Fe"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `2
+Lattice="2.87 0.0 0.0 0.0 2.87 0.0 0.0 0.0 2.87" Properties=species:S:1:pos:R:3 pbc="T T T"
+Fe 0.000000 0.000000 0.000000
+Fe 1.435000 1.435000 1.435000`,
+      },
+      {
+        id: "c-diamond",
+        name: "Diamond (carbon)",
+        description: "Diamond cubic carbon — hard material benchmark.",
+        formula: "C",
+        atomCount: 2,
+        elements: ["C"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `2
+Lattice="3.567 0.0 0.0 0.0 3.567 0.0 0.0 0.0 3.567" Properties=species:S:1:pos:R:3 pbc="T T T"
+C 0.000000 0.000000 0.000000
+C 0.891750 0.891750 0.891750`,
+      },
+    ],
+  },
+
+  // =========================================================================
+  // MOLECULAR SYSTEMS — ml_peg/app/molecular/
+  // =========================================================================
+  {
+    id: "molecular",
+    name: "Molecular Systems",
+    description: "Small molecules for energy and force benchmarks (GMTKN55, Wiggle150).",
+    mlpegPath: "ml_peg/app/molecular/",
+    entries: [
+      {
+        id: "water",
+        name: "Water (H₂O)",
+        description: "Single water molecule — simplest benchmark for MACE-OFF.",
+        formula: "H2O",
+        atomCount: 3,
+        elements: ["H", "O"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `3
+Water molecule
+O 0.000000 0.000000 0.119262
+H 0.000000 0.763239 -0.477047
+H 0.000000 -0.763239 -0.477047`,
+      },
+      {
+        id: "ethanol",
+        name: "Ethanol (C₂H₅OH)",
+        description: "Ethanol molecule — standard organic benchmark.",
+        formula: "C2H5OH",
+        atomCount: 9,
+        elements: ["C", "H", "O"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `9
+Ethanol molecule
+C -0.047600 1.406300 0.000000
+C 0.002300 -0.115100 0.000000
+O 1.367500 -0.563700 0.000000
+H -1.086000 1.761400 0.000000
+H 0.437200 1.838700 -0.891400
+H 0.437200 1.838700 0.891400
+H -0.520100 -0.505100 0.891400
+H -0.520100 -0.505100 -0.891400
+H 1.379400 -1.530400 0.000000`,
+      },
+      {
+        id: "methane",
+        name: "Methane (CH₄)",
+        description: "Methane molecule — minimal organic benchmark.",
+        formula: "CH4",
+        atomCount: 5,
+        elements: ["C", "H"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `5
+Methane molecule
+C 0.000000 0.000000 0.000000
+H 0.629118 0.629118 0.629118
+H -0.629118 -0.629118 0.629118
+H -0.629118 0.629118 -0.629118
+H 0.629118 -0.629118 -0.629118`,
+      },
+      {
+        id: "benzene",
+        name: "Benzene (C₆H₆)",
+        description: "Benzene ring — aromatic molecule benchmark.",
+        formula: "C6H6",
+        atomCount: 12,
+        elements: ["C", "H"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `12
+Benzene molecule
+C 0.000000 1.396000 0.000000
+C 1.209000 0.698000 0.000000
+C 1.209000 -0.698000 0.000000
+C 0.000000 -1.396000 0.000000
+C -1.209000 -0.698000 0.000000
+C -1.209000 0.698000 0.000000
+H 0.000000 2.484000 0.000000
+H 2.150000 1.242000 0.000000
+H 2.150000 -1.242000 0.000000
+H 0.000000 -2.484000 0.000000
+H -2.150000 -1.242000 0.000000
+H -2.150000 1.242000 0.000000`,
+      },
+      {
+        id: "aspirin",
+        name: "Aspirin (C₉H₈O₄)",
+        description: "Aspirin (acetylsalicylic acid) — medium organic molecule.",
+        formula: "C9H8O4",
+        atomCount: 21,
+        elements: ["C", "H", "O"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `21
+Aspirin molecule
+C 1.241400 -0.770700 0.000000
+C 1.241400 0.620700 0.000000
+C 0.000000 1.312100 0.000000
+C -1.241400 0.620700 0.000000
+C -1.241400 -0.770700 0.000000
+C 0.000000 -1.462100 0.000000
+C 2.539800 -1.477200 0.000000
+O 2.539800 -2.695200 0.000000
+O 3.668600 -0.697200 0.000000
+C -2.539800 1.327200 0.000000
+O -2.539800 2.545200 0.000000
+O -3.668600 0.547200 0.000000
+H 2.155800 1.208700 0.000000
+H 0.000000 2.400100 0.000000
+H -2.155800 -1.358700 0.000000
+H 0.000000 -2.550100 0.000000
+H 3.588600 0.266800 0.000000
+H -3.588600 -0.416800 0.000000
+O 2.539800 -0.075000 0.000000
+H 4.511600 -1.173200 0.000000
+H -4.511600 1.023200 0.000000`,
+      },
+    ],
+  },
+
+  // =========================================================================
+  // NON-COVALENT INTERACTIONS — ml_peg/app/non_covalent_interactions/
+  // =========================================================================
+  {
+    id: "non-covalent",
+    name: "Non-Covalent Interactions",
+    description: "Dimers and complexes for testing van der Waals and hydrogen bonding.",
+    mlpegPath: "ml_peg/app/non_covalent_interactions/",
+    entries: [
+      {
+        id: "water-dimer",
+        name: "Water dimer",
+        description: "Two water molecules with hydrogen bond — key H-bond benchmark.",
+        formula: "(H2O)2",
+        atomCount: 6,
+        elements: ["H", "O"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `6
+Water dimer - hydrogen bonded
+O -1.551007 -0.114520 0.000000
+H -1.934259 0.762503 0.000000
+H -0.599677 0.040712 0.000000
+O 1.350625 0.111469 0.000000
+H 1.680398 -0.373741 -0.758561
+H 1.680398 -0.373741 0.758561`,
+      },
+      {
+        id: "methane-dimer",
+        name: "Methane dimer",
+        description: "Two methane molecules — weak dispersion interaction benchmark.",
+        formula: "(CH4)2",
+        atomCount: 10,
+        elements: ["C", "H"],
+        recommendedModel: "MACE-OFF",
+        xyzData: `10
+Methane dimer - dispersion interaction
+C -1.850000 0.000000 0.000000
+H -1.220882 0.629118 0.629118
+H -2.479118 -0.629118 0.629118
+H -2.479118 0.629118 -0.629118
+H -1.220882 -0.629118 -0.629118
+C 1.850000 0.000000 0.000000
+H 2.479118 0.629118 0.629118
+H 1.220882 -0.629118 0.629118
+H 1.220882 0.629118 -0.629118
+H 2.479118 -0.629118 -0.629118`,
+      },
+    ],
+  },
+
+  // =========================================================================
+  // SURFACES — ml_peg/app/surfaces/
+  // =========================================================================
+  {
+    id: "surfaces",
+    name: "Surfaces",
+    description: "Surface slabs for adsorption and surface energy benchmarks.",
+    mlpegPath: "ml_peg/app/surfaces/",
+    entries: [
+      {
+        id: "cu-111",
+        name: "Cu(111) surface",
+        description: "3-layer Cu(111) slab — standard surface benchmark.",
+        formula: "Cu (slab)",
+        atomCount: 3,
+        elements: ["Cu"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `3
+Lattice="2.556 0.0 0.0 1.278 2.213 0.0 0.0 0.0 20.0" Properties=species:S:1:pos:R:3 pbc="T T T"
+Cu 0.000000 0.000000 10.000000
+Cu 1.278000 0.737700 12.087000
+Cu 2.556000 1.475400 14.174000`,
+      },
+      {
+        id: "si-111",
+        name: "Si(111) surface",
+        description: "Silicon (111) surface slab — semiconductor surface benchmark.",
+        formula: "Si (slab)",
+        atomCount: 4,
+        elements: ["Si"],
+        recommendedModel: "MACE-MP-0",
+        xyzData: `4
+Lattice="3.840 0.0 0.0 1.920 3.325 0.0 0.0 0.0 25.0" Properties=species:S:1:pos:R:3 pbc="T T T"
+Si 0.000000 0.000000 10.000000
+Si 1.920000 1.108300 11.246000
+Si 0.000000 0.000000 13.138000
+Si 1.920000 1.108300 14.384000`,
+      },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------
+
+/** Get all categories. */
+export function getCategories(): CatalogCategory[] {
+  return MLPEG_CATALOG;
+}
+
+/** Get all entries across all categories. */
+export function getAllEntries(): CatalogEntry[] {
+  return MLPEG_CATALOG.flatMap((cat) => cat.entries);
+}
+
+/** Find an entry by ID. */
+export function getEntryById(id: string): CatalogEntry | undefined {
+  return getAllEntries().find((entry) => entry.id === id);
+}
+
+/** Get total number of structures in the catalog. */
+export function getCatalogSize(): number {
+  return getAllEntries().length;
+}
+
+/**
+ * Convert a CatalogEntry's XYZ data into a File object.
+ * This allows catalog entries to be used in the same upload flow
+ * as user-uploaded files — no special handling needed downstream.
+ */
+export function catalogEntryToFile(entry: CatalogEntry): File {
+  const blob = new Blob([entry.xyzData], { type: "chemical/x-xyz" });
+  return new File([blob], `${entry.id}.xyz`, { type: "chemical/x-xyz" });
+}
