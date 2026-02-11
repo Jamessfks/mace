@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         "python3",
         [scriptPath, tmpPath, paramsStr],
         {
-          timeout: 10 * 60 * 1000, // 10 min
+          timeout: 60 * 60 * 1000, // 1 hour
           maxBuffer: 50 * 1024 * 1024, // 50 MB stdout buffer
           env: { ...process.env, PYTHONUNBUFFERED: "1" },
         }
