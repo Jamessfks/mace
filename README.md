@@ -4,7 +4,7 @@
 
 **Founder:** Zicheng Zhao
 
-**Team:**Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
+**Team:** Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
 This project uses the MACE API: https://github.com/ACEsuit/mace
 
