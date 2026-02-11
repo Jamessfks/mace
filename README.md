@@ -4,6 +4,7 @@
 
 **Team:** Zicheng Zhao, Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
+This project uses the MACE API: https://github.com/ACEsuit/mace
 ---
 
 ## What This App Does
