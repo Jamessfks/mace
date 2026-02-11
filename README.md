@@ -9,7 +9,7 @@
 ## What This App Does
 
 - Upload molecular structure files (`.xyz`, `.cif`, `.poscar`, `.pdb`)
-- Choose a MACE model: **MACE-MP-0** (materials) or **MACE-OFF** (organic molecules)
+- Choose a MACE model: **MACE-MP-0** (Pre-trained on materials, 89 elements — use for crystals, alloys, oxides, etc. without training) or **MACE-OFF** (Pre-trained for organic molecules — use for drug-like molecules, liquids, soft matter.)
 - Run calculations: single-point energy, geometry optimization, or molecular dynamics
 - View results: energy, forces, 3D molecule viewer, downloadable PDF report
 
@@ -182,7 +182,6 @@ mace/
   app/
     api/calculate/route.ts     # API route (local Python subprocess or remote MACE API)
     calculate/page.tsx         # MACE Calculator page
-    report/page.tsx            # Liquid Water report page
     favicon.ico
     globals.css
     layout.tsx
@@ -201,11 +200,6 @@ mace/
     ui/                        # badge, button, card, scroll-area, tabs
     Footer.tsx
     intro-section.tsx
-    IntroSection.tsx
-    ReportSection.tsx
-    water-report-section.tsx
-  data/
-    water_report.ts           # Liquid Water report data
   lib/
     mlpeg-catalog.ts           # ml-peg benchmark structure catalog
     parse-structure.ts         # Client-side XYZ/CIF/PDB/POSCAR parser
@@ -215,7 +209,7 @@ mace/
     main.py                    # FastAPI server (for cloud deployment)
     README.md
     requirements.txt
-  public/                      # Static assets (SVGs, report HTML, images)
+  public/                      # Static assets (SVGs, images)
   types/
     mace.ts                    # CalculationParams, CalculationResult, etc.
   CALCULATOR_README.md

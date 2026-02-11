@@ -4,7 +4,7 @@ import { IntroSection } from "@/components/intro-section";
 
 /**
  * MACE Force Fields - Team 3 project overview
- * Matrix-themed intro with link to Liquid Water results report
+ * Matrix-themed landing with link to MACE Calculator
  */
 export default function Home() {
   return (

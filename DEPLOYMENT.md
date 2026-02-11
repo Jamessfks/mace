@@ -72,9 +72,8 @@ MACE_API_URL=http://localhost:8000 npm run dev
 | Route | Description | Type |
 |-------|-------------|------|
 | `/` | Matrix landing with neon scan animation | Static |
-| `/report` | Liquid Water report (DFT, training curves, 3D) | Static |
 | `/calculate` | MACE Web Calculator interface | Static |
-| `/api/calculate` | Calculation API (mock data for now) | Dynamic |
+| `/api/calculate` | Calculation API (local or remote MACE) | Dynamic |
 
 ## Post-Deployment Checklist
 

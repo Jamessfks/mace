@@ -34,7 +34,7 @@ export function IntroSection() {
         <p className="max-w-2xl font-mono text-lg text-zinc-400 sm:text-xl">
           Machine learning for predicting many-body atomic interactions.
           Modernized graph theory → fast <em>and</em> quantum-mechanical
-          precision. Liquid water training on BingqingCheng/ab-initio-thermodynamics-of-water.
+          precision.
         </p>
 
         {/* Team members */}
@@ -54,25 +54,10 @@ export function IntroSection() {
             <span className="text-matrix-green text-2xl">DFT</span>
             <span className="text-zinc-500">Reference Data</span>
           </div>
-          <div className="h-8 w-px bg-matrix-green/30" />
-          <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">H₂O</span>
-            <span className="text-zinc-500">Liquid Water</span>
-          </div>
         </div>
 
         {/* CTA Buttons */}
         <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-          <Button
-            asChild
-            size="lg"
-            className="group relative overflow-hidden border-2 border-matrix-green bg-transparent font-mono text-matrix-green transition-all hover:bg-matrix-green hover:text-black"
-          >
-            <Link href="/report">
-              <span className="relative z-10">LIQUID WATER REPORT</span>
-              <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
-            </Link>
-          </Button>
           <Button
             asChild
             size="lg"
