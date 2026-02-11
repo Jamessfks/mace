@@ -2,7 +2,9 @@
 
 **A team of CS students with one dream from Northeastern University .** A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
 
-**Team:** Zicheng Zhao, Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
+**Founder:** Zicheng Zhao
+
+**Team:**Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
 This project uses the MACE API: https://github.com/ACEsuit/mace
 
