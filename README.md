@@ -5,6 +5,8 @@
 **Team:** Zicheng Zhao, Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
 This project uses the MACE API: https://github.com/ACEsuit/mace
+
+> **185 unique cloners in 7 days** — viral by academic software standards. It means science community is actually using the web interface!
 ---
 
 ## What This App Does

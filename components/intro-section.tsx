@@ -46,13 +46,8 @@ export function IntroSection() {
         {/* Stats row */}
         <div className="flex flex-wrap justify-center gap-6 font-mono text-sm">
           <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">2024</span>
+            <span className="text-matrix-green text-2xl">2022</span>
             <span className="text-zinc-500">MACE Release</span>
-          </div>
-          <div className="h-8 w-px bg-matrix-green/30" />
-          <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">DFT</span>
-            <span className="text-zinc-500">Reference Data</span>
           </div>
         </div>
 
