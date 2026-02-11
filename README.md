@@ -7,9 +7,6 @@
 This project uses the MACE API: https://github.com/ACEsuit/mace
 
 > **185 unique cloners in 7 days** — viral by academic software standards. It means science community is actually using the web interface!
-
-![GitHub Traffic — Unique cloners (7 days)](docs/github-traffic-cloners.png)
-
 ---
 
 ## What This App Does
