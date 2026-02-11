@@ -9,7 +9,7 @@ This project uses the MACE API: https://github.com/ACEsuit/mace
 > **185 unique cloners in 7 days** — viral by academic software standards. It means the science community is actually using the web interface!
 ---
 
-## Purpose and context
+## Purpose and Functionalities
 
 The critical insight from competitive research: no web-based ML force-field calculator currently offers a polished UI. **This is one of the FIRST web-based interfaces for machine learning interatomic potentials, a space where virtually all competitors remain CLI-only.**
 
