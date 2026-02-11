@@ -11,7 +11,7 @@ This project uses the MACE API: https://github.com/ACEsuit/mace
 
 ## Purpose and context
 
-The critical insight from competitive research: no web-based ML force field calculator currently exists with a polished UI. This is thefirst MACE Force Fields web calculator that occupies a rare and valuable niche. It's one of the first web-based interfaces for machine learning interatomic potentials, a space where virtually all competitors remain CLI-only.
+The critical insight from competitive research: no web-based ML force-field calculator currently offers a polished UI. **This is one of the first web-based interfaces for machine learning interatomic potentials, a space where virtually all competitors remain CLI-only.**
 
 - Upload molecular structure files (`.xyz`, `.cif`, `.poscar`, `.pdb`)
 - Choose a MACE model: **MACE-MP-0** (Pre-trained on materials, 89 elements — use for crystals, alloys, oxides, etc. without training) or **MACE-OFF** (Pre-trained for organic molecules — use for drug-like molecules, liquids, soft matter.)
