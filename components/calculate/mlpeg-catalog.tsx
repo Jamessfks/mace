@@ -4,9 +4,13 @@
  * MlPegCatalog — Browse and select benchmark structures from ml-peg.
  *
  * PURPOSE:
+ *  
  *   As the MACE founder suggested: "it could be really fun to connect the
  *   two tools, so that users could select a structure directly from the
  *   ml-peg menu instead of uploading a new one."
+ * 
+ *   The catalog is a pre-loaded library of benchmark structures so users can try the 
+ *   MACE calculator instantly without needing to upload their own files.
  *
  *   This component provides a browsable catalog of benchmark structures from
  *   ml-peg (https://github.com/ddmms/ml-peg). Users can pick a structure

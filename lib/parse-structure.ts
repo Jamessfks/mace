@@ -30,12 +30,20 @@ export interface ParsedStructure {
   positions: number[][];
   /** Set of unique elements (e.g. ["O", "H"]) */
   elements: string[];
+  /** Per-element atom counts, e.g. { C: 9, H: 8, O: 4 } */
+  elementCounts: Record<string, number>;
+  /** Empirical formula string derived from atom data, e.g. "C₉H₈O₄" */
+  empiricalFormula: string;
   /** Bounding box: { min: [x,y,z], max: [x,y,z], size: [dx,dy,dz] } */
   boundingBox: {
     min: [number, number, number];
     max: [number, number, number];
     size: [number, number, number];
   };
+  /** Shortest distance (Å) between any two atoms; Infinity if <2 atoms */
+  minNeighborDist: number;
+  /** Whether all atoms lie in a single plane (z-range < 0.01 Å) */
+  isPlanar: boolean;
   /** Number of frames detected (for multi-frame XYZ); we parse only frame 1 */
   frameCount: number;
   /** Original filename */
@@ -72,14 +80,22 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
   }
 
   const elements = [...new Set(symbols)].sort();
+  const elementCounts = countElements(symbols);
+  const empiricalFormula = buildFormula(elementCounts);
   const boundingBox = computeBoundingBox(positions);
+  const minNeighborDist = computeMinDistance(positions);
+  const isPlanar = checkPlanarity(positions);
 
   return {
     atomCount: symbols.length,
     symbols,
     positions,
     elements,
+    elementCounts,
+    empiricalFormula,
     boundingBox,
+    minNeighborDist,
+    isPlanar,
     frameCount,
     filename: file.name,
   };
@@ -310,6 +326,103 @@ function readFileAsText(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsText(file);
   });
+}
+
+/** Count atoms per element, e.g. { C: 9, H: 8, O: 4 }. */
+function countElements(symbols: string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const sym of symbols) {
+    counts[sym] = (counts[sym] || 0) + 1;
+  }
+  return counts;
+}
+
+/** Unicode subscript digits for formula rendering. */
+const SUBSCRIPTS: Record<string, string> = {
+  "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+  "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+};
+
+/**
+ * Build empirical formula from element counts using Hill system order:
+ * C first, H second, then all others alphabetically. Counts of 1 are omitted.
+ * Example: { C: 9, H: 8, O: 4 } → "C₉H₈O₄"
+ */
+function buildFormula(counts: Record<string, number>): string {
+  // Hill system: C first, H second, then alphabetical
+  const keys = Object.keys(counts).sort((a, b) => {
+    if (a === "C") return -1;
+    if (b === "C") return 1;
+    if (a === "H") return -1;
+    if (b === "H") return 1;
+    return a.localeCompare(b);
+  });
+
+  return keys
+    .map((el) => {
+      const n = counts[el];
+      if (n === 1) return el;
+      // Convert count digits to unicode subscripts
+      const sub = String(n)
+        .split("")
+        .map((d) => SUBSCRIPTS[d] || d)
+        .join("");
+      return `${el}${sub}`;
+    })
+    .join("");
+}
+
+/**
+ * Find the shortest distance (Å) between any two atoms.
+ * Returns Infinity if fewer than 2 atoms. Uses O(n²) — fine for <10k atoms.
+ */
+function computeMinDistance(positions: number[][]): number {
+  if (positions.length < 2) return Infinity;
+
+  let minDist = Infinity;
+  // Cap at first 2000 atoms to keep UI responsive
+  const n = Math.min(positions.length, 2000);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dx = positions[i][0] - positions[j][0];
+      const dy = positions[i][1] - positions[j][1];
+      const dz = positions[i][2] - positions[j][2];
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < minDist) minDist = d2;
+    }
+  }
+  return Math.sqrt(minDist);
+}
+
+/**
+ * Check if the structure is essentially flat (all atoms in the same plane).
+ * Returns true if the z-range is < 0.01 Å AND the structure has >3 atoms
+ * (a water molecule being planar is fine; a 21-atom "aspirin" being flat is not).
+ */
+function checkPlanarity(positions: number[][]): boolean {
+  if (positions.length <= 3) return false;
+
+  // Check z-range (most common case: all z=0)
+  let minZ = Infinity, maxZ = -Infinity;
+  for (const [, , z] of positions) {
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  if (maxZ - minZ < 0.01) return true;
+
+  // Also check x-range and y-range (flat in other planes)
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  for (const [x, y] of positions) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  if (maxX - minX < 0.01) return true;
+  if (maxY - minY < 0.01) return true;
+
+  return false;
 }
 
 /** Compute axis-aligned bounding box from positions. */

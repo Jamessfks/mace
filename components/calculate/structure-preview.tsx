@@ -259,34 +259,45 @@ export function StructurePreview({ files }: StructurePreviewProps) {
           {/* Parsed structure: stats + warnings + viewer */}
           {parsed && !loading && (
             <>
-              {/* ── Stats row ── */}
-              <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs">
-                <span className="text-zinc-400">
-                  Atoms:{" "}
-                  <span className="text-white">{parsed.atomCount}</span>
-                </span>
-                <span className="text-zinc-400">
-                  Elements:{" "}
-                  <span className="text-white">
-                    {parsed.elements.join(", ")}
+              {/* ── Stats row: formula, composition, box size ── */}
+              <div className="mb-3 space-y-1.5">
+                {/* Formula + atom count */}
+                <div className="flex items-center gap-3 font-mono">
+                  <span className="text-sm font-bold text-white">
+                    {parsed.empiricalFormula}
                   </span>
-                </span>
-                <span className="text-zinc-400">
-                  Box:{" "}
-                  <span className="text-white">
-                    {parsed.boundingBox.size[0].toFixed(1)} x{" "}
-                    {parsed.boundingBox.size[1].toFixed(1)} x{" "}
-                    {parsed.boundingBox.size[2].toFixed(1)} A
+                  <span className="text-xs text-zinc-400">
+                    {parsed.atomCount} atoms
                   </span>
-                </span>
-                {parsed.frameCount > 1 && (
+                </div>
+
+                {/* Element breakdown + geometry stats */}
+                <div className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs">
+                  {/* Per-element counts */}
                   <span className="text-zinc-400">
-                    Frames:{" "}
+                    {parsed.elements.map((el) => (
+                      <span key={el} className="mr-1.5">
+                        {el}×{parsed.elementCounts[el]}
+                      </span>
+                    ))}
+                  </span>
+                  <span className="text-zinc-400">
+                    Box:{" "}
                     <span className="text-white">
-                      {parsed.frameCount} (showing first)
+                      {parsed.boundingBox.size[0].toFixed(1)} × {" "}
+                      {parsed.boundingBox.size[1].toFixed(1)} × {" "}
+                      {parsed.boundingBox.size[2].toFixed(1)} Å
                     </span>
                   </span>
-                )}
+                  {parsed.frameCount > 1 && (
+                    <span className="text-zinc-400">
+                      Frames:{" "}
+                      <span className="text-white">
+                        {parsed.frameCount} (showing first)
+                      </span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* ── Warnings ── */}

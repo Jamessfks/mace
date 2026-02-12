@@ -149,9 +149,13 @@ export function StructureInfo({ file }: StructureInfoProps) {
       ? "text-amber-400 border-amber-500/50 bg-amber-500/10"
       : "text-matrix-green border-matrix-green/50 bg-matrix-green/10";
 
+  // ── Geometry sanity checks ──
+  const hasOverlap = parsed.minNeighborDist < 0.4;
+  const hasWarnings = isLarge || isVeryLarge || isHugeBox || parsed.isPlanar || hasOverlap;
+
   return (
     <div className="mt-3 space-y-2">
-      {/* ── Structure info grid ── */}
+      {/* ── Structure info card ── */}
       <div className="rounded border border-matrix-green/20 bg-black/60 p-3">
         <div className="mb-2 flex items-center gap-2">
           <Info className="h-3.5 w-3.5 text-matrix-green/70" />
@@ -160,22 +164,46 @@ export function StructureInfo({ file }: StructureInfoProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-xs">
-          {/* Atom count with color badge */}
-          <span className="text-zinc-500">Atoms</span>
-          <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 font-bold ${countColor}`}>
-            {atomCount.toLocaleString()}
+        {/* Formula + atom count header */}
+        <div className="mb-2 flex items-center gap-3 font-mono">
+          <span className="text-sm font-bold text-white">
+            {parsed.empiricalFormula}
           </span>
+          <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-bold ${countColor}`}>
+            {atomCount.toLocaleString()} atoms
+          </span>
+        </div>
 
-          {/* Elements */}
-          <span className="text-zinc-500">Elements</span>
-          <span className="text-white">{parsed.elements.join(", ")}</span>
+        {/* Per-element breakdown — shows count per element */}
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {parsed.elements.map((el) => (
+            <span
+              key={el}
+              className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-300"
+            >
+              {el}
+              <span className="ml-0.5 text-matrix-green">
+                ×{parsed.elementCounts[el]}
+              </span>
+            </span>
+          ))}
+        </div>
 
+        {/* Geometry details grid */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-xs">
           {/* Bounding box */}
           <span className="text-zinc-500">Bounding box</span>
           <span className="text-white">
-            {boxSize[0].toFixed(1)} x {boxSize[1].toFixed(1)} x{" "}
-            {boxSize[2].toFixed(1)} A
+            {boxSize[0].toFixed(1)} × {boxSize[1].toFixed(1)} ×{" "}
+            {boxSize[2].toFixed(1)} Å
+          </span>
+
+          {/* Shortest interatomic distance */}
+          <span className="text-zinc-500">Min distance</span>
+          <span className={`${hasOverlap ? "text-red-400 font-bold" : "text-white"}`}>
+            {parsed.minNeighborDist === Infinity
+              ? "N/A"
+              : `${parsed.minNeighborDist.toFixed(3)} Å`}
           </span>
 
           {/* Frames (multi-frame files) */}
@@ -191,6 +219,30 @@ export function StructureInfo({ file }: StructureInfoProps) {
       </div>
 
       {/* ── Warnings ── */}
+
+      {/* Overlapping atoms — red critical (distance < 0.4 Å) */}
+      {hasOverlap && (
+        <div className="flex items-start gap-2 rounded border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs text-red-400">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <strong>Overlapping atoms detected</strong> (min distance{" "}
+            {parsed.minNeighborDist.toFixed(3)} Å). This usually indicates
+            corrupted or incorrectly generated coordinates.
+          </div>
+        </div>
+      )}
+
+      {/* Flat molecule — amber (all atoms coplanar with >3 atoms) */}
+      {parsed.isPlanar && (
+        <div className="flex items-start gap-2 rounded border border-amber-500/50 bg-amber-500/10 p-3 font-mono text-xs text-amber-400">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <strong>Structure is completely flat (2D).</strong> All atoms lie in
+            the same plane. If this molecule should have 3D geometry, the
+            coordinates may be incorrect.
+          </div>
+        </div>
+      )}
 
       {/* Very large structure (>2000 atoms) — red critical */}
       {isVeryLarge && (
@@ -222,8 +274,8 @@ export function StructureInfo({ file }: StructureInfoProps) {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <strong>
-              Very large simulation box ({boxSize[0].toFixed(0)} x{" "}
-              {boxSize[1].toFixed(0)} x {boxSize[2].toFixed(0)} A).
+              Very large simulation box ({boxSize[0].toFixed(0)} ×{" "}
+              {boxSize[1].toFixed(0)} × {boxSize[2].toFixed(0)} Å).
             </strong>{" "}
             This may be a periodic system with a large cell. Ensure coordinates
             are correct.
@@ -231,8 +283,8 @@ export function StructureInfo({ file }: StructureInfoProps) {
         </div>
       )}
 
-      {/* All clear — small structure */}
-      {!isLarge && !isVeryLarge && !isHugeBox && (
+      {/* All clear — no issues */}
+      {!hasWarnings && (
         <div className="flex items-center gap-2 font-mono text-xs text-matrix-green/70">
           <CheckCircle className="h-3.5 w-3.5" />
           Structure looks good. Ready to calculate.
