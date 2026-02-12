@@ -105,6 +105,7 @@ export const MLPEG_CATALOG: CatalogCategory[] = [
     mlpegPath: "ml_peg/app/bulk_crystal/",
     entries: [
       {
+        // Verified: a=5.43 Å (exp), 2 atoms at (0,0,0) and (a/4,a/4,a/4)
         id: "si-diamond",
         name: "Silicon (diamond)",
         description: "Diamond cubic silicon — the most common semiconductor benchmark.",
@@ -118,6 +119,7 @@ Si 0.000000 0.000000 0.000000
 Si 1.357500 1.357500 1.357500`,
       },
       {
+        // Verified: a=3.615 Å (exp), 4 atoms at FCC sites
         id: "cu-fcc",
         name: "Copper (FCC)",
         description: "Face-centered cubic copper — standard metal benchmark.",
@@ -133,6 +135,7 @@ Cu 1.807500 0.000000 1.807500
 Cu 1.807500 1.807500 0.000000`,
       },
       {
+        // Verified: a=5.64 Å (exp), 8 atoms (4 Na FCC + 4 Cl offset)
         id: "nacl-rocksalt",
         name: "Sodium Chloride (rocksalt)",
         description: "NaCl in rocksalt structure — ionic crystal benchmark.",
@@ -152,6 +155,7 @@ Cl 0.000000 0.000000 2.820000
 Cl 2.820000 2.820000 2.820000`,
       },
       {
+        // Verified: a=2.87 Å (exp), 2 atoms at (0,0,0) and (a/2,a/2,a/2)
         id: "fe-bcc",
         name: "Iron (BCC)",
         description: "Body-centered cubic iron — magnetic metal benchmark.",
@@ -165,6 +169,7 @@ Fe 0.000000 0.000000 0.000000
 Fe 1.435000 1.435000 1.435000`,
       },
       {
+        // Verified: a=3.567 Å (exp), 2 atoms at (0,0,0) and (a/4,a/4,a/4)
         id: "c-diamond",
         name: "Diamond (carbon)",
         description: "Diamond cubic carbon — hard material benchmark.",
@@ -190,6 +195,7 @@ C 0.891750 0.891750 0.891750`,
     mlpegPath: "ml_peg/app/molecular/",
     entries: [
       {
+        // Verified: O-H ≈ 0.969 Å, H-O-H ≈ 104° (standard computational geometry)
         id: "water",
         name: "Water (H₂O)",
         description: "Single water molecule — simplest benchmark for MACE-OFF.",
@@ -204,6 +210,7 @@ H 0.000000 0.763239 -0.477047
 H 0.000000 -0.763239 -0.477047`,
       },
       {
+        // Verified: C-C=1.52 Å, C-O=1.44 Å, O-H=0.97 Å — standard bond lengths
         id: "ethanol",
         name: "Ethanol (C₂H₅OH)",
         description: "Ethanol molecule — standard organic benchmark.",
@@ -224,6 +231,7 @@ H -0.520100 -0.505100 -0.891400
 H 1.379400 -1.530400 0.000000`,
       },
       {
+        // Verified: C-H=1.089 Å (exp 1.089), tetrahedral symmetry (Td)
         id: "methane",
         name: "Methane (CH₄)",
         description: "Methane molecule — minimal organic benchmark.",
@@ -240,6 +248,7 @@ H -0.629118 0.629118 -0.629118
 H 0.629118 -0.629118 -0.629118`,
       },
       {
+        // Verified: C-C=1.396 Å (exp 1.397), C-H=1.088 Å (exp 1.084), planar D6h
         id: "benzene",
         name: "Benzene (C₆H₆)",
         description: "Benzene ring — aromatic molecule benchmark.",
@@ -263,6 +272,8 @@ H -2.150000 -1.242000 0.000000
 H -2.150000 1.242000 0.000000`,
       },
       {
+        // Source: PubChem CID 2244 (MMFF94 3D conformer). 4O + 9C + 8H = 21 atoms.
+        // Previous data was WRONG: had 8C + 5O (not aspirin), all z=0 (flat).
         id: "aspirin",
         name: "Aspirin (C₉H₈O₄)",
         description: "Aspirin (acetylsalicylic acid) — medium organic molecule.",
@@ -307,6 +318,7 @@ H -0.2555 -3.5916 -0.7337`,
     mlpegPath: "ml_peg/app/non_covalent_interactions/",
     entries: [
       {
+        // Verified: O···O ≈ 2.91 Å, consistent with S22 benchmark geometry
         id: "water-dimer",
         name: "Water dimer",
         description: "Two water molecules with hydrogen bond — key H-bond benchmark.",
@@ -324,6 +336,7 @@ H 1.680398 -0.373741 -0.758561
 H 1.680398 -0.373741 0.758561`,
       },
       {
+        // Verified: C···C=3.7 Å, each CH4 tetrahedral with C-H=1.089 Å
         id: "methane-dimer",
         name: "Methane dimer",
         description: "Two methane molecules — weak dispersion interaction benchmark.",
@@ -357,6 +370,7 @@ H 2.479118 -0.629118 -0.629118`,
     mlpegPath: "ml_peg/app/surfaces/",
     entries: [
       {
+        // Verified: a_surf=a/√2=2.556 Å, interlayer d=a/√3=2.087 Å, 20 Å vacuum
         id: "cu-111",
         name: "Cu(111) surface",
         description: "3-layer Cu(111) slab — standard surface benchmark.",
@@ -371,6 +385,7 @@ Cu 1.278000 0.737700 12.087000
 Cu 2.556000 1.475400 14.174000`,
       },
       {
+        // Verified: a_surf=a/√2=3.840 Å, diamond bilayer spacing, 25 Å vacuum
         id: "si-111",
         name: "Si(111) surface",
         description: "Silicon (111) surface slab — semiconductor surface benchmark.",

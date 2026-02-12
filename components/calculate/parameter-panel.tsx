@@ -129,7 +129,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
 
           <ParamSelect
             label="MD Ensemble"
-            value={params.mdEnsemble || "NVT"}
+            value={params.mdEnsemble ?? "NVT"}
             onChange={(v) => updateParam("mdEnsemble", v as "NVE" | "NVT" | "NPT")}
             options={[
               { value: "NVE", label: "NVE (microcanonical)" },
@@ -141,7 +141,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
 
           <ParamInput
             label="Temperature (K)"
-            value={params.temperature || 300}
+            value={params.temperature ?? 300}
             onChange={(v) => updateParam("temperature", v)}
             min={0}
             max={5000}
@@ -149,7 +149,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
 
           <ParamInput
             label="Pressure (GPa)"
-            value={params.pressure || 0}
+            value={params.pressure ?? 0}
             onChange={(v) => updateParam("pressure", v)}
             min={0}
             max={1000}
@@ -157,7 +157,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
 
           <ParamInput
             label="Time Step (fs)"
-            value={params.timeStep || 1.0}
+            value={params.timeStep ?? 1.0}
             onChange={(v) => updateParam("timeStep", v)}
             min={0.1}
             max={10}
@@ -216,7 +216,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
           <div className="mt-4 space-y-4">
             <ParamInput
               label="Cutoff Radius (Å)"
-              value={params.cutoffRadius || 5.0}
+              value={params.cutoffRadius ?? 5.0}
               onChange={(v) => updateParam("cutoffRadius", v)}
               min={3}
               max={10}
@@ -224,7 +224,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             />
             <ParamInput
               label="Max Opt Steps"
-              value={params.maxOptSteps || 500}
+              value={params.maxOptSteps ?? 500}
               onChange={(v) => updateParam("maxOptSteps", v)}
               min={10}
               max={5000}
@@ -293,6 +293,12 @@ function ParamInput({
   max?: number;
   step?: number;
 }) {
+  const [localValue, setLocalValue] = useState<string>(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Sync from parent when not focused (e.g. external reset)
+  const displayValue = isFocused ? localValue : String(value);
+
   return (
     <div>
       <label className="mb-2 block font-mono text-xs text-zinc-500">
@@ -300,8 +306,29 @@ function ParamInput({
       </label>
       <input
         type="number"
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        value={displayValue}
+        onFocus={() => {
+          setLocalValue(String(value));
+          setIsFocused(true);
+        }}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setLocalValue(raw);
+          const parsed = parseFloat(raw);
+          if (!isNaN(parsed)) {
+            onChange(parsed);
+          }
+        }}
+        onBlur={() => {
+          setIsFocused(false);
+          // If left empty or invalid, restore previous valid value
+          const parsed = parseFloat(localValue);
+          if (isNaN(parsed)) {
+            setLocalValue(String(value));
+          } else {
+            onChange(parsed);
+          }
+        }}
         min={min}
         max={max}
         step={step || 1}
