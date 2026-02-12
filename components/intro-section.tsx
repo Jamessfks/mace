@@ -65,6 +65,31 @@ export function IntroSection() {
             </Link>
           </Button>
         </div>
+
+        {/* Acknowledgment */}
+        <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900/60 px-6 py-4 text-center backdrop-blur-sm">
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">
+            Powered by
+          </p>
+          <p className="font-mono text-sm text-zinc-400">
+            The{" "}
+            <a
+              href="https://github.com/ACEsuit/mace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-matrix-green hover:underline"
+            >
+              MACE
+            </a>{" "}
+            framework — created by Ilyes Batatia, David P. Kovacs, Gregor N. C.
+            Simm, and the group of Gabor Csanyi at the University of Cambridge.
+          </p>
+          <p className="mt-2 font-mono text-xs text-zinc-600">
+            Batatia et al., &quot;MACE: Higher Order Equivariant Message Passing
+            Neural Networks for Fast and Accurate Force Fields,&quot; NeurIPS
+            2022.
+          </p>
+        </div>
       </div>
 
       {/* Scroll indicator */}
