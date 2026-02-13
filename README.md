@@ -4,6 +4,7 @@
 
 **Latest Update:** This web interface is under active daily development!
 1. Brand-new UI design with a modernized look and feel
+2. MD Trajectory Animation with energy chart
 
 **Team:** Zicheng Zhao(Creator), Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
@@ -20,7 +21,7 @@ The critical insight from competitive research: no web-based ML force-field calc
 - Upload molecular structure files (`.xyz`, `.cif`, `.poscar`, `.pdb`)
 - Choose a MACE model: **MACE-MP-0** (Pre-trained on materials, 89 elements — use for crystals, alloys, oxides, etc., without training) or **MACE-OFF** (Pre-trained for organic molecules — use for drug-like molecules, liquids, soft matter.)
 - Run calculations: single-point energy, geometry optimization, or molecular dynamics
-- View results: energy, forces, 3D molecule viewer, downloadable PDF report
+- View results: energy, forces, 3D molecule viewer, MD trajectory animation, downloadable PDF report
 
 ---
 
@@ -199,13 +200,16 @@ mace/
     calculate/
       file-upload-section.tsx  # Upload zone + ml-peg catalog + file card
       mlpeg-catalog.tsx        # Browse ml-peg benchmark structures
-      molecule-viewer-3d.tsx    # 3Dmol.js + WEAS dual-engine viewer
+      molecule-viewer-3d.tsx   # 3Dmol.js + WEAS dual-engine viewer
       parameter-panel.tsx      # Model, calculation type, physical params
       pdf-report.tsx           # PDF report generation
       results-display.tsx      # Energy, forces, viewer, forces table
       structure-info.tsx       # Auto-parsed structure info + warnings
       structure-preview.tsx    # Click-to-display 3D preview (WEAS/3Dmol)
-      weas-viewer.tsx         # WEAS iframe viewer (ml-peg compatible)
+      weas-viewer.tsx          # WEAS iframe viewer (ml-peg compatible)
+      trajectory/              # MD Trajectory Animation (only for MD runs)
+        trajectory-viewer.tsx  # Animated 3Dmol.js player + transport controls
+        energy-chart.tsx       # SVG energy-vs-step chart (synced with player)
     ui/                        # badge, button, card, scroll-area, tabs
     Footer.tsx
     intro-section.tsx

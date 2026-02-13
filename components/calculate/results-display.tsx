@@ -16,6 +16,7 @@
 
 import { Download, FileText, Zap, ArrowRightLeft, TrendingUp, Activity } from "lucide-react";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
+import { TrajectoryViewer } from "./trajectory/trajectory-viewer";
 import { PDFReportButton } from "./pdf-report";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 
@@ -33,6 +34,11 @@ interface ResultsDisplayProps {
 
 export function ResultsDisplay({ result }: ResultsDisplayProps) {
   // ── Derived values ──
+  const isMD = result.params?.calculationType === "molecular-dynamics";
+  const hasTraj =
+    !!result.trajectory &&
+    result.trajectory.positions.length > 1 &&
+    !!result.symbols?.length;
   const atomCount = result.symbols?.length ?? 0;
   const ePerAtom =
     result.energy != null && atomCount > 0
@@ -216,6 +222,19 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
       >
         <MoleculeViewer3D result={result} />
       </div>
+
+      {/* ═══ MD Trajectory Animation (only for molecular-dynamics with trajectory data) ═══ */}
+      {isMD && hasTraj && (
+        <div
+          className="result-card animate-stagger rounded-lg border border-zinc-800 border-l-4 border-l-amber-500 bg-black/80 p-5"
+          style={{ animationDelay: "300ms" }}
+        >
+          <h3 className="mb-4 font-mono text-xs font-bold uppercase tracking-wider text-amber-400">
+            MD Trajectory Animation
+          </h3>
+          <TrajectoryViewer result={result} />
+        </div>
+      )}
 
       {/* ═══ Atomic Forces Table Card ═══ */}
       {result.forces && result.symbols && (
