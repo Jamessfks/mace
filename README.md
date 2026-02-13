@@ -1,12 +1,25 @@
 # MACE Force Fields — Web Calculator
 
-**A team of CS first year students with one dream from Northeastern University** A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
+**A team of CS first year students with one dream from Northeastern University.** 
+1. Accessibility
+2. Accessibility
+3. Accessibility
+
+A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
+
+> *A heartbreaking fact Professor Cabrera said to me: "In the science community, you rarely see a disabled scientist."*
+>
+> *He asked me why, and I replied: "Because they got filtered out by inaccessible scientific tools..."*
+>
+> *How many talented scientists are we losing because of inaccessible scientific tools? Not every disabled scientist has accessible tools like those of Stephen Hawking.*
+>
+> *We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
 **Latest Update:** This web interface is under active daily development!
 1. Brand-new UI design with a modernized look and feel
 2. MD Trajectory Animation with energy chart
 
-**Team:** Zicheng Zhao(Creator), Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
+**Team:** Zicheng Zhao, Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 
 This project uses the MACE API: https://github.com/ACEsuit/mace
 
