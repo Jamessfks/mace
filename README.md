@@ -1,9 +1,6 @@
 # MACE Force Fields — Web Calculator
 
-**A team of CS first year students with one dream from Northeastern University.** 
-1. Accessibility
-2. Accessibility
-3. Accessibility
+**A team of CS first year students with one goal from Northeastern University.** 
 
 A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
 
