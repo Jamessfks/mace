@@ -15,7 +15,7 @@
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
 </p>
 
-Built by a team of CS first-year students at **Northeastern University**
+Built by a team of CS first-year students at **Northeastern University Oakland Campus**
 
 [Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
 
