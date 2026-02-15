@@ -1,5 +1,15 @@
 # MACE Force Fields — Web Calculator
 
+<p align="center">
+  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
+  <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
+  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/github/stars/Jamessfks/mace?style=flat-square&color=yellow" alt="Stars"/></a>
+  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
+</p>
+
 **A team of CS first year students with one goal from Northeastern University.** 
 
 A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
@@ -40,7 +50,7 @@ A visual web interface for running MACE force field calculations — no coding r
 > *We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
 **Latest Update:** This web interface is under active daily development!
-1. **Semiconductor Materials Discovery** — new `/semiconductor` page for exploring chip-relevant materials with bulk modulus, vacancy formation energy, EOS fitting, defect generation, and side-by-side comparison. All reference data verified against primary experimental literature.
+1. **Semiconductor Materials Discovery** — new `/semiconductor` page for exploring chip-relevant materials with bulk modulus, vacancy formation energy, EOS fitting, defect generation, and side-by-side comparison.
 2. Brand-new UI design with a modernized look and feel
 3. MD Trajectory Animation with energy chart
 
