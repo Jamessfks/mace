@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Reuse the same MACE_API_URL env var as /api/calculate
+const MACE_API_URL = (() => {
+  const url = process.env.MACE_API_URL?.trim();
+  if (!url) return undefined;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return `https://${url}`;
+  }
+  return url;
+})();
+
 /**
  * POST /api/generate-surface
  *
@@ -9,8 +19,9 @@ import { NextRequest, NextResponse } from "next/server";
  *   - slabThickness: number (Angstroms)
  *   - vacuumThickness: number (Angstroms)
  *
- * Runs ASE surface builder via Python subprocess.
- * Returns JSON: { status, xyzData, atomCount, message }
+ * Mode selection:
+ * 1. MACE_API_URL set → forward to remote backend (Vercel deployment)
+ * 2. MACE_API_URL not set → run locally via Python subprocess
  */
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +36,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Remote backend (Railway / any hosted MACE API) ──
+    if (MACE_API_URL) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60 * 1000);
+
+      try {
+        const response = await fetch(`${MACE_API_URL}/generate-surface`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            xyzData,
+            h: h ?? 1,
+            k: k ?? 0,
+            l: l ?? 0,
+            slabThickness: slabThickness ?? 12,
+            vacuumThickness: vacuumThickness ?? 15,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const err = await response.text();
+          throw new Error(err || `Remote API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return NextResponse.json(data);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err instanceof Error) throw err;
+        throw new Error("Remote surface generation request failed");
+      }
+    }
+
+    // ── Local mode: run via Python subprocess ──
     const { join } = await import("node:path");
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
@@ -36,6 +83,8 @@ export async function POST(request: NextRequest) {
       "generate_surface.py"
     );
 
+    const pythonCmd = await findPython(execFileAsync);
+
     const args = JSON.stringify({
       xyzData,
       h: h ?? 1,
@@ -46,7 +95,7 @@ export async function POST(request: NextRequest) {
     });
 
     const { stdout, stderr } = await execFileAsync(
-      "python3",
+      pythonCmd,
       [scriptPath, args],
       {
         timeout: 60 * 1000, // 60s timeout
@@ -84,4 +133,45 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Python executable resolver (same logic as /api/calculate)
+// ---------------------------------------------------------------------------
+
+let _cachedPython: string | null = null;
+
+async function findPython(
+  execFileAsync: (cmd: string, args: string[]) => Promise<{ stdout: string }>
+): Promise<string> {
+  if (_cachedPython) return _cachedPython;
+
+  const candidates = [
+    "python3",
+    "python",
+    "/usr/local/bin/python3",
+    "/opt/homebrew/bin/python3",
+    "/Library/Frameworks/Python.framework/Versions/Current/bin/python3",
+    "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+    "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+    "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+    "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+    "/usr/bin/python3",
+    "py",
+  ];
+
+  for (const cmd of candidates) {
+    try {
+      await execFileAsync(cmd, ["--version"]);
+      _cachedPython = cmd;
+      console.log(`[generate-surface] Using Python: ${cmd}`);
+      return cmd;
+    } catch {
+      // try next
+    }
+  }
+
+  throw new Error(
+    "Python not found. Install Python 3.10+ and ensure python3 is on your PATH."
+  );
 }

@@ -239,6 +239,68 @@ async def calculate(
             os.unlink(tmp_path)
 
 
+class SurfaceRequest(BaseModel):
+    xyzData: str
+    h: int = 1
+    k: int = 0
+    l: int = 0
+    slabThickness: float = 12.0
+    vacuumThickness: float = 15.0
+
+
+@app.post("/generate-surface")
+async def generate_surface(req: SurfaceRequest):
+    """
+    Generate a surface slab from a bulk structure using ASE.
+    Accepts Miller indices and slab/vacuum thickness parameters.
+    """
+    import io
+    import numpy as np
+
+    if req.h == 0 and req.k == 0 and req.l == 0:
+        raise HTTPException(status_code=400, detail="Miller indices (0,0,0) are invalid.")
+
+    # Write XYZ to temp file and read with ASE
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xyz", delete=False) as f:
+        f.write(req.xyzData)
+        tmp_path = f.name
+
+    try:
+        from ase.io import read, write
+        from ase.build import surface
+
+        atoms = read(tmp_path, format="extxyz")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse structure: {e}")
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+    try:
+        # Estimate number of layers from slab thickness
+        cell = atoms.get_cell()
+        norms = [np.linalg.norm(cell[i]) for i in range(3)]
+        layer_spacing = min(n for n in norms if n > 0.5) if any(n > 0.5 for n in norms) else 2.0
+        n_layers = max(2, int(round(req.slabThickness / layer_spacing)))
+
+        # Build surface slab
+        slab = surface(atoms, (req.h, req.k, req.l), layers=n_layers, vacuum=req.vacuumThickness / 2)
+
+        # Write to XYZ string
+        buf = io.StringIO()
+        write(buf, slab, format="extxyz")
+        xyz_out = buf.getvalue()
+
+        return {
+            "status": "success",
+            "xyzData": xyz_out,
+            "atomCount": len(slab),
+            "message": f"({req.h}{req.k}{req.l}) surface with {n_layers} layers, {len(slab)} atoms",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Surface generation failed: {e}")
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
@@ -253,6 +315,7 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "POST /calculate": "Run MACE calculation on uploaded structure",
+            "POST /generate-surface": "Generate surface slab from bulk structure",
             "GET /health": "Health check",
         },
     }
