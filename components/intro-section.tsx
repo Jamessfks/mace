@@ -75,9 +75,20 @@ export function IntroSection() {
               <div className="absolute inset-0 -z-0 bg-blue-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
             </Link>
           </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="group relative overflow-hidden border-2 border-amber-500/70 bg-amber-500/5 font-mono text-amber-400 transition-all hover:bg-amber-500/20 hover:border-amber-500"
+          >
+            <Link href="/community">
+              <span className="relative z-10">COMMUNITY DATABASE</span>
+              <div className="absolute inset-0 -z-0 bg-amber-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
+          </Button>
         </div>
         <p className="font-mono text-xs text-zinc-600">
-          Explore microchip materials — Si, HfO₂, GaAs, Cu, W, and more
+          Explore microchip materials · Browse community-shared calculations
         </p>
 
         {/* Acknowledgment */}

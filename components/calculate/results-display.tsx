@@ -18,6 +18,7 @@ import { Download, FileText, Zap, ArrowRightLeft, TrendingUp, Activity } from "l
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
 import { TrajectoryViewer } from "./trajectory/trajectory-viewer";
 import { PDFReportButton } from "./pdf-report";
+import { ShareToCommunity } from "./share-to-community";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 // ---------------------------------------------------------------------------
@@ -26,13 +27,15 @@ import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 interface ResultsDisplayProps {
   result: CalculationResult;
+  /** Original uploaded filename — passed to ShareToCommunity for metadata */
+  filename?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ResultsDisplay({ result }: ResultsDisplayProps) {
+export function ResultsDisplay({ result, filename }: ResultsDisplayProps) {
   // ── Derived values ──
   const isMD = result.params?.calculationType === "molecular-dynamics";
   const hasTraj =
@@ -301,6 +304,9 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
           </p>
         </div>
       )}
+
+      {/* ═══ Share to Community Database ═══ */}
+      <ShareToCommunity result={result} filename={filename} />
     </div>
   );
 }

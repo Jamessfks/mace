@@ -173,9 +173,12 @@ export default function CalculatePage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-xs text-zinc-600 sm:inline">
-              No coding required
-            </span>
+            <Link
+              href="/community"
+              className="hidden font-mono text-xs text-zinc-600 transition-colors hover:text-matrix-green sm:inline"
+            >
+              Community DB →
+            </Link>
             <div
               className={`h-2 w-2 rounded-full ${
                 isCalculating
@@ -316,7 +319,7 @@ export default function CalculatePage() {
             {/* ── Results ── */}
             {result && !isCalculating && (
               <div className="animate-fade-in-up">
-                <ResultsDisplay result={result} />
+                <ResultsDisplay result={result} filename={uploadedFiles[0]?.name} />
               </div>
             )}
           </section>
