@@ -17,7 +17,7 @@
 
 Built by a team of CS first-year students at **Northeastern University**
 
-[Features](#features) · [Community Database](#-community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
+[Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
 
 </div>
 
