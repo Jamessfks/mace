@@ -4,6 +4,33 @@
 
 A visual web interface for running MACE force field calculations — no coding required. Upload a molecular structure, pick parameters, and get energy, forces, and a 3D viewer.
 
+<div align="center">
+
+### Semiconductor Materials Discovery
+
+*Structure library, bulk modulus, EOS fitting, vacancy formation energy, reference comparison — all in the browser.*
+
+<img src="public/screenshot-semiconductor-overview.png" alt="Semiconductor Discovery — structure library, property calculator, EOS results" width="100%"/>
+
+<br/>
+
+<table>
+<tr>
+<td width="55%">
+
+**11 chip-relevant materials** — Si, Ge, GaAs, InP, SiO₂, HfO₂, Al₂O₃, Si₃N₄, TiN, Cu, W — with verified experimental reference data. Select a material, run MACE-MP-0, and compare calculated bulk modulus and vacancy energy against Ioffe NSM, NIST, and Materials Project.
+
+</td>
+<td width="45%">
+
+<img src="public/screenshot-3d-viewer.png" alt="3D Structure Viewer with force vectors and reference comparison table" width="100%"/>
+
+</td>
+</tr>
+</table>
+
+</div>
+
 > *A heartbreaking fact Professor Cabrera said to me: "In the science community, you rarely see a disabled scientist."*
 >
 > *He asked me why, and I replied: "Because they got filtered out by inaccessible scientific tools..."*
@@ -13,7 +40,7 @@ A visual web interface for running MACE force field calculations — no coding r
 > *We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
 **Latest Update:** This web interface is under active daily development!
-1. **Semiconductor Materials Discovery** — new `/semiconductor` page for exploring chip-relevant materials (Si, GaAs, HfO₂, Cu, W, TiN, and more) with bulk modulus, vacancy formation energy, EOS fitting, defect generation, and side-by-side comparison. All reference data verified against Ioffe NSM, Materials Project, NIST Brillouin, and primary experimental literature.
+1. **Semiconductor Materials Discovery** — new `/semiconductor` page for exploring chip-relevant materials with bulk modulus, vacancy formation energy, EOS fitting, defect generation, and side-by-side comparison. All reference data verified against primary experimental literature.
 2. Brand-new UI design with a modernized look and feel
 3. MD Trajectory Animation with energy chart
 
