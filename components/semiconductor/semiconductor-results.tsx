@@ -10,6 +10,7 @@
  *   - EOS chart (energy vs volume) when available
  */
 
+import { useState } from "react";
 import { Zap, ArrowRightLeft, Gauge, Target, Download } from "lucide-react";
 import { MoleculeViewer3D } from "@/components/calculate/molecule-viewer-3d";
 import {
@@ -313,7 +314,7 @@ function RefRow({
 }
 
 // ---------------------------------------------------------------------------
-// Simple EOS Chart (SVG)
+// Interactive EOS Chart (SVG) with hover tooltips + data table
 // ---------------------------------------------------------------------------
 
 function EOSChart({
@@ -323,9 +324,11 @@ function EOSChart({
   volumes: number[];
   energies: number[];
 }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   const W = 500;
-  const H = 160;
-  const PAD = { top: 10, right: 20, bottom: 30, left: 60 };
+  const H = 220;
+  const PAD = { top: 16, right: 24, bottom: 36, left: 68 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
 
@@ -333,7 +336,7 @@ function EOSChart({
   const vMax = Math.max(...volumes);
   const eMin = Math.min(...energies);
   const eMax = Math.max(...energies);
-  const ePad = (eMax - eMin) * 0.1 || 0.001;
+  const ePad = (eMax - eMin) * 0.15 || 0.001;
 
   const scaleX = (v: number) =>
     PAD.left + ((v - vMin) / (vMax - vMin || 1)) * plotW;
@@ -342,76 +345,262 @@ function EOSChart({
 
   // Sort by volume for line
   const sorted = volumes
-    .map((v, i) => ({ v, e: energies[i] }))
+    .map((v, i) => ({ v, e: energies[i], idx: i }))
     .sort((a, b) => a.v - b.v);
 
   const pathD = sorted
     .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p.v)},${scaleY(p.e)}`)
     .join(" ");
 
+  // Find the minimum energy point
+  const minEIdx = sorted.reduce(
+    (min, p, i) => (p.e < sorted[min].e ? i : min),
+    0
+  );
+
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      style={{ maxHeight: 180 }}
-    >
-      {/* Axes */}
-      <line
-        x1={PAD.left}
-        y1={PAD.top + plotH}
-        x2={PAD.left + plotW}
-        y2={PAD.top + plotH}
-        stroke="#3f3f46"
-        strokeWidth={1}
-      />
-      <line
-        x1={PAD.left}
-        y1={PAD.top}
-        x2={PAD.left}
-        y2={PAD.top + plotH}
-        stroke="#3f3f46"
-        strokeWidth={1}
-      />
+    <div className="space-y-3">
+      {/* ── SVG Chart ── */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 240 }}>
+        {/* Grid lines */}
+        {[0.25, 0.5, 0.75].map((frac) => (
+          <line
+            key={`hg-${frac}`}
+            x1={PAD.left}
+            y1={PAD.top + plotH * frac}
+            x2={PAD.left + plotW}
+            y2={PAD.top + plotH * frac}
+            stroke="#27272a"
+            strokeWidth={0.5}
+            strokeDasharray="4 4"
+          />
+        ))}
 
-      {/* X axis label */}
-      <text
-        x={PAD.left + plotW / 2}
-        y={H - 4}
-        textAnchor="middle"
-        className="fill-zinc-500 font-mono"
-        fontSize={10}
-      >
-        Volume (ų)
-      </text>
-
-      {/* Y axis label */}
-      <text
-        x={12}
-        y={PAD.top + plotH / 2}
-        textAnchor="middle"
-        className="fill-zinc-500 font-mono"
-        fontSize={10}
-        transform={`rotate(-90, 12, ${PAD.top + plotH / 2})`}
-      >
-        Energy (eV)
-      </text>
-
-      {/* Line */}
-      <path d={pathD} fill="none" stroke="#00ff41" strokeWidth={2} />
-
-      {/* Points */}
-      {sorted.map((p, i) => (
-        <circle
-          key={i}
-          cx={scaleX(p.v)}
-          cy={scaleY(p.e)}
-          r={4}
-          fill="#00ff41"
-          stroke="#000"
+        {/* Axes */}
+        <line
+          x1={PAD.left}
+          y1={PAD.top + plotH}
+          x2={PAD.left + plotW}
+          y2={PAD.top + plotH}
+          stroke="#3f3f46"
           strokeWidth={1}
         />
-      ))}
-    </svg>
+        <line
+          x1={PAD.left}
+          y1={PAD.top}
+          x2={PAD.left}
+          y2={PAD.top + plotH}
+          stroke="#3f3f46"
+          strokeWidth={1}
+        />
+
+        {/* X axis tick labels */}
+        {sorted.map((p, i) => (
+          <text
+            key={`xt-${i}`}
+            x={scaleX(p.v)}
+            y={PAD.top + plotH + 14}
+            textAnchor="middle"
+            className="fill-zinc-600 font-mono"
+            fontSize={8}
+          >
+            {p.v.toFixed(1)}
+          </text>
+        ))}
+
+        {/* X axis label */}
+        <text
+          x={PAD.left + plotW / 2}
+          y={H - 4}
+          textAnchor="middle"
+          className="fill-zinc-500 font-mono"
+          fontSize={10}
+        >
+          Volume (Å³)
+        </text>
+
+        {/* Y axis label */}
+        <text
+          x={12}
+          y={PAD.top + plotH / 2}
+          textAnchor="middle"
+          className="fill-zinc-500 font-mono"
+          fontSize={10}
+          transform={`rotate(-90, 12, ${PAD.top + plotH / 2})`}
+        >
+          Energy (eV)
+        </text>
+
+        {/* Line */}
+        <path d={pathD} fill="none" stroke="#00ff41" strokeWidth={2} />
+
+        {/* Hover crosshairs */}
+        {hoveredIdx != null && (
+          <>
+            <line
+              x1={scaleX(sorted[hoveredIdx].v)}
+              y1={PAD.top}
+              x2={scaleX(sorted[hoveredIdx].v)}
+              y2={PAD.top + plotH}
+              stroke="#00ff41"
+              strokeWidth={0.5}
+              strokeDasharray="3 3"
+              opacity={0.5}
+            />
+            <line
+              x1={PAD.left}
+              y1={scaleY(sorted[hoveredIdx].e)}
+              x2={PAD.left + plotW}
+              y2={scaleY(sorted[hoveredIdx].e)}
+              stroke="#00ff41"
+              strokeWidth={0.5}
+              strokeDasharray="3 3"
+              opacity={0.5}
+            />
+          </>
+        )}
+
+        {/* Points */}
+        {sorted.map((p, i) => (
+          <g key={i}>
+            {/* Invisible larger hit target */}
+            <circle
+              cx={scaleX(p.v)}
+              cy={scaleY(p.e)}
+              r={14}
+              fill="transparent"
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{ cursor: "crosshair" }}
+            />
+            {/* Visible point */}
+            <circle
+              cx={scaleX(p.v)}
+              cy={scaleY(p.e)}
+              r={hoveredIdx === i ? 6 : i === minEIdx ? 5 : 4}
+              fill={i === minEIdx ? "#fbbf24" : "#00ff41"}
+              stroke={hoveredIdx === i ? "#fff" : "#000"}
+              strokeWidth={hoveredIdx === i ? 2 : 1}
+              style={{ transition: "r 0.15s, stroke 0.15s" }}
+              pointerEvents="none"
+            />
+          </g>
+        ))}
+
+        {/* Hover tooltip */}
+        {hoveredIdx != null && (() => {
+          const p = sorted[hoveredIdx];
+          const tx = scaleX(p.v);
+          const ty = scaleY(p.e);
+          // Flip tooltip left if too close to right edge
+          const flipX = tx > PAD.left + plotW * 0.7;
+          const tooltipX = flipX ? tx - 8 : tx + 8;
+          const anchor = flipX ? "end" : "start";
+          return (
+            <g>
+              <rect
+                x={flipX ? tooltipX - 140 : tooltipX - 4}
+                y={ty - 30}
+                width={144}
+                height={36}
+                rx={4}
+                fill="#18181b"
+                stroke="#3f3f46"
+                strokeWidth={1}
+                opacity={0.95}
+              />
+              <text
+                x={tooltipX}
+                y={ty - 16}
+                textAnchor={anchor}
+                className="font-mono"
+                fontSize={9}
+                fill="#a1a1aa"
+              >
+                V = {p.v.toFixed(3)} ų
+              </text>
+              <text
+                x={tooltipX}
+                y={ty - 4}
+                textAnchor={anchor}
+                className="font-mono"
+                fontSize={9}
+                fill="#00ff41"
+                fontWeight="bold"
+              >
+                E = {p.e.toFixed(6)} eV
+              </text>
+            </g>
+          );
+        })()}
+
+        {/* Min energy label */}
+        <text
+          x={scaleX(sorted[minEIdx].v)}
+          y={scaleY(sorted[minEIdx].e) - 10}
+          textAnchor="middle"
+          className="font-mono"
+          fontSize={8}
+          fill="#fbbf24"
+        >
+          E₀
+        </text>
+      </svg>
+
+      {/* ── Data Table ── */}
+      <div className="overflow-auto rounded border border-zinc-800">
+        <table className="w-full font-mono text-xs">
+          <thead className="bg-zinc-900 text-zinc-500">
+            <tr>
+              <th className="px-3 py-1.5 text-left">#</th>
+              <th className="px-3 py-1.5 text-right">Volume (ų)</th>
+              <th className="px-3 py-1.5 text-right">Energy (eV)</th>
+              <th className="px-3 py-1.5 text-right">ΔE from min (meV)</th>
+            </tr>
+          </thead>
+          <tbody className="text-zinc-300">
+            {sorted.map((p, i) => {
+              const isMin = i === minEIdx;
+              const deltaE = (p.e - sorted[minEIdx].e) * 1000; // meV
+              return (
+                <tr
+                  key={i}
+                  className={`border-t border-zinc-800/60 transition-colors ${
+                    hoveredIdx === i
+                      ? "bg-matrix-green/10"
+                      : isMin
+                        ? "bg-amber-500/5"
+                        : "hover:bg-zinc-800/40"
+                  }`}
+                  onMouseEnter={() => setHoveredIdx(i)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  style={{ cursor: "crosshair" }}
+                >
+                  <td className="px-3 py-1.5 text-zinc-600">{i + 1}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
+                    {p.v.toFixed(3)}
+                  </td>
+                  <td
+                    className={`px-3 py-1.5 text-right tabular-nums font-bold ${
+                      isMin ? "text-amber-400" : ""
+                    }`}
+                  >
+                    {p.e.toFixed(6)}
+                  </td>
+                  <td
+                    className={`px-3 py-1.5 text-right tabular-nums ${
+                      isMin ? "text-amber-400 font-bold" : "text-zinc-500"
+                    }`}
+                  >
+                    {isMin ? "← min" : `+${deltaE.toFixed(1)}`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

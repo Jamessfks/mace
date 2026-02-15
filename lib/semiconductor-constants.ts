@@ -16,7 +16,7 @@ import type { ReferenceProperties } from "@/types/semiconductor";
 export const REFERENCE_DATA: Record<string, ReferenceProperties> = {
   "si-diamond": {
     a: 5.431,
-    B: 99,
+    B: 98,
     E_vac: 3.6,
     source: "Expt + MP",
   },
@@ -72,7 +72,7 @@ export const REFERENCE_DATA: Record<string, ReferenceProperties> = {
     a: 3.165,
     B: 310,
     E_vac: 3.67,
-    source: "Expt (positron annihilation)",
+    source: "Expt (quenching, Maier 1979)",
   },
   "tin-rocksalt": {
     a: 4.240,

@@ -169,9 +169,9 @@ function ResultColumn({
         />
       </div>
 
-      {/* 3D Viewer — constrained height to fit within comparison layout */}
+      {/* 3D Viewer */}
       {result.symbols && result.positions && (
-        <div className="overflow-hidden rounded-lg border border-zinc-800 bg-black/80 max-h-[320px]">
+        <div className="overflow-hidden rounded-lg border border-zinc-800 bg-black/80" style={{ minHeight: 350 }}>
           <MoleculeViewer3D result={result} />
         </div>
       )}

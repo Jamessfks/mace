@@ -4,20 +4,22 @@
  * These run entirely in the browser (no backend call). They take arrays of
  * energy/volume data from multiple MACE single-point runs and compute
  * derived properties:
- *   - Bulk modulus via 3rd-order Birch–Murnaghan EOS fit
+ *   - Bulk modulus via cubic polynomial E(V) fit (polynomial approximation
+ *     to the Birch–Murnaghan EOS, valid for small volume deformations)
  *   - Vacancy formation energy from bulk + vacancy energies
  *
- * The EOS fitting uses a simple least-squares approach to the
- * Birch–Murnaghan equation of state, which is the standard in
- * computational materials science.
+ * The EOS fitting uses a cubic polynomial least-squares fit to the E(V)
+ * curve, then computes B₀ = V₀ × d²E/dV² at the energy minimum.
+ * This is a common and practical approximation when volume deformations
+ * are small (±6%).
  */
 
 // ---------------------------------------------------------------------------
-// Birch–Murnaghan EOS fit → bulk modulus
+// Polynomial EOS fit → bulk modulus
 // ---------------------------------------------------------------------------
 
 /**
- * Fit a 3rd-order Birch–Murnaghan equation of state to E(V) data.
+ * Fit a cubic polynomial to E(V) data and extract bulk modulus.
  *
  * Uses a polynomial fit: E(V) ≈ a + b*V + c*V^2 + d*V^3
  * Then computes B₀ = V₀ * d²E/dV² at the minimum.
