@@ -2,7 +2,7 @@
 
 # MACE Force Fields — Web Calculator
 
-**One of the first web-based interfaces for machine learning interatomic potentials.**
+**One of the first web-based interfaces with fine UI design for machine learning interatomic potentials.**
 **No coding required. Upload a structure, pick parameters, get results.**
 
 <p>
