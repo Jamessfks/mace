@@ -52,9 +52,9 @@ export const REFERENCE_DATA: Record<string, ReferenceProperties> = {
   },
   "si3n4-beta": {
     a: 7.608,
-    B: 256,
+    B: 259,
     E_vac: null,
-    source: "Expt",
+    source: "Expt (NIST Brillouin)",
   },
   "al2o3-corundum": {
     a: 4.759,
@@ -71,8 +71,8 @@ export const REFERENCE_DATA: Record<string, ReferenceProperties> = {
   "w-bcc": {
     a: 3.165,
     B: 310,
-    E_vac: 3.56,
-    source: "Expt + DFT",
+    E_vac: 3.67,
+    source: "Expt (positron annihilation)",
   },
   "tin-rocksalt": {
     a: 4.240,

@@ -56,13 +56,14 @@ def generate_surface(args: dict) -> dict:
     finally:
         os.unlink(tmp_path)
 
-    # Estimate number of layers from slab thickness
-    # Use c-axis length as reference for layer spacing
+    # Estimate number of layers from slab thickness.
+    # For diamond/zincblende (hkl)=(1,0,0) the interlayer spacing is ~a/4,
+    # but ASE's surface() uses bulk-cell layers. We estimate by dividing
+    # slab_thickness by the smallest cell vector norm (rough layer spacing).
     cell = atoms.get_cell()
-    c_length = np.linalg.norm(cell[2])
-    if c_length < 0.1:
-        c_length = np.linalg.norm(cell[0])
-    n_layers = max(2, int(round(slab_thickness / (c_length / 2))))
+    norms = [np.linalg.norm(cell[i]) for i in range(3)]
+    layer_spacing = min(n for n in norms if n > 0.5) if any(n > 0.5 for n in norms) else 2.0
+    n_layers = max(2, int(round(slab_thickness / layer_spacing)))
 
     # Build surface slab
     slab = surface(atoms, (h, k, l), layers=n_layers, vacuum=vacuum_thickness / 2)
