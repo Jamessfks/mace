@@ -17,7 +17,7 @@
 
 Built by a team of CS first-year students at **Northeastern University**
 
-[Features](#features) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
+[Features](#features) · [Community Database](#-community-calculation-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
 
 </div>
 
@@ -85,6 +85,55 @@ Built by a team of CS first-year students at **Northeastern University**
 
 ---
 
+## 🌐 Community Calculation Database
+
+<div align="center">
+
+**The first open, community-driven calculation database for machine learning interatomic potentials.**
+
+*No other MLIP — not Meta's UMA, not Microsoft's MatterSim, not Google's GNoME — has a community feedback loop like this.*
+
+</div>
+
+The Community Database (`/community`) lets researchers **share and browse MACE calculation results** across institutions worldwide. Every calculation run through the web interface can be contributed with one click — building a shared, open-access dataset that benefits the entire MACE ecosystem.
+
+### Why This Matters
+
+Machine learning force fields live or die by their training data. MACE-MP-0 was trained on ~150K structures from the Materials Project. Meta's UMA was trained on 500 million. **The community database closes this gap through crowdsourced contributions** — every shared calculation tells the MACE developers where the model works, where it fails, and what materials researchers actually care about.
+
+This is **active learning at the ecosystem level**: users contribute real-world results, model creators identify weaknesses, and future MACE versions improve on exactly the materials the community needs.
+
+### How It Works
+
+| Step | What Happens |
+|------|-------------|
+| **1. Calculate** | Run any MACE calculation on `/calculate` |
+| **2. Share** | Click **"Share to Community Database"** at the bottom of results |
+| **3. Attribute** | Optionally add your name, institution, and notes |
+| **4. Browse** | Explore all shared calculations at `/community` with search, filters, and sorting |
+
+### What Gets Recorded
+
+Schema follows conventions from [Materials Project](https://materialsproject.org), [NOMAD](https://nomad-lab.eu), and [AFLOW](https://aflowlib.org):
+
+| Category | Fields |
+|----------|--------|
+| **Structure** | Formula (Hill system), elements, atom count, file format |
+| **Parameters** | Model (MACE-MP-0/OFF), size, calculation type, dispersion |
+| **Results** | Energy, energy/atom, RMS force, max force, cell volume, wall time |
+| **MD Data** | Steps, ensemble (NVE/NVT/NPT), temperature |
+| **Contributor** | Name, institution, notes (all optional — anonymous by default) |
+
+> **Current scope:** General Calculator (`/calculate`) only. Semiconductor page integration is planned for a future release.
+
+### Technical Stack
+
+- **Database:** [Supabase](https://supabase.com) (PostgreSQL) — globally replicated, Row Level Security, real-time capable
+- **API:** `/api/community/share` (POST) + `/api/community/list` (GET with filters, sorting, pagination)
+- **Schema:** Documented in [`supabase-schema.sql`](supabase-schema.sql) — portable, reproducible, citable in publications
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -149,25 +198,30 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 ```
 Browser (localhost:3000)
     │
-    ├── /calculate ──────────────────── /semiconductor
-    │        │                                │
-    │   Upload file + params          Select from library
-    │        │                         + choose workflows
-    ▼        │                                │
-Next.js API routes                            │
-    │                                         │
-    ├── /api/calculate                Multiple /api/calculate calls
-    │        │                        (7 for EOS, 2 for vacancy)
-    │   Python subprocess                     │
-    │        ▼                        ├── /api/generate-surface
-    │   calculate_local.py            │        │
-    │        │                        │   generate_surface.py (ASE)
-    ▼        ▼                        ▼        ▼
-Results in browser              Results in browser
-  + 3D viewer                     + reference comparison
-  + MD animation                  + EOS chart (E vs V)
-  + PDF report                    + confidence indicator
-                                  + bulk vs vacancy view
+    ├── /calculate ──────── /semiconductor ──────── /community
+    │        │                     │                     │
+    │   Upload + params      Select from library    Browse + search
+    │        │                + choose workflows     shared results
+    ▼        │                     │                     │
+Next.js API routes                 │                     │
+    │                              │                     │
+    ├── /api/calculate       Multiple /api/calculate     │
+    │        │               calls (EOS, vacancy)        │
+    │   Python subprocess          │                     │
+    │        ▼               ├── /api/generate-surface   │
+    │   calculate_local.py   │        │                  │
+    │        │               │   generate_surface.py     │
+    ▼        ▼               ▼        ▼                  │
+Results in browser      Results in browser               │
+  + 3D viewer             + reference comparison         │
+  + MD animation          + EOS chart (E vs V)           │
+  + PDF report            + confidence indicator         │
+    │                                                    │
+    └──── "Share to Community" ──────────────────────────►│
+              │                                          │
+              ▼                                          ▼
+         /api/community/share ──► Supabase ◄── /api/community/list
+                                (PostgreSQL)
 ```
 
 | Flow | How It Works |
@@ -176,6 +230,8 @@ Results in browser              Results in browser
 | **EOS** | Scale cell to 7 volumes → 7x single-point → polynomial E(V) fit → B₀ = V₀ × d²E/dV² |
 | **Vacancy** | Bulk + defect calculations → E_vac = E_defect − E_bulk × (N−1)/N |
 | **Surface** | `/api/generate-surface` → `generate_surface.py` → ASE `surface()` builder |
+| **Share** | Results → opt-in "Share" button → `/api/community/share` → Supabase INSERT |
+| **Browse** | `/community` page → `/api/community/list` → Supabase SELECT with filters + sort |
 
 ---
 
@@ -183,28 +239,45 @@ Results in browser              Results in browser
 
 <table>
 <tr>
-<td width="50%">
+<td width="33%">
 
 ### Frontend — Vercel
 
 1. Push to GitHub
 2. Import repo at [vercel.com](https://vercel.com)
-3. Set env var `MACE_API_URL` → your backend URL
+3. Set env vars (see below)
 
 </td>
-<td width="50%">
+<td width="33%">
 
 ### Backend — Railway
 
 1. Create project at [railway.app](https://railway.app)
 2. Deploy from `mace-api/` folder
-3. Copy URL → set as `MACE_API_URL` in Vercel
+3. Copy URL → set as `MACE_API_URL`
+
+</td>
+<td width="33%">
+
+### Database — Supabase
+
+1. Create project at [supabase.com](https://supabase.com)
+2. Run `supabase-schema.sql` in SQL Editor
+3. Copy URL + anon key → set in Vercel
 
 </td>
 </tr>
 </table>
 
-When `MACE_API_URL` is set, the frontend forwards calculations to the remote backend instead of running Python locally.
+**Vercel environment variables:**
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `MACE_API_URL` | Your Railway backend URL | For calculations |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | For community DB |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key | For community DB |
+
+> **Note:** `NEXT_PUBLIC_` vars are inlined at build time. After adding them in Vercel, you must **redeploy** for them to take effect.
 
 ---
 
@@ -255,53 +328,61 @@ The EOS fitting uses a cubic polynomial approximation to the Birch-Murnaghan equ
 mace/
   app/
     api/
-      calculate/route.ts         # API route — local Python or remote MACE API
-      generate-surface/route.ts  # Surface slab generation via ASE
-    calculate/page.tsx           # General calculator page
-    semiconductor/page.tsx       # Semiconductor discovery page
+      calculate/route.ts            # API route — local Python or remote MACE API
+      generate-surface/route.ts     # Surface slab generation via ASE
+      community/
+        share/route.ts              # POST — share calculation to community DB
+        list/route.ts               # GET — query community calculations (filterable)
+    calculate/page.tsx              # General calculator page
+    semiconductor/page.tsx          # Semiconductor discovery page
+    community/page.tsx              # Community database browsing page
     globals.css
     layout.tsx
-    page.tsx                     # Landing page
+    page.tsx                        # Landing page
   components/
     calculate/
-      file-upload-section.tsx    # Upload zone + ml-peg catalog
-      mlpeg-catalog.tsx          # ml-peg benchmark browser
-      molecule-viewer-3d.tsx     # 3Dmol.js + WEAS dual viewer
-      parameter-panel.tsx        # Model & calculation params
-      pdf-report.tsx             # PDF report generator
-      results-display.tsx        # Energy, forces, viewer
-      structure-info.tsx         # Parsed structure info + warnings
-      structure-preview.tsx      # Click-to-display 3D preview
-      weas-viewer.tsx            # WEAS iframe viewer
+      file-upload-section.tsx       # Upload zone + ml-peg catalog
+      mlpeg-catalog.tsx             # ml-peg benchmark browser
+      molecule-viewer-3d.tsx        # 3Dmol.js + WEAS dual viewer
+      parameter-panel.tsx           # Model & calculation params
+      pdf-report.tsx                # PDF report generator
+      results-display.tsx           # Energy, forces, viewer, share button
+      share-to-community.tsx        # Opt-in share form for community DB
+      structure-info.tsx            # Parsed structure info + warnings
+      structure-preview.tsx         # Click-to-display 3D preview
+      weas-viewer.tsx               # WEAS iframe viewer
       trajectory/
-        trajectory-viewer.tsx    # MD animation player
-        energy-chart.tsx         # SVG energy-vs-step chart
+        trajectory-viewer.tsx       # MD animation player
+        energy-chart.tsx            # SVG energy-vs-step chart
     semiconductor/
-      structure-library.tsx      # Card grid — 11 materials
-      defect-generator.tsx       # Vacancy + surface slab builder
-      property-calculator.tsx    # Multi-step MACE workflows
-      semiconductor-results.tsx  # Results + EOS chart + ref table
-      confidence-indicator.tsx   # MACE reliability gauge
-      comparison-view.tsx        # Bulk vs vacancy comparison
-    ui/                          # shadcn/ui components
+      structure-library.tsx         # Card grid — 11 materials
+      defect-generator.tsx          # Vacancy + surface slab builder
+      property-calculator.tsx       # Multi-step MACE workflows
+      semiconductor-results.tsx     # Results + EOS chart + ref table
+      confidence-indicator.tsx      # MACE reliability gauge
+      comparison-view.tsx           # Bulk vs vacancy comparison
+    ui/                             # shadcn/ui components
     Footer.tsx
     intro-section.tsx
   lib/
-    mlpeg-catalog.ts             # ml-peg structure catalog
-    parse-structure.ts           # XYZ/CIF/PDB/POSCAR parser
-    semiconductor-structures.ts  # 11 semiconductor XYZ structures
-    semiconductor-constants.ts   # Verified reference data
-    semiconductor-properties.ts  # EOS fit + vacancy energy helpers
+    mlpeg-catalog.ts                # ml-peg structure catalog
+    parse-structure.ts              # XYZ/CIF/PDB/POSCAR parser
+    supabase.ts                     # Supabase client singleton (community DB)
+    semiconductor-structures.ts     # 11 semiconductor XYZ structures
+    semiconductor-constants.ts      # Verified reference data
+    semiconductor-properties.ts     # EOS fit + vacancy energy helpers
     utils.ts
   mace-api/
-    calculate_local.py           # Local MACE calculation script
-    generate_surface.py          # ASE surface generator
-    main.py                      # FastAPI server (cloud deploy)
+    calculate_local.py              # Local MACE calculation script
+    generate_surface.py             # ASE surface generator
+    main.py                         # FastAPI server (cloud deploy)
     requirements.txt
   types/
-    mace.ts                      # Calculator type definitions
-    semiconductor.ts             # Semiconductor type definitions
-  public/                        # Static assets + screenshots
+    mace.ts                         # Calculator type definitions
+    semiconductor.ts                # Semiconductor type definitions
+    community.ts                    # Community database type definitions
+  public/                           # Static assets + screenshots
+  supabase-schema.sql               # Community DB schema (run in Supabase SQL editor)
 ```
 
 </details>
@@ -319,6 +400,8 @@ mace/
 | First calculation is slow | Normal — model downloads on first use (~30s) |
 | Calculation fails | Check terminal for Python errors. Verify `mace-torch` + `ase` installed |
 | `npm run dev` fails | Run `npm install` first. Requires Node.js 18+ |
+| Community DB not configured | Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` (local) or Vercel env vars (production). Run `supabase-schema.sql` in Supabase SQL editor. |
+| Share button returns error | Verify the `calculations` table exists in Supabase and RLS policies are enabled |
 
 ---
 
