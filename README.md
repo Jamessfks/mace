@@ -29,7 +29,7 @@ Built by a team of CS first-year students at **Northeastern University**
 
 > **318 unique cloners in 7 days** — viral by academic software standards. The science community is actually using the web interface.
 
-**Team:** Zicheng Zhao, Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
+**Team:** Zicheng Zhao(zhao.zic@northeastern.edu), Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 &nbsp;|&nbsp; Built on the [MACE API](https://github.com/ACEsuit/mace)
 
 ---
