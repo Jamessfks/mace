@@ -17,7 +17,7 @@
 
 Built by a team of CS first-year students at **Northeastern University**
 
-[Features](#features) · [Community Database](#-community-calculation-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
+[Features](#features) · [Community Database](#-community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
 
 </div>
 
@@ -85,23 +85,23 @@ Built by a team of CS first-year students at **Northeastern University**
 
 ---
 
-## 🌐 Community Calculation Database
+## Community Database
 
 <div align="center">
 
-**The first open, community-driven calculation database for machine learning interatomic potentials.**
+**The one of the first open, community-driven calculation database for machine learning interatomic potentials.**
 
 *No other MLIP — not Meta's UMA, not Microsoft's MatterSim, not Google's GNoME — has a community feedback loop like this.*
 
 </div>
 
-The Community Database (`/community`) lets researchers **share and browse MACE calculation results** across institutions worldwide. Every calculation run through the web interface can be contributed with one click — building a shared, open-access dataset that benefits the entire MACE ecosystem.
+The Community Database (`/community`) lets researchers **share and browse MACE calculation results** across institutions worldwide. Every calculation run through the web interface can be contributed with one click.
 
 ### Why This Matters
 
-Machine learning force fields live or die by their training data. MACE-MP-0 was trained on ~150K structures from the Materials Project. Meta's UMA was trained on 500 million. **The community database closes this gap through crowdsourced contributions** — every shared calculation tells the MACE developers where the model works, where it fails, and what materials researchers actually care about.
+Machine learning force fields live or die by their training data. MACE-MP-0 was trained on ~150K structures from the Materials Project. Meta's UMA was trained on 500 million. **The community database closes this gap through crowdsourced contributions**
 
-This is **active learning at the ecosystem level**: users contribute real-world results, model creators identify weaknesses, and future MACE versions improve on exactly the materials the community needs.
+This is **active learning at the ecosystem level**: users contribute real-world results, model creators identify weaknesses, and future MACE versions improve on exactly the materials the community needs!
 
 ### How It Works
 
