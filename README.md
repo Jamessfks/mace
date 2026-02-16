@@ -27,7 +27,6 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 >
 > *How many talented scientists are we losing because of inaccessible tools? We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
-> **318 unique cloners in 7 days** — viral by academic software standards. The science community is actually using the web interface.
 
 **Team:** Zicheng Zhao(zhao.zic@northeastern.edu), Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 &nbsp;|&nbsp; Built on the [MACE API](https://github.com/ACEsuit/mace)
