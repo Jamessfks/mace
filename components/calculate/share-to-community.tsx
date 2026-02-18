@@ -52,11 +52,11 @@ export function ShareToCommunity({ result, filename }: ShareToCommunityProps) {
       ? result.energy / atomCount
       : null;
 
+  const flatForces = result.forces?.flat() ?? [];
   const rmsForce =
-    result.forces && result.forces.length > 0
+    flatForces.length > 0
       ? Math.sqrt(
-          result.forces.flat().reduce((s, f) => s + f * f, 0) /
-            result.forces.length
+          flatForces.reduce((s, f) => s + f * f, 0) / flatForces.length
         )
       : null;
 

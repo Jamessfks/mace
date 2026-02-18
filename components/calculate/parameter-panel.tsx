@@ -84,11 +84,20 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             { value: "single-point", label: "Single Point Energy" },
             { value: "geometry-opt", label: "Geometry Optimization" },
             { value: "molecular-dynamics", label: "Molecular Dynamics" },
-            { value: "phonon", label: "Phonon Spectrum" },
+            {
+              value: "phonon",
+              label: "Phonon Spectrum",
+              disabled: true,
+              tooltip: "Coming soon — not yet supported by backend",
+            },
           ].map((opt) => (
             <label
               key={opt.value}
-              className="flex cursor-pointer items-center gap-3 rounded p-2 transition-colors hover:bg-matrix-green/5"
+              className={`flex items-center gap-3 rounded p-2 transition-colors ${
+                opt.disabled
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer hover:bg-matrix-green/5"
+              }`}
             >
               <input
                 type="radio"
@@ -96,12 +105,19 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
                 value={opt.value}
                 checked={params.calculationType === opt.value}
                 onChange={(e) =>
+                  !("disabled" in opt && opt.disabled) &&
                   updateParam("calculationType", e.target.value as any)
                 }
+                disabled={"disabled" in opt && opt.disabled}
                 className="accent-matrix-green"
               />
               <span className="font-mono text-xs text-zinc-300">
                 {opt.label}
+                {"tooltip" in opt && opt.tooltip && (
+                  <span className="ml-1.5 inline-block text-zinc-500" title={opt.tooltip}>
+                    (soon)
+                  </span>
+                )}
               </span>
             </label>
           ))}
@@ -321,12 +337,21 @@ function ParamInput({
         }}
         onBlur={() => {
           setIsFocused(false);
-          // If left empty or invalid, restore previous valid value
           const parsed = parseFloat(localValue);
           if (isNaN(parsed)) {
             setLocalValue(String(value));
           } else {
-            onChange(parsed);
+            // Clamp to min/max when provided
+            const clamped =
+              min != null && max != null
+                ? Math.min(max, Math.max(min, parsed))
+                : min != null
+                  ? Math.max(min, parsed)
+                  : max != null
+                    ? Math.min(max, parsed)
+                    : parsed;
+            onChange(clamped);
+            setLocalValue(String(clamped));
           }
         }}
         min={min}

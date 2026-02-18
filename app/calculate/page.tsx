@@ -108,8 +108,13 @@ export default function CalculatePage() {
       setError("Please upload at least one structure file");
       return;
     }
+    if (params.calculationType === "phonon") {
+      setError("Phonon Spectrum is not yet supported. Please choose another calculation type.");
+      return;
+    }
     setIsCalculating(true);
     setError(null);
+    setResult(null);
 
     const startTime = Date.now();
 
