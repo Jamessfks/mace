@@ -22,11 +22,262 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 from ase.io import read, write
+
+COMMON_QE_EXECUTABLES = (
+    "/usr/bin/pw.x",
+    "/usr/bin/pw",
+    "/opt/local/bin/pw.x",
+    "/opt/local/bin/pw",
+    "/opt/homebrew/opt/quantum-espresso/bin/pw.x",
+    "/usr/local/opt/quantum-espresso/bin/pw.x",
+    "/opt/homebrew/bin/pw.x",
+    "/usr/local/bin/pw.x",
+    "/opt/conda/bin/pw.x",
+    "/opt/conda/bin/pw",
+    "/opt/homebrew/bin/pw",
+    "/usr/local/bin/pw",
+)
+
+
+def _resolve_executable_path(token: str) -> str | None:
+    candidate = Path(token).expanduser()
+    if candidate.is_dir():
+        for subdir in ("", "bin", "build/bin"):
+            base_dir = candidate if not subdir else (candidate / subdir)
+            for name in ("pw.x", "pw"):
+                nested = base_dir / name
+                if nested.is_file() and os.access(nested, os.X_OK):
+                    return str(nested.resolve())
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        return str(candidate.resolve())
+    resolved = shutil.which(token)
+    if resolved:
+        return resolved
+    return None
+
+
+def _iter_env_bin_dirs() -> list[Path]:
+    dirs: list[Path] = []
+    for key in ("QE_BIN_DIR", "ESPRESSO_BIN"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw).expanduser())
+    for key in ("QE_HOME", "ESPRESSO_HOME", "CONDA_PREFIX"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw).expanduser() / "bin")
+    # de-duplicate while preserving order
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for item in dirs:
+        key = str(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
+def _resolve_from_login_shell(token: str) -> str | None:
+    shells = [os.environ.get("SHELL", "").strip(), "/bin/zsh", "/bin/bash"]
+    seen: set[str] = set()
+    for shell in shells:
+        if not shell or shell in seen or not Path(shell).exists():
+            continue
+        seen.add(shell)
+        try:
+            proc = subprocess.run(
+                [shell, "-lc", f"command -v {shlex.quote(token)}"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+        except Exception:
+            continue
+        if proc.returncode != 0:
+            continue
+        candidate = proc.stdout.strip().splitlines()[0] if proc.stdout.strip() else ""
+        resolved = _resolve_executable_path(candidate)
+        if resolved:
+            return resolved
+    return None
+
+
+def _resolve_from_brew(tokens: list[str]) -> str | None:
+    for brew_token in ("/opt/homebrew/bin/brew", "/usr/local/bin/brew", "brew"):
+        brew_path = _resolve_executable_path(brew_token)
+        if not brew_path:
+            continue
+        try:
+            proc = subprocess.run(
+                [brew_path, "--prefix", "quantum-espresso"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+        except Exception:
+            continue
+        if proc.returncode != 0:
+            continue
+        prefix = proc.stdout.strip()
+        if not prefix:
+            continue
+        for token in tokens:
+            resolved = _resolve_executable_path(str(Path(prefix) / "bin" / token))
+            if resolved:
+                return resolved
+    return None
+
+
+def _iter_qe_source_roots() -> list[Path]:
+    home = Path.home()
+    patterns = [
+        home / "Downloads" / "qe-*",
+        home / "Downloads" / "QE-*",
+        home / "Downloads" / "quantum-espresso*",
+        home / "Downloads" / "Quantum-Espresso*",
+        home / "Downloads" / "QuantumESPRESSO*",
+        home / "qe-*",
+        home / "QE-*",
+        home / "quantum-espresso*",
+        home / "Quantum-Espresso*",
+        home / "QuantumESPRESSO*",
+    ]
+    roots: list[Path] = []
+    seen: set[str] = set()
+    for pattern in patterns:
+        for source_root in sorted(pattern.parent.glob(pattern.name)):
+            if not source_root.is_dir():
+                continue
+            key = str(source_root.resolve())
+            if key in seen:
+                continue
+            seen.add(key)
+            roots.append(source_root)
+    return roots
+
+
+def _resolve_from_user_locations(tokens: list[str]) -> str | None:
+    for source_root in _iter_qe_source_roots():
+        for bin_dir in (source_root / "bin", source_root / "build" / "bin"):
+            if not bin_dir.is_dir():
+                continue
+            for token in tokens:
+                resolved = _resolve_executable_path(str(bin_dir / token))
+                if resolved:
+                    return resolved
+    return None
+
+
+def _qe_install_hint() -> str:
+    for source_root in _iter_qe_source_roots():
+        if (source_root / "PW" / "src").exists():
+            pw_candidates = [
+                source_root / "bin" / "pw.x",
+                source_root / "bin" / "pw",
+                source_root / "build" / "bin" / "pw.x",
+                source_root / "build" / "bin" / "pw",
+            ]
+            for candidate in pw_candidates:
+                if candidate.is_file():
+                    if os.access(candidate, os.X_OK):
+                        return (
+                            f"QE binaries detected at `{candidate.parent}`; set QE command to "
+                            f"`{candidate.resolve()}` (or add that directory to PATH)."
+                        )
+                    return f"QE binary exists but is not executable: `{candidate}`."
+            return (
+                f"QE source tree detected at `{source_root}`; build binaries there "
+                "(for example: `./configure && make pw`)."
+            )
+
+    brew_path = _resolve_executable_path("/opt/homebrew/bin/brew") or _resolve_executable_path("brew")
+    if brew_path:
+        try:
+            proc = subprocess.run(
+                [brew_path, "list", "--versions", "quantum-espresso"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            if not proc.stdout.strip():
+                return "Install with Homebrew: `brew install quantum-espresso`."
+        except Exception:
+            pass
+    return ""
+
+
+def resolve_qe_command(raw_command: str) -> str:
+    """
+    Resolve a runnable QE command string.
+    Priority:
+    1) explicit qe_command argument
+    2) QE_COMMAND env when qe_command is empty/default ("pw.x")
+    3) default "pw.x"
+    """
+    env_override = os.environ.get("QE_COMMAND", "").strip()
+    selected = raw_command.strip()
+    if env_override and selected in ("", "pw.x"):
+        selected = env_override
+    if not selected:
+        selected = "pw.x"
+
+    try:
+        parts = shlex.split(selected)
+    except ValueError as exc:
+        raise ValueError(f"Invalid qe_command: {selected!r}") from exc
+    if not parts:
+        parts = ["pw.x"]
+
+    resolved_exe = _resolve_executable_path(parts[0])
+    if resolved_exe is None and parts[0] in ("pw.x", "pw"):
+        tokens = [parts[0], "pw.x", "pw"]
+        # Check QE-specific env directories first.
+        for bin_dir in _iter_env_bin_dirs():
+            for token in tokens:
+                resolved = _resolve_executable_path(str(bin_dir / token))
+                if resolved:
+                    resolved_exe = resolved
+                    break
+            if resolved_exe:
+                break
+        # Try common install paths.
+        if resolved_exe is None:
+            for item in COMMON_QE_EXECUTABLES:
+                resolved = _resolve_executable_path(item)
+                if resolved:
+                    resolved_exe = resolved
+                    break
+        # Try Homebrew prefix if brew exists.
+        if resolved_exe is None:
+            resolved_exe = _resolve_from_brew(tokens)
+        # Try common user install/source locations.
+        if resolved_exe is None:
+            resolved_exe = _resolve_from_user_locations(tokens)
+        # Last attempt: ask login shell PATH (covers GUI app PATH mismatch).
+        if resolved_exe is None:
+            for token in tokens:
+                resolved_exe = _resolve_from_login_shell(token)
+                if resolved_exe:
+                    break
+    if resolved_exe is None:
+        install_hint = _qe_install_hint()
+        suffix = f" {install_hint}" if install_hint else ""
+        raise RuntimeError(
+            f"Quantum ESPRESSO executable not found: {parts[0]}. "
+            "Set QE command in the UI (absolute path), set QE_COMMAND/QE_BIN_DIR/ESPRESSO_BIN, "
+            f"or add the QE bin directory to PATH.{suffix}"
+        )
+
+    parts[0] = resolved_exe
+    return shlex.join(parts)
 
 
 def parse_kpts(kpts: str) -> tuple[int, int, int]:
@@ -157,12 +408,7 @@ def label_with_qe(atoms_list, args) -> list:
             "ASE Quantum ESPRESSO support is unavailable. Install ASE with Espresso support."
         ) from exc
 
-    command_bin = args.qe_command.strip().split()[0] if args.qe_command.strip() else "pw.x"
-    if shutil.which(command_bin) is None:
-        raise RuntimeError(
-            f"Quantum ESPRESSO executable not found: {command_bin}. "
-            "Install QE and ensure pw.x is on PATH."
-        )
+    qe_command = resolve_qe_command(args.qe_command)
 
     pseudo_dir_raw = args.pseudo_dir or os.environ.get("ESPRESSO_PSEUDO", "")
     if not pseudo_dir_raw:
@@ -197,7 +443,7 @@ def label_with_qe(atoms_list, args) -> list:
             input_data=input_data,
             kpts=kpts,
             workdir=workdir,
-            command=args.qe_command,
+            command=qe_command,
         )
         atoms.calc = calc
         energy = atoms.get_potential_energy()

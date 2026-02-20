@@ -37,9 +37,12 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+from checkpoint_resolver import resolve_checkpoint_in_dir
 
 # Script dir = MACE_Freeze (we are run with cwd = MACE_Freeze)
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -70,7 +73,19 @@ def parse_patterns(name: str, default: list[str]) -> list[str]:
     return values or default
 
 
-def build_extra(quick_demo: bool, model_path: str | None) -> list[str]:
+def parse_positive_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def build_extra(quick_demo: bool, model_path: str | None, max_epochs: int) -> list[str]:
+    max_epochs = max(1, int(max_epochs))
     if quick_demo:
         extra = [
             "--E0s", "average",
@@ -83,13 +98,14 @@ def build_extra(quick_demo: bool, model_path: str | None) -> list[str]:
             "--r_max", "5.0",
             "--batch_size", "8",
             "--valid_batch_size", "8",
-            "--max_num_epochs", "5",
+            "--max_num_epochs", str(max_epochs),
             "--forces_weight", "100",
             "--energy_weight", "1",
             "--default_dtype", "float32",
             "--save_cpu",
         ]
     else:
+        swa_start = 1 if max_epochs <= 1 else max(1, min(max_epochs - 1, max_epochs // 2))
         extra = [
             "--E0s", "average",
             "--num_interactions", "2",
@@ -103,8 +119,8 @@ def build_extra(quick_demo: bool, model_path: str | None) -> list[str]:
             "--forces_key", "force",
             "--batch_size", "2",
             "--valid_batch_size", "4",
-            "--max_num_epochs", "800",
-            "--start_swa", "400",
+            "--max_num_epochs", str(max_epochs),
+            "--start_swa", str(swa_start),
             "--scheduler_patience", "15",
             "--patience", "30",
             "--eval_interval", "4",
@@ -115,10 +131,25 @@ def build_extra(quick_demo: bool, model_path: str | None) -> list[str]:
             "--save_cpu",
         ]
     if model_path:
-        return ["--model", model_path] + extra
+        if "--restart_latest" not in extra:
+            extra.append("--restart_latest")
+        return extra
     if not quick_demo:
         return ["--model", "MACE"] + extra
     return extra
+
+
+def seed_checkpoint_for_run(source_ckpt: Path, work_dir: Path, name: str, seed: int) -> Path:
+    if not source_ckpt.exists():
+        raise FileNotFoundError(f"Seed checkpoint not found: {source_ckpt}")
+    ckpt_dir = work_dir / name / "checkpoints"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    existing = resolve_checkpoint_in_dir(ckpt_dir)
+    if existing is not None:
+        return existing
+    target = ckpt_dir / f"{name}_run-{seed}_epoch-0.pt"
+    shutil.copy2(source_ckpt, target)
+    return target
 
 
 def run_mace_train(
@@ -190,6 +221,8 @@ def main() -> int:
 
     fine_tune = os.environ.get("FINE_TUNE", "0") == "1"
     train_base_first = os.environ.get("TRAIN_BASE_FIRST", "1") == "1"
+    max_epochs_default = 5 if quick_demo else 800
+    max_epochs = parse_positive_int("MAX_EPOCHS", max_epochs_default)
     base_checkpoint_path_env = os.environ.get("BASE_CHECKPOINT_PATH", "").strip()
     freeze_init_path_env = os.environ.get("FREEZE_INIT_PATH", "").strip()
     freeze_patterns = parse_patterns("FREEZE_PATTERNS_JSON", ["embedding", "radial"])
@@ -276,7 +309,7 @@ def main() -> int:
                 emit({"event": "log", "message": "Training base model before freezing..."})
                 base_work_dir = run_root / "base"
                 base_name = "base_model"
-                base_extra = build_extra(quick_demo=quick_demo, model_path=None)
+                base_extra = build_extra(quick_demo=quick_demo, model_path=None, max_epochs=max_epochs)
                 rc = run_mace_train(
                     train_file=train_file,
                     valid_file=valid_file,
@@ -290,10 +323,12 @@ def main() -> int:
                 if rc != 0:
                     emit({"event": "error", "message": f"Base model training failed with code {rc}"})
                     return rc
-                base_checkpoint_path = base_work_dir / base_name / "checkpoints" / "best.pt"
-                if not base_checkpoint_path.exists():
-                    emit({"event": "error", "message": f"Base checkpoint missing: {base_checkpoint_path}"})
+                base_ckpt_dir = base_work_dir / base_name / "checkpoints"
+                resolved_base_ckpt = resolve_checkpoint_in_dir(base_ckpt_dir)
+                if resolved_base_ckpt is None:
+                    emit({"event": "error", "message": f"Base checkpoint missing in: {base_ckpt_dir}"})
                     return 1
+                base_checkpoint_path = resolved_base_ckpt
 
             freeze_dir = run_root / "freeze"
             freeze_dir.mkdir(parents=True, exist_ok=True)
@@ -317,19 +352,40 @@ def main() -> int:
                 return 1
             model_override_path = str(freeze_init_path)
             freeze_plan_path = str(freeze_plan)
+            try:
+                plan_data = json.loads(freeze_plan.read_text())
+                if int(plan_data.get("num_frozen_params", 0)) == 0:
+                    emit({
+                        "event": "log",
+                        "message": "Warning: freeze patterns matched 0 parameters. Training will continue.",
+                    })
+            except Exception:
+                pass
             emit({
                 "event": "log",
                 "message": f"Freeze complete. init={freeze_init_path} plan={freeze_plan}",
             })
 
     emit({"event": "log", "message": "Starting MACE training..." + (" (committee mode)" if committee_mode else "")})
-    extra = build_extra(quick_demo=quick_demo, model_path=model_override_path)
+    extra = build_extra(quick_demo=quick_demo, model_path=model_override_path, max_epochs=max_epochs)
 
     checkpoints: list[str] = []
     if committee_mode:
         for i in range(committee_size):
             name = f"c{i}"
             emit({"event": "log", "message": f"Training committee model {name}..."})
+            if model_override_path:
+                try:
+                    seeded_path = seed_checkpoint_for_run(
+                        Path(model_override_path), work_dir, name, i
+                    )
+                    emit({
+                        "event": "log",
+                        "message": f"Loaded fine-tune init checkpoint for {name}: {seeded_path}",
+                    })
+                except Exception as e:
+                    emit({"event": "error", "message": f"Failed to prepare fine-tune checkpoint for {name}: {e}"})
+                    return 1
             rc = run_mace_train(
                 train_file=train_file,
                 valid_file=valid_file,
@@ -343,9 +399,9 @@ def main() -> int:
             if rc != 0:
                 emit({"event": "error", "message": f"Model {name} failed with code {rc}"})
                 return rc
-            ckpt = work_dir / name / "checkpoints" / "best.pt"
-            if ckpt.exists():
-                checkpoints.append(str(ckpt))
+            resolved_ckpt = resolve_checkpoint_in_dir(work_dir / name / "checkpoints")
+            if resolved_ckpt is not None:
+                checkpoints.append(str(resolved_ckpt))
 
         result = {
             "event": "done",
@@ -365,6 +421,19 @@ def main() -> int:
         emit(result)
         return 0
 
+    if model_override_path:
+        try:
+            seeded_path = seed_checkpoint_for_run(
+                Path(model_override_path), work_dir, run_name, seed
+            )
+            emit({
+                "event": "log",
+                "message": f"Loaded fine-tune init checkpoint for {run_name}: {seeded_path}",
+            })
+        except Exception as e:
+            emit({"event": "error", "message": f"Failed to prepare fine-tune checkpoint: {e}"})
+            return 1
+
     rc = run_mace_train(
         train_file=train_file,
         valid_file=valid_file,
@@ -379,13 +448,14 @@ def main() -> int:
         return rc
 
     run_dir = work_dir / run_name
-    checkpoint_path = run_dir / "checkpoints" / "best.pt"
+    resolved_single_ckpt = resolve_checkpoint_in_dir(run_dir / "checkpoints")
+    checkpoint_path = resolved_single_ckpt if resolved_single_ckpt is not None else (run_dir / "checkpoints" / "best.pt")
     result = {
         "event": "done",
         "run_id": run_id,
         "run_name": run_name,
         "run_dir": str(run_dir),
-        "checkpoint_path": str(checkpoint_path),
+        "checkpoint_path": str(checkpoint_path) if checkpoint_path.exists() else "",
         "fine_tune": fine_tune,
     }
     if split_with_pool and pool_file.exists():

@@ -1,0 +1,21 @@
+{
+  "freeze_patterns": [
+    "embedding",
+    "radial"
+  ],
+  "unfreeze_patterns": [
+    "readout"
+  ],
+  "num_total_params": 40,
+  "num_frozen_params": 8,
+  "frozen_keys_sample": [
+    "node_embedding.linear.weight",
+    "node_embedding.linear.bias",
+    "node_embedding.linear.output_mask",
+    "radial_embedding.bessel_fn.bessel_weights",
+    "radial_embedding.bessel_fn.r_max",
+    "radial_embedding.bessel_fn.prefactor",
+    "radial_embedding.cutoff_fn.p",
+    "radial_embedding.cutoff_fn.r_max"
+  ]
+}

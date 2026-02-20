@@ -1,0 +1,137 @@
+2026-02-19 23:03:19.280 INFO: ===========VERIFYING SETTINGS===========
+2026-02-19 23:03:19.280 INFO: MACE version: 0.3.14
+2026-02-19 23:03:19.280 DEBUG: Configuration: Namespace(config=None, name='base_model', seed=1, work_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model', log_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/logs', model_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model', checkpoints_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints', results_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/results', downloads_dir='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/downloads', device='cpu', default_dtype='float32', distributed=False, launcher='slurm', log_level='INFO', plot=True, plot_frequency=0, plot_interaction_e=False, error_table='PerAtomRMSE', model='MACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', apply_cutoff=True, use_last_readout_only=False, use_embedding_readout=False, interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=2, use_reduced_cg=False, use_so3=False, use_agnostic_product=False, num_interactions=1, MLP_irreps='16x0e', radial_MLP='[64, 64, 64]', hidden_irreps=32x0e, edge_irreps=None, num_channels=32, max_L=0, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_polarizability=<function str2bool at 0x1117cc900>, compute_atomic_dipole=<function str2bool at 0x1117cc900>, train_file='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/data/train.xyz', valid_file='/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/data/valid.xyz', valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, les_arguments=None, E0s='average', pseudolabel_replay=False, foundation_filter_elements=True, heads=None, multiheads_finetuning=True, foundation_head=None, weight_pt_head=1.0, real_pt_data_ratio_threshold=0.1, num_samples_pt=10000, force_mh_ft_lr=False, subselect_pt='random', filter_type_pt='none', allow_random_padding_pt=True, pt_train_file=None, pt_valid_file=None, foundation_model_elements=False, keep_isolated_atoms=False, energy_key='TotEnergy', forces_key='force', virials_key='REF_virials', stress_key='REF_stress', dipole_key='dipole', polarizability_key='polarizability', head_key='head', charges_key='REF_charges', elec_temp_key='elec_temp', total_spin_key='total_spin', total_charge_key='total_charge', embedding_specs=None, skip_evaluate_heads='pt_head', loss='weighted', forces_weight=100.0, swa_forces_weight=100.0, energy_weight=1.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipole_weight=1.0, swa_dipole_weight=1.0, swa_polarizability_weight=1.0, polarizability_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=8, valid_batch_size=8, lr=0.01, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, lbfgs=False, ema=False, ema_decay=0.99, max_num_epochs=5, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=True, clip_grad=10.0, dry_run=False, enable_cueq=False, only_cueq=False, enable_oeq=False, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'], key_specification=KeySpecification(info_keys={'energy': 'TotEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head', 'elec_temp': 'elec_temp', 'total_charge': 'total_charge', 'polarizability': 'polarizability', 'total_spin': 'total_spin'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'}))
+2026-02-19 23:03:19.280 INFO: Using CPU
+2026-02-19 23:03:19.308 DEBUG: Popen(['git', 'version'], cwd=/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze, stdin=None, shell=False, universal_newlines=False)
+2026-02-19 23:03:19.327 DEBUG: Popen(['git', 'version'], cwd=/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze, stdin=None, shell=False, universal_newlines=False)
+2026-02-19 23:03:19.343 DEBUG: sys.platform='darwin', git_executable='git'
+2026-02-19 23:03:19.345 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/Users/jameszhao/Desktop/mace, stdin=<valid stream>, shell=False, universal_newlines=False)
+2026-02-19 23:03:19.366 DEBUG: Current Git commit: ce58de6c40b478bc6767375f0eb2584d99ce5547
+2026-02-19 23:03:19.366 INFO: ===========LOADING INPUT DATA===========
+2026-02-19 23:03:19.366 INFO: Using heads: ['Default']
+2026-02-19 23:03:19.366 INFO: Using the key specifications to parse data:
+2026-02-19 23:03:19.366 INFO: Default: KeySpecification(info_keys={'energy': 'TotEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head', 'elec_temp': 'elec_temp', 'total_charge': 'total_charge', 'polarizability': 'polarizability', 'total_spin': 'total_spin'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'})
+2026-02-19 23:03:19.366 INFO: =============    Processing head Default     ===========
+2026-02-19 23:03:19.366 DEBUG: Loading training file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/data/train.xyz
+2026-02-19 23:03:19.676 INFO: Training set 1/1 [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:03:19.678 INFO: Total Training set [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:03:19.727 INFO: Validation set 1/1 [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:03:19.727 INFO: Total Validation set [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:03:19.727 INFO: Total number of configurations: train=1116, valid=159, tests=[],
+2026-02-19 23:03:19.738 INFO: Atomic Numbers used: [np.int64(1), np.int64(8)]
+2026-02-19 23:03:19.739 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2026-02-19 23:03:19.739 INFO: Computing average Atomic Energies using least squares regression
+2026-02-19 23:03:19.741 INFO: Atomic Energies used (z: eV) for head Default: {1: -6.894315756608428, 8: -3.4471578783042047}
+2026-02-19 23:03:19.741 INFO: Processing datasets for head 'Default'
+2026-02-19 23:03:20.072 DEBUG: Successfully loaded dataset from ASE files: ['/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/data/train.xyz']
+2026-02-19 23:03:20.072 INFO: Combining 1 list datasets for head 'Default'
+2026-02-19 23:03:20.119 DEBUG: Successfully loaded validation dataset from ASE files: ['/Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/data/valid.xyz']
+2026-02-19 23:03:20.119 INFO: Combining 1 list datasets for head 'Default_valid'
+2026-02-19 23:03:20.119 INFO: Combined validation datasets for Default
+2026-02-19 23:03:20.119 INFO: Head 'Default' training dataset size: 1116
+2026-02-19 23:03:20.119 INFO: Computing average number of neighbors
+2026-02-19 23:03:20.255 INFO: Average number of neighbors: 5.529906272888184
+2026-02-19 23:03:20.256 INFO: During training the following quantities will be reported: energy, forces
+2026-02-19 23:03:20.256 INFO: ===========MODEL DETAILS===========
+2026-02-19 23:03:20.347 INFO: Building model
+2026-02-19 23:03:20.347 INFO: Message passing with 32 channels and max_L=0 (32x0e)
+2026-02-19 23:03:20.347 INFO: 1 layers, each with correlation order: 2 (body order: 3) and spherical harmonics up to: l=3
+2026-02-19 23:03:20.347 INFO: 8 radial and 5 basis functions
+2026-02-19 23:03:20.347 INFO: Radial cutoff: 5.0 A (total receptive field for each atom: 5.0 A)
+2026-02-19 23:03:20.347 INFO: Distance transform for radial basis functions: None
+2026-02-19 23:03:20.347 INFO: Hidden irreps: 32x0e
+2026-02-19 23:03:20.500 DEBUG: ScaleShiftMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(2x0e -> 32x0e | 64 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=5.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5, r_max=5.0)
+  )
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[[-6.8943, -3.4472]])
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(32x0e -> 32x0e | 1024 weights)
+      (conv_tp): TensorProduct(32x0e x 1x0e+1x1o+1x2e+1x3o -> 32x0e+32x1o+32x2e+32x3o | 128 paths | 128 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 128]
+      (linear): Linear(32x0e+32x1o+32x2e+32x3o -> 32x0e+32x1o+32x2e+32x3o | 4096 weights)
+      (skip_tp): FullyConnectedTensorProduct(32x0e+32x1o+32x2e+32x3o x 2x0e -> 32x0e+32x1o+32x2e+32x3o | 8192 paths | 8192 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0): GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0): GraphModule()
+            )
+            (weights): ParameterList(  (0): Parameter containing: [torch.float32 of size 2x1x32])
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(32x0e -> 32x0e | 1024 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(32x0e -> 1x0e | 32 weights)
+    )
+  )
+  (scale_shift): ScaleShiftBlock(scale=0.0439, shift=0.0000)
+)
+2026-02-19 23:03:20.501 INFO: Total number of parameters: 31648
+2026-02-19 23:03:20.501 INFO: 
+2026-02-19 23:03:20.501 INFO: ===========OPTIMIZER INFORMATION===========
+2026-02-19 23:03:20.501 INFO: Using ADAM as parameter optimizer
+2026-02-19 23:03:20.501 INFO: Batch size: 8
+2026-02-19 23:03:20.501 INFO: Number of gradient updates: 697
+2026-02-19 23:03:20.501 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-02-19 23:03:20.501 INFO: WeightedEnergyForcesLoss(energy_weight=1.000, forces_weight=100.000)
+2026-02-19 23:03:20.501 INFO: Using gradient clipping with tolerance=10.000
+2026-02-19 23:03:20.501 INFO: 
+2026-02-19 23:03:20.501 INFO: ===========TRAINING===========
+2026-02-19 23:03:20.501 INFO: Started training, reporting errors on validation set
+2026-02-19 23:03:20.501 INFO: Loss metrics on validation set
+2026-02-19 23:03:21.921 INFO: Initial: head: Default, loss=0.02449005, RMSE_E_per_atom=    2.77 meV, RMSE_F=   44.14 meV / A
+2026-02-19 23:03:47.295 INFO: Epoch 0: head: Default, loss=0.00107508, RMSE_E_per_atom=   35.88 meV, RMSE_F=    8.53 meV / A
+2026-02-19 23:03:47.297 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-0.pt
+2026-02-19 23:04:13.081 INFO: Epoch 1: head: Default, loss=0.00070199, RMSE_E_per_atom=   25.75 meV, RMSE_F=    7.03 meV / A
+2026-02-19 23:04:13.082 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-0.pt
+2026-02-19 23:04:13.083 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-1.pt
+2026-02-19 23:04:38.969 INFO: Epoch 2: head: Default, loss=0.00069894, RMSE_E_per_atom=   24.98 meV, RMSE_F=    7.04 meV / A
+2026-02-19 23:04:38.969 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-1.pt
+2026-02-19 23:04:38.969 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-2.pt
+2026-02-19 23:05:05.266 INFO: Epoch 3: head: Default, loss=0.00063225, RMSE_E_per_atom=   23.75 meV, RMSE_F=    6.69 meV / A
+2026-02-19 23:05:05.266 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-2.pt
+2026-02-19 23:05:05.266 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-3.pt
+2026-02-19 23:05:31.851 INFO: Epoch 4: head: Default, loss=0.00056540, RMSE_E_per_atom=   21.26 meV, RMSE_F=    6.37 meV / A
+2026-02-19 23:05:31.852 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-3.pt
+2026-02-19 23:05:31.852 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-4.pt
+2026-02-19 23:05:31.854 INFO: Training complete
+2026-02-19 23:05:31.854 INFO: 
+2026-02-19 23:05:31.854 INFO: ===========RESULTS===========
+2026-02-19 23:05:31.855 INFO: Loading checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1_epoch-4.pt
+2026-02-19 23:05:31.857 INFO: Loaded Stage one model from epoch 4 for evaluation
+2026-02-19 23:05:31.857 INFO: Saving model to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/checkpoints/base_model_run-1.model
+2026-02-19 23:05:31.897 INFO: Compiling model, saving metadata to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/34c44c01-18b9-4419-831c-ac2a2a35effd/base/base_model/base_model_compiled.model
+2026-02-19 23:05:32.044 INFO: Computing metrics for training, validation, and test sets
+2026-02-19 23:05:32.044 INFO: Skipping evaluation for heads: ['pt_head']
+2026-02-19 23:05:32.044 INFO: Evaluating train_Default ...
+2026-02-19 23:05:42.653 INFO: Evaluating valid_Default ...
+2026-02-19 23:05:44.152 INFO: Error-table on TRAIN and VALID:
++---------------+---------------------+------------------+-------------------+
+|  config_type  | RMSE E / meV / atom | RMSE F / meV / A | relative F RMSE % |
++---------------+---------------------+------------------+-------------------+
+| train_Default |           21.4      |          6.4     |         14.60     |
+| valid_Default |           21.3      |          6.4     |         14.53     |
++---------------+---------------------+------------------+-------------------+
+2026-02-19 23:05:44.153 DEBUG: Running inference on train_Default dataset
+2026-02-19 23:05:44.224 DEBUG: Plotting failed: too many indices for tensor of dimension 1
+2026-02-19 23:05:44.224 INFO: Done

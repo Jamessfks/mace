@@ -22,12 +22,39 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import List, Dict, Any
 
 import numpy as np
 from ase.io import read
 from mace.calculators import MACECalculator
+
+EPOCH_SUFFIX_RE = re.compile(r"_epoch-\d+(?:_swa)?$", re.IGNORECASE)
+
+
+def resolve_inference_model_path(model_path: Path) -> Path:
+    """
+    Prefer an exported .model artifact when a training checkpoint (.pt) is given.
+    MACECalculator expects files that deserialize to a model object, while many
+    *_epoch-*.pt files are optimizer checkpoints (dict payloads).
+    """
+    if model_path.suffix.lower() == ".model" and model_path.exists():
+        return model_path
+
+    parent = model_path.parent
+    if not parent.exists():
+        return model_path
+
+    model_candidates = [p for p in parent.glob("*.model") if p.is_file()]
+    if not model_candidates:
+        return model_path
+
+    base_stem = EPOCH_SUFFIX_RE.sub("", model_path.stem)
+    matching = [p for p in model_candidates if p.stem == base_stem]
+    ranked = matching if matching else model_candidates
+    ranked.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return ranked[0]
 
 
 # -----------------------------------------------------------
@@ -39,7 +66,17 @@ def predict_model(model_path: Path, atoms_list, device: str):
         energies: List[float] length N
         forces:   List[(A,3)] length N
     """
-    calc = MACECalculator(model_path=str(model_path), device=device)
+    resolved_model = resolve_inference_model_path(model_path)
+    try:
+        calc = MACECalculator(model_paths=str(resolved_model), device=device)
+    except AttributeError as exc:
+        if "'dict' object has no attribute 'to'" in str(exc):
+            raise RuntimeError(
+                f"Model file is not inference-ready: {resolved_model}. "
+                "This usually means a training checkpoint dict was passed. "
+                "Use the exported *.model artifact in the same run directory."
+            ) from exc
+        raise
 
     energies = []
     forces = []

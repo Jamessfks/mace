@@ -106,3 +106,54 @@
 2026-02-19 21:10:57.605 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-0.pt
 2026-02-19 21:10:57.605 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-1.pt
 2026-02-19 21:11:31.452 INFO: Epoch 2: head: Default, loss=0.00083177, RMSE_E_per_atom=   24.30 meV, RMSE_F=    7.77 meV / A
+2026-02-19 21:12:05.802 INFO: Epoch 3: head: Default, loss=0.00068325, RMSE_E_per_atom=   21.67 meV, RMSE_F=    7.06 meV / A
+2026-02-19 21:12:38.919 INFO: Epoch 4: head: Default, loss=0.00053248, RMSE_E_per_atom=   15.75 meV, RMSE_F=    6.33 meV / A
+2026-02-19 21:12:38.922 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-1.pt
+2026-02-19 21:12:38.922 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-4.pt
+2026-02-19 21:13:11.629 INFO: Epoch 5: head: Default, loss=0.00052328, RMSE_E_per_atom=   13.94 meV, RMSE_F=    6.31 meV / A
+2026-02-19 21:13:11.630 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-4.pt
+2026-02-19 21:13:11.630 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-5.pt
+2026-02-19 21:13:44.673 INFO: Epoch 6: head: Default, loss=0.00057835, RMSE_E_per_atom=   20.66 meV, RMSE_F=    6.47 meV / A
+2026-02-19 21:14:18.004 INFO: Epoch 7: head: Default, loss=0.00045398, RMSE_E_per_atom=   12.17 meV, RMSE_F=    5.90 meV / A
+2026-02-19 21:14:18.005 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-5.pt
+2026-02-19 21:14:18.005 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-7.pt
+2026-02-19 21:14:52.501 INFO: Epoch 8: head: Default, loss=0.00042416, RMSE_E_per_atom=   12.59 meV, RMSE_F=    5.68 meV / A
+2026-02-19 21:14:52.502 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-7.pt
+2026-02-19 21:14:52.502 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-8.pt
+2026-02-19 21:15:27.383 INFO: Epoch 9: head: Default, loss=0.00042328, RMSE_E_per_atom=   11.12 meV, RMSE_F=    5.71 meV / A
+2026-02-19 21:15:27.383 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-8.pt
+2026-02-19 21:15:27.383 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-9.pt
+2026-02-19 21:16:02.143 INFO: Epoch 10: head: Default, loss=0.00041776, RMSE_E_per_atom=   12.94 meV, RMSE_F=    5.63 meV / A
+2026-02-19 21:16:02.143 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-9.pt
+2026-02-19 21:16:02.143 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-10.pt
+2026-02-19 21:16:37.100 INFO: Epoch 11: head: Default, loss=0.00038766, RMSE_E_per_atom=    6.09 meV, RMSE_F=    5.53 meV / A
+2026-02-19 21:16:37.100 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-10.pt
+2026-02-19 21:16:37.101 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-11.pt
+2026-02-19 21:17:12.393 INFO: Epoch 12: head: Default, loss=0.00038724, RMSE_E_per_atom=    8.34 meV, RMSE_F=    5.50 meV / A
+2026-02-19 21:17:12.394 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-11.pt
+2026-02-19 21:17:12.394 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-12.pt
+2026-02-19 21:17:46.907 INFO: Epoch 13: head: Default, loss=0.00038131, RMSE_E_per_atom=    7.19 meV, RMSE_F=    5.47 meV / A
+2026-02-19 21:17:46.908 DEBUG: Deleting old checkpoint file: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-12.pt
+2026-02-19 21:17:46.908 DEBUG: Saving checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-13.pt
+2026-02-19 21:18:21.874 INFO: Epoch 14: head: Default, loss=0.00039835, RMSE_E_per_atom=    8.54 meV, RMSE_F=    5.57 meV / A
+2026-02-19 21:18:21.874 INFO: Training complete
+2026-02-19 21:18:21.874 INFO: 
+2026-02-19 21:18:21.874 INFO: ===========RESULTS===========
+2026-02-19 21:18:21.875 INFO: Loading checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1_epoch-13.pt
+2026-02-19 21:18:21.880 INFO: Loaded Stage one model from epoch 13 for evaluation
+2026-02-19 21:18:21.880 INFO: Saving model to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/checkpoints/web_train_run-1.model
+2026-02-19 21:18:21.923 INFO: Compiling model, saving metadata to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/3b66e2e5-45ee-4200-9878-8fca2817609a/web_train/web_train_compiled.model
+2026-02-19 21:18:22.103 INFO: Computing metrics for training, validation, and test sets
+2026-02-19 21:18:22.104 INFO: Skipping evaluation for heads: ['pt_head']
+2026-02-19 21:18:22.104 INFO: Evaluating train_Default ...
+2026-02-19 21:18:35.465 INFO: Evaluating valid_Default ...
+2026-02-19 21:18:36.895 INFO: Error-table on TRAIN and VALID:
++---------------+---------------------+------------------+-------------------+
+|  config_type  | RMSE E / meV / atom | RMSE F / meV / A | relative F RMSE % |
++---------------+---------------------+------------------+-------------------+
+| train_Default |            7.3      |          5.4     |         12.22     |
+| valid_Default |            7.2      |          5.5     |         12.47     |
++---------------+---------------------+------------------+-------------------+
+2026-02-19 21:18:36.895 DEBUG: Running inference on train_Default dataset
+2026-02-19 21:18:36.963 DEBUG: Plotting failed: too many indices for tensor of dimension 1
+2026-02-19 21:18:36.964 INFO: Done

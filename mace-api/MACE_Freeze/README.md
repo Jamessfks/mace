@@ -51,7 +51,33 @@ This repo provides a reproducible workflow to:
 ```bash
 pip install mace-torch ase torch numpy
 ```
-If you want real DFT labeling with Quantum ESPRESSO, also install QE (`pw.x`) and prepare UPF pseudopotentials.
+If you want real DFT labeling with Quantum ESPRESSO, see the installing section below.
+
+### Installing Quantum ESPRESSO (optional, for `reference=qe`)
+
+Quantum ESPRESSO is only required for DFT labeling (Step 7) when `reference=qe`.
+
+1. Download source from the official site: [quantum-espresso.org](https://www.quantum-espresso.org/).
+2. Build the plane-wave executable:
+
+```bash
+cd ~/Downloads/qe-7.5
+./configure
+make pw
+```
+
+After building, the binary to use is typically `qe-7.x/bin/pw.x`.
+
+3. Make `pw.x` discoverable by one of:
+   - adding the QE `bin/` directory to `PATH`
+   - passing `--qe_command /absolute/path/to/pw.x` (or QE source/install root; resolver checks `bin/pw.x`)
+   - setting `QE_COMMAND=/absolute/path/to/pw.x`
+4. Provide pseudopotentials by passing `--pseudo_dir /path/to/upf` or setting `ESPRESSO_PSEUDO`.
+5. Before using DFT labeling, run the preflight check:
+
+```bash
+python3 mace-api/MACE_Freeze/scripts/check_qe.py
+```
 
 ## Step 1: Split dataset (if not split already)
 ```bash
@@ -155,12 +181,16 @@ python mace_freeze.py
 This writes:
 - `freeze_init.pt` (checkpoint with metadata describing freeze plan)
 - `freeze_plan.json` (human-readable)
-(If your version supports an init/restart arg, add it via --extra in `mace_train.py`.)
 
-We can THEN train like this
+To fine-tune from this checkpoint, **do not** pass the checkpoint path to `--model`
+(`--model` is a model type such as `MACE`). Instead, seed the checkpoint into the
+run checkpoint directory and resume with `--restart_latest`:
 ```bash
-python mace_train.py ... --extra --E0s average --energy_key TotEnergy --forces_key force --model runs\water_1k_small\freeze_init.pt
+mkdir runs\iter_00\c0\checkpoints
+copy /Y runs\water_1k_small\freeze_init.pt runs\iter_00\c0\checkpoints\c0_run-0_epoch-0.pt
+python -u mace_train.py --train_file data/train.xyz --valid_file data/valid.xyz --work_dir runs\iter_00 --name c0 --seed 0 --device cpu --extra --E0s average --energy_key TotEnergy --forces_key force --max_num_epochs 200 --restart_latest --save_cpu
 ```
+For a committee, repeat the same seeding pattern for `c1`, `c2`, ... using matching seed/file names.
 
 ## Step 4. “Model merge” aka: Train a committee (aka: multiple models but I want to sound smart)
 ### DISCLAIMER: WE ARE NOT MERGING WEIGHTS.
@@ -204,8 +234,7 @@ python mace_active_learning.py ^
   --pool_xyz data\pool.xyz ^
   --out_selected runs\iter_00\to_label.xyz ^
   --k 50 ^
-  --device cpu ^
-  --score force_rms_std
+  --device cpu
 ```
 This writes:
 ```bash
@@ -234,9 +263,11 @@ type data\train.xyz runs\iter_00\labeled_new.xyz > data\train_next.xyz
 move /Y data\train_next.xyz data\train.xyz
 ```
 
-## Step 8. Repeat!
+## Step 8. Repeat (or stop manually)
 
 train (or fine-tune) → committee → disagreement → select → label → append
+
+If the model already looks good, stop the loop and keep the current checkpoint.
 
 ---
 
@@ -255,7 +286,7 @@ Navigate to **MACE Freeze** from the home page (or `/mace-freeze`).
 3. **Fine-tune (freeze)** *(optional)* — Enable freeze workflow to:
    - train a base model first or use an existing base checkpoint path,
    - run `mace_freeze.py` with configurable freeze/unfreeze patterns,
-   - train/fine-tune with `--model freeze_init.pt`.
+   - seed `freeze_init.pt` into each run's `checkpoints/` directory and train with `--restart_latest` (handled automatically by the web flow).
 4. **Active learning** — Enable to use committee + pool split + labeling loop.
 5. **Start iteration 0** — Splits data (train 70%, valid 10%, pool 20% when active learning is on), trains committee models (c0, c1, …) in `runs_web/{runId}/iter_00/`.
 6. **Steps 5–8** (when active learning is on):
@@ -266,6 +297,7 @@ Navigate to **MACE Freeze** from the home page (or `/mace-freeze`).
      - Quantum ESPRESSO (`--reference qe`) for real DFT.
    - **Append** — Append `labeled_new.xyz` to `train.xyz`.
 7. **Next iteration** — Train committee again on expanded data (calls `run_committee_web.py`), then repeat steps 5–8.
+8. **Stop or continue** — After append, either click **Stop active learning here (model looks good)** to end manually, or run **Next iteration** to continue.
 
 ### Directory layout (web runs)
 
@@ -275,12 +307,16 @@ runs_web/{runId}/
     train.xyz
     valid.xyz
     pool.xyz
+  base/                         # only when "Train base model first" is enabled
+    base_model/
+      checkpoints/
+      logs/
   freeze/
     freeze_init.pt
     freeze_plan.json
   iter_00/
-    c0/checkpoints/best.pt
-    c1/checkpoints/best.pt
+    c0/checkpoints/best.pt      # or latest c0_run-0_epoch-*.pt
+    c1/checkpoints/best.pt      # or latest c1_run-1_epoch-*.pt
     ...
     to_label.xyz
     labeled_new.xyz
@@ -288,6 +324,8 @@ runs_web/{runId}/
   iter_01/
     ...
 ```
+
+Checkpoint resolution in the web/API prefers `best.pt` and falls back to the latest `*_epoch-*.pt`.
 
 ### CLI ↔ Web mapping
 
@@ -312,6 +350,7 @@ For QE mode, configure:
 - pseudopotential directory (`--pseudo_dir` or `ESPRESSO_PSEUDO`)
 - optional pseudopotential mapping JSON (`--pseudos_json`)
 - optional input template JSON (`--input_template`) for custom QE control/system/electrons settings
+- preflight check: `python3 mace-api/MACE_Freeze/scripts/check_qe.py`
 
 ---
 

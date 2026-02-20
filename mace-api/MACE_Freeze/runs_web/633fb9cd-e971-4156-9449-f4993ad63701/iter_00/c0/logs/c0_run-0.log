@@ -1,0 +1,69 @@
+2026-02-19 23:20:06.077 INFO: ===========VERIFYING SETTINGS===========
+2026-02-19 23:20:06.077 INFO: MACE version: 0.3.14
+2026-02-19 23:20:06.077 INFO: Using CPU
+2026-02-19 23:20:06.149 INFO: ===========LOADING INPUT DATA===========
+2026-02-19 23:20:06.150 INFO: Using heads: ['Default']
+2026-02-19 23:20:06.150 INFO: Using the key specifications to parse data:
+2026-02-19 23:20:06.150 INFO: Default: KeySpecification(info_keys={'energy': 'TotEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head', 'elec_temp': 'elec_temp', 'total_charge': 'total_charge', 'polarizability': 'polarizability', 'total_spin': 'total_spin'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'})
+2026-02-19 23:20:06.150 INFO: =============    Processing head Default     ===========
+2026-02-19 23:20:06.468 INFO: Training set 1/1 [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:20:06.470 INFO: Total Training set [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:20:06.523 INFO: Validation set 1/1 [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:20:06.523 INFO: Total Validation set [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:20:06.523 INFO: Total number of configurations: train=1116, valid=159, tests=[],
+2026-02-19 23:20:06.534 INFO: Atomic Numbers used: [np.int64(1), np.int64(8)]
+2026-02-19 23:20:06.534 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2026-02-19 23:20:06.534 INFO: Computing average Atomic Energies using least squares regression
+2026-02-19 23:20:06.536 INFO: Atomic Energies used (z: eV) for head Default: {1: -6.894315756608428, 8: -3.4471578783042047}
+2026-02-19 23:20:06.536 INFO: Processing datasets for head 'Default'
+2026-02-19 23:20:06.858 INFO: Combining 1 list datasets for head 'Default'
+2026-02-19 23:20:06.909 INFO: Combining 1 list datasets for head 'Default_valid'
+2026-02-19 23:20:06.909 INFO: Combined validation datasets for Default
+2026-02-19 23:20:06.909 INFO: Head 'Default' training dataset size: 1116
+2026-02-19 23:20:06.910 INFO: Computing average number of neighbors
+2026-02-19 23:20:07.035 INFO: Average number of neighbors: 5.529812335968018
+2026-02-19 23:20:07.035 INFO: During training the following quantities will be reported: energy, forces
+2026-02-19 23:20:07.035 INFO: ===========MODEL DETAILS===========
+2026-02-19 23:20:07.120 INFO: Building model
+2026-02-19 23:20:07.120 INFO: Message passing with 32 channels and max_L=0 (32x0e)
+2026-02-19 23:20:07.120 INFO: 1 layers, each with correlation order: 2 (body order: 3) and spherical harmonics up to: l=3
+2026-02-19 23:20:07.120 INFO: 8 radial and 5 basis functions
+2026-02-19 23:20:07.121 INFO: Radial cutoff: 5.0 A (total receptive field for each atom: 5.0 A)
+2026-02-19 23:20:07.121 INFO: Distance transform for radial basis functions: None
+2026-02-19 23:20:07.121 INFO: Hidden irreps: 32x0e
+2026-02-19 23:20:07.264 INFO: Total number of parameters: 31648
+2026-02-19 23:20:07.264 INFO: 
+2026-02-19 23:20:07.264 INFO: ===========OPTIMIZER INFORMATION===========
+2026-02-19 23:20:07.264 INFO: Using ADAM as parameter optimizer
+2026-02-19 23:20:07.264 INFO: Batch size: 8
+2026-02-19 23:20:07.264 INFO: Number of gradient updates: 139
+2026-02-19 23:20:07.264 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-02-19 23:20:07.264 INFO: WeightedEnergyForcesLoss(energy_weight=1.000, forces_weight=100.000)
+2026-02-19 23:20:07.265 WARNING: No SWA checkpoint found, while SWA is enabled. Compare the swa_start parameter and the latest checkpoint.
+2026-02-19 23:20:07.265 INFO: Loading checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/633fb9cd-e971-4156-9449-f4993ad63701/iter_00/c0/checkpoints/c0_run-0_epoch-0.pt
+2026-02-19 23:20:07.268 INFO: Using gradient clipping with tolerance=10.000
+2026-02-19 23:20:07.268 INFO: 
+2026-02-19 23:20:07.268 INFO: ===========TRAINING===========
+2026-02-19 23:20:07.268 INFO: Started training, reporting errors on validation set
+2026-02-19 23:20:07.268 INFO: Loss metrics on validation set
+2026-02-19 23:20:08.631 INFO: Initial: head: Default, loss=0.00107507, RMSE_E_per_atom=   35.88 meV, RMSE_F=    8.53 meV / A
+2026-02-19 23:20:32.884 INFO: Epoch 0: head: Default, loss=0.00069505, RMSE_E_per_atom=   25.97 meV, RMSE_F=    6.98 meV / A
+2026-02-19 23:20:32.887 INFO: Training complete
+2026-02-19 23:20:32.887 INFO: 
+2026-02-19 23:20:32.887 INFO: ===========RESULTS===========
+2026-02-19 23:20:32.887 INFO: Loading checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/633fb9cd-e971-4156-9449-f4993ad63701/iter_00/c0/checkpoints/c0_run-0_epoch-0.pt
+2026-02-19 23:20:32.889 INFO: Loaded Stage one model from epoch 0 for evaluation
+2026-02-19 23:20:32.889 INFO: Saving model to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/633fb9cd-e971-4156-9449-f4993ad63701/iter_00/c0/checkpoints/c0_run-0.model
+2026-02-19 23:20:32.925 INFO: Compiling model, saving metadata to /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/633fb9cd-e971-4156-9449-f4993ad63701/iter_00/c0/c0_compiled.model
+2026-02-19 23:20:33.060 INFO: Computing metrics for training, validation, and test sets
+2026-02-19 23:20:33.061 INFO: Skipping evaluation for heads: ['pt_head']
+2026-02-19 23:20:33.061 INFO: Evaluating train_Default ...
+2026-02-19 23:20:42.839 INFO: Evaluating valid_Default ...
+2026-02-19 23:20:44.224 INFO: Error-table on TRAIN and VALID:
++---------------+---------------------+------------------+-------------------+
+|  config_type  | RMSE E / meV / atom | RMSE F / meV / A | relative F RMSE % |
++---------------+---------------------+------------------+-------------------+
+| train_Default |           26.1      |          7.1     |         16.13     |
+| valid_Default |           26.0      |          7.0     |         15.92     |
++---------------+---------------------+------------------+-------------------+
+2026-02-19 23:20:44.294 INFO: Done

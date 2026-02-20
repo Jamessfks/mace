@@ -20,7 +20,7 @@ interface TrainParams {
   runName: string;
   seed: number;
   device: string;
-  quickDemo: boolean;
+  maxEpochs?: number;
   /** Enable pool split for active learning (train/valid/pool) */
   splitWithPool?: boolean;
   poolFraction?: number;
@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
 
     const params: TrainParams = JSON.parse(paramsStr);
     runId = randomUUID();
+    const parsedMaxEpochs = Number(params.maxEpochs);
+    const maxEpochs =
+      Number.isFinite(parsedMaxEpochs) && parsedMaxEpochs > 0
+        ? String(Math.floor(parsedMaxEpochs))
+        : "";
 
     const env: NodeJS.ProcessEnv = {
       ...process.env,
@@ -67,7 +72,8 @@ export async function POST(request: NextRequest) {
       RUN_NAME: params.runName || "web_train",
       SEED: String(params.seed ?? 1),
       DEVICE: params.device || "cpu",
-      QUICK_DEMO: params.quickDemo !== false ? "1" : "0",
+      QUICK_DEMO: "0",
+      MAX_EPOCHS: maxEpochs,
       SPLIT_WITH_POOL: params.splitWithPool || params.committee ? "1" : "0",
       POOL_FRACTION: String(params.poolFraction ?? 0.2),
       COMMITTEE: params.committee ? "1" : "0",
@@ -98,9 +104,10 @@ export async function POST(request: NextRequest) {
 
     const scriptPath = join(MACE_FREEZE_DIR, "run_training_web.py");
 
+    let child: ReturnType<typeof spawn> | null = null;
     const stream = new ReadableStream({
       start(controller) {
-        const child = spawn(
+        child = spawn(
           process.env.PYTHON ?? "python3",
           [scriptPath],
           {
@@ -110,10 +117,21 @@ export async function POST(request: NextRequest) {
         );
 
         let buffer = "";
+        let streamClosed = false;
         const sendLine = (line: string) => {
-          if (line.trim()) {
+          if (streamClosed || !line.trim()) return;
+          try {
             controller.enqueue(`data: ${line}\n\n`);
+          } catch {
+            streamClosed = true;
           }
+        };
+        const closeStream = () => {
+          if (streamClosed) return;
+          streamClosed = true;
+          try {
+            controller.close();
+          } catch {}
         };
 
         child.stdout?.on("data", (chunk: Buffer) => {
@@ -123,14 +141,27 @@ export async function POST(request: NextRequest) {
           lines.forEach(sendLine);
         });
 
-        child.on("close", (_code: number | null) => {
+        child.on("error", (err: Error) => {
+          sendLine(JSON.stringify({ event: "error", message: err.message || "Training process failed" }));
+          closeStream();
+        });
+
+        child.on("close", (code: number | null) => {
           if (buffer.trim()) sendLine(buffer.trim());
-          controller.close();
+          if (code && code !== 0) {
+            sendLine(JSON.stringify({ event: "error", message: `Training process exited with code ${code}` }));
+          }
+          closeStream();
         });
 
         child.stderr?.on("data", (chunk: Buffer) => {
           sendLine(JSON.stringify({ event: "log", message: chunk.toString().trim() }));
         });
+      },
+      cancel() {
+        if (child && !child.killed) {
+          child.kill("SIGTERM");
+        }
       },
     });
 

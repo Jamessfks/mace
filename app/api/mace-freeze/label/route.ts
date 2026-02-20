@@ -72,9 +72,29 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const maybeErr = err as { message?: string; stderr?: string };
     const detail = maybeErr?.stderr?.trim();
+    const rawMessage = detail || (err instanceof Error ? err.message : "Labeling failed");
+    const extractPythonError = (text: string): string => {
+      for (const marker of ["RuntimeError:", "ValueError:", "FileNotFoundError:"]) {
+        const idx = text.lastIndexOf(marker);
+        if (idx >= 0) return text.slice(idx + marker.length).trim();
+      }
+      return text;
+    };
+    const message = extractPythonError(rawMessage).replace(/\s+/g, " ").trim();
+    const qeHint =
+      message.includes("Quantum ESPRESSO executable not found") && !message.includes("qeCommand")
+        ? " Set `qeCommand` to an absolute executable path (for example `/opt/homebrew/bin/pw.x`) or set `QE_COMMAND` / `QE_BIN_DIR` / `ESPRESSO_BIN` / PATH in the backend environment. You can also run `python3 mace-api/MACE_Freeze/scripts/check_qe.py` to verify the backend runtime can resolve `pw.x`."
+        : "";
+    const isUserConfigError =
+      message.includes("Quantum ESPRESSO executable not found") ||
+      message.includes("pseudo_dir is required") ||
+      message.includes("pseudo_dir not found") ||
+      message.includes("pseudos_json not found") ||
+      message.includes("input_template not found") ||
+      message.includes("Invalid kpts=");
     return NextResponse.json(
-      { error: detail || (err instanceof Error ? err.message : "Labeling failed") },
-      { status: 500 }
+      { error: `${message}${qeHint}` },
+      { status: isUserConfigError ? 400 : 500 }
     );
   }
 }

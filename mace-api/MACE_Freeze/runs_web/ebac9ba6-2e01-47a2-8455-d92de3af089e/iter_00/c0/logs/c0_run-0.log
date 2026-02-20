@@ -1,0 +1,53 @@
+2026-02-19 23:58:36.553 INFO: ===========VERIFYING SETTINGS===========
+2026-02-19 23:58:36.554 INFO: Stage Two is activated as start_stage_two was defined
+2026-02-19 23:58:36.554 INFO: MACE version: 0.3.14
+2026-02-19 23:58:36.554 INFO: Using CPU
+2026-02-19 23:58:36.641 INFO: ===========LOADING INPUT DATA===========
+2026-02-19 23:58:36.641 INFO: Using heads: ['Default']
+2026-02-19 23:58:36.641 INFO: Using the key specifications to parse data:
+2026-02-19 23:58:36.641 INFO: Default: KeySpecification(info_keys={'energy': 'TotEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head', 'elec_temp': 'elec_temp', 'total_charge': 'total_charge', 'polarizability': 'polarizability', 'total_spin': 'total_spin'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'})
+2026-02-19 23:58:36.641 INFO: =============    Processing head Default     ===========
+2026-02-19 23:58:36.971 INFO: Training set 1/1 [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:58:36.973 INFO: Total Training set [energy: 1116, stress: 0, virials: 0, dipole components: 0, head: 1116, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1116, charges: 0]
+2026-02-19 23:58:37.029 INFO: Validation set 1/1 [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:58:37.029 INFO: Total Validation set [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 23:58:37.029 INFO: Total number of configurations: train=1116, valid=159, tests=[],
+2026-02-19 23:58:37.040 INFO: Atomic Numbers used: [np.int64(1), np.int64(8)]
+2026-02-19 23:58:37.040 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2026-02-19 23:58:37.040 INFO: Computing average Atomic Energies using least squares regression
+2026-02-19 23:58:37.042 INFO: Atomic Energies used (z: eV) for head Default: {1: -6.894315756608428, 8: -3.4471578783042047}
+2026-02-19 23:58:37.042 INFO: Processing datasets for head 'Default'
+2026-02-19 23:58:37.498 INFO: Combining 1 list datasets for head 'Default'
+2026-02-19 23:58:37.562 INFO: Combining 1 list datasets for head 'Default_valid'
+2026-02-19 23:58:37.562 INFO: Combined validation datasets for Default
+2026-02-19 23:58:37.562 INFO: Head 'Default' training dataset size: 1116
+2026-02-19 23:58:37.562 INFO: Computing average number of neighbors
+2026-02-19 23:58:37.825 INFO: Average number of neighbors: 10.35154383213859
+2026-02-19 23:58:37.825 INFO: During training the following quantities will be reported: energy, forces
+2026-02-19 23:58:37.825 INFO: ===========MODEL DETAILS===========
+2026-02-19 23:58:38.022 INFO: Building model
+2026-02-19 23:58:38.022 INFO: Message passing with 64 channels and max_L=0 (64x0e)
+2026-02-19 23:58:38.022 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2026-02-19 23:58:38.022 INFO: 8 radial and 5 basis functions
+2026-02-19 23:58:38.022 INFO: Radial cutoff: 6.0 A (total receptive field for each atom: 12.0 A)
+2026-02-19 23:58:38.022 INFO: Distance transform for radial basis functions: None
+2026-02-19 23:58:38.022 INFO: Hidden irreps: 64x0e
+2026-02-19 23:58:38.419 INFO: Total number of parameters: 148688
+2026-02-19 23:58:38.419 INFO: 
+2026-02-19 23:58:38.419 INFO: ===========OPTIMIZER INFORMATION===========
+2026-02-19 23:58:38.419 INFO: Using ADAM as parameter optimizer
+2026-02-19 23:58:38.419 INFO: Batch size: 2
+2026-02-19 23:58:38.419 INFO: Using Exponential Moving Average with decay: 0.99
+2026-02-19 23:58:38.419 INFO: Number of gradient updates: 2790
+2026-02-19 23:58:38.419 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-02-19 23:58:38.419 INFO: WeightedEnergyForcesLoss(energy_weight=10.000, forces_weight=1000.000)
+2026-02-19 23:58:38.420 INFO: Stage Two (after 2 epochs) with loss function: WeightedEnergyForcesLoss(energy_weight=1000.000, forces_weight=100.000), with energy weight : 1000.0, forces weight : 100.0 and learning rate : 0.001
+2026-02-19 23:58:38.456 WARNING: No SWA checkpoint found, while SWA is enabled. Compare the swa_start parameter and the latest checkpoint.
+2026-02-19 23:58:38.457 INFO: Loading checkpoint: /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/ebac9ba6-2e01-47a2-8455-d92de3af089e/iter_00/c0/checkpoints/c0_run-0_epoch-0.pt
+2026-02-19 23:58:38.462 INFO: Using gradient clipping with tolerance=10.000
+2026-02-19 23:58:38.463 INFO: 
+2026-02-19 23:58:38.463 INFO: ===========TRAINING===========
+2026-02-19 23:58:38.463 INFO: Started training, reporting errors on validation set
+2026-02-19 23:58:38.463 INFO: Loss metrics on validation set
+2026-02-19 23:58:49.753 INFO: Initial: head: Default, loss=0.00996299, MAE_E_per_atom=   22.94 meV, MAE_F=    3.34 meV / A
+2026-02-20 00:02:10.040 INFO: Epoch 0: head: Default, loss=0.00374213, MAE_E_per_atom=    5.25 meV, MAE_F=    2.21 meV / A

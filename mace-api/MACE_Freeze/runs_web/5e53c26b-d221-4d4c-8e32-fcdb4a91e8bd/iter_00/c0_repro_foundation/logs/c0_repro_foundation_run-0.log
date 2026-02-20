@@ -1,0 +1,4 @@
+2026-02-19 22:03:38.475 INFO: ===========VERIFYING SETTINGS===========
+2026-02-19 22:03:38.475 INFO: MACE version: 0.3.14
+2026-02-19 22:03:38.475 INFO: Using CPU
+2026-02-19 22:03:38.559 INFO: Using foundation model /Users/jameszhao/Desktop/mace/mace-api/MACE_Freeze/runs_web/5e53c26b-d221-4d4c-8e32-fcdb4a91e8bd/freeze/freeze_init.pt as initial checkpoint.

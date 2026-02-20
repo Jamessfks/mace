@@ -13,7 +13,7 @@
  * 7) Repeat
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -30,6 +30,40 @@ import { Badge } from "@/components/ui/badge";
 
 type StepStatus = "pending" | "running" | "done" | "error";
 type LabelReference = "mace-mp" | "qe";
+type FreezePreset = "conservative" | "recommended" | "aggressive" | "custom";
+type ActiveLearningStep = "disagreement" | "select" | "label" | "append";
+
+const ACTIVE_LEARNING_STEPS: ActiveLearningStep[] = ["disagreement", "select", "label", "append"];
+
+interface FreezePreviewResult {
+  checkpoint: string;
+  freeze_patterns: string[];
+  unfreeze_patterns: string[];
+  num_total_params: number;
+  num_frozen_params: number;
+  num_trainable_params: number;
+  frozen_keys_sample: string[];
+  available_patterns: string[];
+  warning?: string | null;
+}
+
+const FREEZE_PRESETS: Record<Exclude<FreezePreset, "custom">, { freeze: string[]; unfreeze: string[]; hint: string }> = {
+  conservative: {
+    freeze: ["embedding"],
+    unfreeze: ["readout"],
+    hint: "Light freeze: keep most layers trainable.",
+  },
+  recommended: {
+    freeze: ["embedding", "radial"],
+    unfreeze: ["readout"],
+    hint: "Balanced default for most fine-tuning runs.",
+  },
+  aggressive: {
+    freeze: ["embedding", "radial", "interaction", "products"],
+    unfreeze: ["readout"],
+    hint: "Freeze most feature extractors; adapt mostly readout.",
+  },
+};
 
 export default function MaceFreezePage() {
   const [useBundled, setUseBundled] = useState(true);
@@ -37,15 +71,22 @@ export default function MaceFreezePage() {
   const [runName, setRunName] = useState("web_train");
   const [seed, setSeed] = useState(1);
   const [device, setDevice] = useState<"cpu" | "cuda">("cpu");
-  const [quickDemo, setQuickDemo] = useState(true);
+  const [maxEpochs, setMaxEpochs] = useState(5);
   const [activeLearning, setActiveLearning] = useState(true);
   const [committeeSize, setCommitteeSize] = useState(2);
   const [topK, setTopK] = useState(5);
   const [fineTune, setFineTune] = useState(false);
   const [trainBaseFirst, setTrainBaseFirst] = useState(true);
   const [baseCheckpointPath, setBaseCheckpointPath] = useState("");
-  const [freezePatterns, setFreezePatterns] = useState("embedding radial");
-  const [unfreezePatterns, setUnfreezePatterns] = useState("readout");
+  const [freezePreset, setFreezePreset] = useState<FreezePreset>("recommended");
+  const [freezePatterns, setFreezePatterns] = useState<string[]>([...FREEZE_PRESETS.recommended.freeze]);
+  const [unfreezePatterns, setUnfreezePatterns] = useState<string[]>([...FREEZE_PRESETS.recommended.unfreeze]);
+  const [customFreezeInput, setCustomFreezeInput] = useState("");
+  const [customUnfreezeInput, setCustomUnfreezeInput] = useState("");
+  const [availableFreezeModules, setAvailableFreezeModules] = useState<string[]>([]);
+  const [freezePreview, setFreezePreview] = useState<FreezePreviewResult | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [freezePreviewKey, setFreezePreviewKey] = useState("");
   const [freezeInitPath, setFreezeInitPath] = useState<string | null>(null);
   const [freezePlanPath, setFreezePlanPath] = useState<string | null>(null);
   const [labelReference, setLabelReference] = useState<LabelReference>("mace-mp");
@@ -60,6 +101,7 @@ export default function MaceFreezePage() {
   const [runId, setRunId] = useState<string | null>(null);
   const [iter, setIter] = useState(0);
   const [isTraining, setIsTraining] = useState(false);
+  const [isRunningActiveLearning, setIsRunningActiveLearning] = useState(false);
   const [progressLog, setProgressLog] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<TrainingPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,19 +113,156 @@ export default function MaceFreezePage() {
     append: "pending",
   });
   const [checkpoints, setCheckpoints] = useState<string[]>([]);
+  const [activeLearningStopped, setActiveLearningStopped] = useState(false);
+
+  const mergeUniquePatterns = useCallback((current: string[], incoming: string[]) => {
+    const normalized = [...current, ...incoming]
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .map((v) => v.toLowerCase());
+    return Array.from(new Set(normalized));
+  }, []);
+
+  const parsePatternInput = useCallback((raw: string) => {
+    return raw
+      .split(/[\s,]+/)
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .map((v) => v.toLowerCase());
+  }, []);
+
+  const applyFreezePreset = useCallback((preset: FreezePreset) => {
+    setFreezePreset(preset);
+    if (preset === "custom") return;
+    setFreezePatterns([...FREEZE_PRESETS[preset].freeze]);
+    setUnfreezePatterns([...FREEZE_PRESETS[preset].unfreeze]);
+  }, []);
+
+  const togglePattern = useCallback(
+    (target: "freeze" | "unfreeze", pattern: string) => {
+      const token = pattern.trim().toLowerCase();
+      if (!token) return;
+      setFreezePreset("custom");
+      if (target === "freeze") {
+        setFreezePatterns((prev) =>
+          prev.includes(token) ? prev.filter((p) => p !== token) : [...prev, token]
+        );
+      } else {
+        setUnfreezePatterns((prev) =>
+          prev.includes(token) ? prev.filter((p) => p !== token) : [...prev, token]
+        );
+      }
+    },
+    []
+  );
+
+  const addCustomPattern = useCallback(
+    (target: "freeze" | "unfreeze") => {
+      setFreezePreset("custom");
+      if (target === "freeze") {
+        const parsed = parsePatternInput(customFreezeInput);
+        setFreezePatterns((prev) => mergeUniquePatterns(prev, parsed));
+        setCustomFreezeInput("");
+      } else {
+        const parsed = parsePatternInput(customUnfreezeInput);
+        setUnfreezePatterns((prev) => mergeUniquePatterns(prev, parsed));
+        setCustomUnfreezeInput("");
+      }
+    },
+    [customFreezeInput, customUnfreezeInput, mergeUniquePatterns, parsePatternInput]
+  );
+
+  const makePreviewKey = useCallback(
+    () =>
+      `${baseCheckpointPath.trim()}|${freezePatterns.join(",")}|${unfreezePatterns.join(",")}`,
+    [baseCheckpointPath, freezePatterns, unfreezePatterns]
+  );
+
+  const runFreezePreview = useCallback(
+    async (silent = false) => {
+      if (!fineTune || trainBaseFirst || !baseCheckpointPath.trim()) {
+        setFreezePreview(null);
+        setAvailableFreezeModules([]);
+        setFreezePreviewKey("");
+        return false;
+      }
+      setIsPreviewLoading(true);
+      if (!silent) setError(null);
+      try {
+        const res = await fetch("/api/mace-freeze/freeze-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            checkpointPath: baseCheckpointPath.trim(),
+            freezePatterns,
+            unfreezePatterns,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Freeze preview failed");
+        setFreezePreview(data as FreezePreviewResult);
+        setAvailableFreezeModules(Array.isArray(data.available_patterns) ? data.available_patterns : []);
+        setFreezePreviewKey(makePreviewKey());
+        return true;
+      } catch (err) {
+        setFreezePreview(null);
+        setAvailableFreezeModules([]);
+        setFreezePreviewKey("");
+        if (!silent) {
+          setError(err instanceof Error ? err.message : "Freeze preview failed");
+        }
+        return false;
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    },
+    [fineTune, trainBaseFirst, baseCheckpointPath, freezePatterns, unfreezePatterns, makePreviewKey]
+  );
+
+  useEffect(() => {
+    if (!fineTune) {
+      setFreezePreview(null);
+      setAvailableFreezeModules([]);
+      setFreezePreviewKey("");
+      return;
+    }
+    if (trainBaseFirst || !baseCheckpointPath.trim()) {
+      setFreezePreview(null);
+      setAvailableFreezeModules([]);
+      setFreezePreviewKey("");
+      return;
+    }
+    const timer = setTimeout(() => {
+      void runFreezePreview(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [fineTune, trainBaseFirst, baseCheckpointPath, freezePatterns, unfreezePatterns, runFreezePreview]);
 
   const startIteration0 = useCallback(async () => {
     if (!useBundled && !uploadedFile) {
       setError("Choose bundled data or upload a dataset.");
       return;
     }
+    if (!Number.isFinite(maxEpochs) || maxEpochs <= 0) {
+      setError("Max epochs must be a positive number.");
+      return;
+    }
+    if (fineTune && !trainBaseFirst && !baseCheckpointPath.trim()) {
+      setError("Provide a base checkpoint path for fine-tuning, or switch to 'Train base model first'.");
+      return;
+    }
+    const previewKeyNow = makePreviewKey();
+    if (fineTune && !trainBaseFirst && baseCheckpointPath.trim() && freezePreviewKey !== previewKeyNow) {
+      const ok = await runFreezePreview(false);
+      if (!ok) return;
+    }
+    setActiveLearningStopped(false);
+    setIsRunningActiveLearning(false);
     setIsTraining(true);
     setError(null);
     setProgressLog([]);
     setMetrics([]);
     setStepStatus({ train: "running", disagreement: "pending", select: "pending", label: "pending", append: "pending" });
-    const freezeList = freezePatterns.split(/[\s,]+/).map((v) => v.trim()).filter(Boolean);
-    const unfreezeList = unfreezePatterns.split(/[\s,]+/).map((v) => v.trim()).filter(Boolean);
 
     const formData = new FormData();
     formData.append(
@@ -93,7 +272,7 @@ export default function MaceFreezePage() {
         runName: runName || "web_train",
         seed,
         device,
-        quickDemo,
+        maxEpochs: Math.max(1, Math.floor(maxEpochs)),
         splitWithPool: activeLearning,
         committee: activeLearning,
         committeeSize: activeLearning ? committeeSize : 1,
@@ -101,8 +280,8 @@ export default function MaceFreezePage() {
         fineTune,
         trainBaseFirst,
         baseCheckpointPath: baseCheckpointPath.trim(),
-        freezePatterns: freezeList.length > 0 ? freezeList : ["embedding", "radial"],
-        unfreezePatterns: unfreezeList.length > 0 ? unfreezeList : ["readout"],
+        freezePatterns: freezePatterns.length > 0 ? freezePatterns : [...FREEZE_PRESETS.recommended.freeze],
+        unfreezePatterns: unfreezePatterns.length > 0 ? unfreezePatterns : [...FREEZE_PRESETS.recommended.unfreeze],
       })
     );
     if (!useBundled && uploadedFile) formData.append("file", uploadedFile);
@@ -157,75 +336,101 @@ export default function MaceFreezePage() {
     runName,
     seed,
     device,
-    quickDemo,
+    maxEpochs,
     activeLearning,
     committeeSize,
     fineTune,
     trainBaseFirst,
     baseCheckpointPath,
+    freezePreviewKey,
+    runFreezePreview,
+    makePreviewKey,
     freezePatterns,
     unfreezePatterns,
   ]);
 
-  const runStep = useCallback(
-    async (step: "disagreement" | "select" | "label" | "append") => {
-      if (!runId) return;
-      setStepStatus((s) => ({ ...s, [step]: "running" }));
-      setError(null);
-      try {
-        const base = { runId, iter, device };
-        let res: Response;
-        if (step === "disagreement") {
-          res = await fetch("/api/mace-freeze/disagreement", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...base, committeeSize }),
-          });
-        } else if (step === "select") {
-          res = await fetch("/api/mace-freeze/active-learning", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...base, committeeSize, k: topK }),
-          });
-        } else if (step === "label") {
-          if (labelReference === "qe" && !pseudoDir.trim()) {
-            throw new Error("Pseudo directory is required for Quantum ESPRESSO labeling.");
-          }
-          res = await fetch("/api/mace-freeze/label", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...base,
-              reference: labelReference,
-              pseudoDir: labelReference === "qe" ? pseudoDir.trim() : undefined,
-              pseudosJson: labelReference === "qe" && pseudosJson.trim() ? pseudosJson.trim() : undefined,
-              inputTemplate: labelReference === "qe" && qeInputTemplate.trim() ? qeInputTemplate.trim() : undefined,
-              qeCommand: labelReference === "qe" ? qeCommand.trim() || "pw.x" : undefined,
-              kpts: labelReference === "qe" ? qeKpts.trim() || "1,1,1" : undefined,
-              ecutwfc: labelReference === "qe" ? qeEcutwfc : undefined,
-              ecutrho: labelReference === "qe" ? qeEcutrho : undefined,
-            }),
-          });
-        } else {
-          res = await fetch("/api/mace-freeze/append", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...base }),
-          });
-        }
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Step failed");
-        setStepStatus((s) => ({ ...s, [step]: "done" }));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : `${step} failed`);
-        setStepStatus((s) => ({ ...s, [step]: "error" }));
+  const executeActiveLearningStep = useCallback(
+    async (step: ActiveLearningStep) => {
+      if (!runId) throw new Error("Run ID is missing.");
+      const base = { runId, iter, device };
+      let res: Response;
+      if (step === "disagreement") {
+        res = await fetch("/api/mace-freeze/disagreement", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...base, committeeSize }),
+        });
+      } else if (step === "select") {
+        res = await fetch("/api/mace-freeze/active-learning", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...base, committeeSize, k: topK }),
+        });
+      } else if (step === "label") {
+        res = await fetch("/api/mace-freeze/label", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...base,
+            reference: labelReference,
+            pseudoDir: labelReference === "qe" && pseudoDir.trim() ? pseudoDir.trim() : undefined,
+            pseudosJson: labelReference === "qe" && pseudosJson.trim() ? pseudosJson.trim() : undefined,
+            inputTemplate: labelReference === "qe" && qeInputTemplate.trim() ? qeInputTemplate.trim() : undefined,
+            qeCommand: labelReference === "qe" ? qeCommand.trim() || "pw.x" : undefined,
+            kpts: labelReference === "qe" ? qeKpts.trim() || "1,1,1" : undefined,
+            ecutwfc: labelReference === "qe" ? qeEcutwfc : undefined,
+            ecutrho: labelReference === "qe" ? qeEcutrho : undefined,
+          }),
+        });
+      } else {
+        res = await fetch("/api/mace-freeze/append", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...base }),
+        });
       }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Step failed");
     },
     [runId, iter, device, committeeSize, topK, labelReference, pseudoDir, pseudosJson, qeInputTemplate, qeCommand, qeKpts, qeEcutwfc, qeEcutrho]
   );
 
-  const runNextIteration = useCallback(async () => {
+  const runActiveLearningSteps = useCallback(async () => {
     if (!runId) return;
+    if (activeLearningStopped) {
+      setError("Active learning is stopped manually. Resume it to continue.");
+      return;
+    }
+    const startIndex = ACTIVE_LEARNING_STEPS.findIndex((step) => stepStatus[step] !== "done");
+    if (startIndex === -1) return;
+    setIsRunningActiveLearning(true);
+    setError(null);
+    try {
+      for (let i = startIndex; i < ACTIVE_LEARNING_STEPS.length; i++) {
+        const step = ACTIVE_LEARNING_STEPS[i];
+        setStepStatus((s) => ({ ...s, [step]: "running" }));
+        try {
+          await executeActiveLearningStep(step);
+          setStepStatus((s) => ({ ...s, [step]: "done" }));
+        } catch (err) {
+          setError(err instanceof Error ? err.message : `${step} failed`);
+          setStepStatus((s) => ({ ...s, [step]: "error" }));
+          return;
+        }
+      }
+    } finally {
+      setIsRunningActiveLearning(false);
+    }
+  }, [runId, activeLearningStopped, stepStatus, executeActiveLearningStep]);
+
+  const runNextIteration = useCallback(async () => {
+    if (!runId || activeLearningStopped || isRunningActiveLearning) return;
+    if (!Number.isFinite(maxEpochs) || maxEpochs <= 0) {
+      setError("Max epochs must be a positive number.");
+      return;
+    }
+    setActiveLearningStopped(false);
+    setIsRunningActiveLearning(false);
     setIsTraining(true);
     setError(null);
     setProgressLog([]);
@@ -242,7 +447,7 @@ export default function MaceFreezePage() {
           iter: nextIter,
           committeeSize,
           device,
-          quickDemo,
+          maxEpochs: Math.max(1, Math.floor(maxEpochs)),
           modelPath: fineTune ? (freezeInitPath ?? "") : "",
         }),
       });
@@ -291,7 +496,17 @@ export default function MaceFreezePage() {
     } finally {
       setIsTraining(false);
     }
-  }, [runId, iter, committeeSize, device, quickDemo, fineTune, freezeInitPath]);
+  }, [runId, iter, committeeSize, device, maxEpochs, fineTune, freezeInitPath, activeLearningStopped, isRunningActiveLearning]);
+
+  const stopActiveLearning = useCallback(() => {
+    setActiveLearningStopped(true);
+    setError(null);
+  }, []);
+
+  const resumeActiveLearning = useCallback(() => {
+    setActiveLearningStopped(false);
+    setError(null);
+  }, []);
 
   const downloadUrl =
     runId && checkpoints.length > 0
@@ -301,6 +516,7 @@ export default function MaceFreezePage() {
       : null;
   const cannotStart =
     isTraining ||
+    isPreviewLoading ||
     (!useBundled && !uploadedFile) ||
     (fineTune && !trainBaseFirst && !baseCheckpointPath.trim());
 
@@ -328,7 +544,7 @@ export default function MaceFreezePage() {
         <p className="mb-8 font-mono text-sm text-zinc-400">
           Full fine-tuning with active learning: split → train committee →
           disagreement → select top-K → label (DFT) → append → repeat. Quick
-          demo uses 5 epochs. Labeling supports MACE-MP-0 (demo) or Quantum ESPRESSO.
+          training epochs are fully customizable. Labeling supports MACE-MP-0 (demo) or Quantum ESPRESSO.
         </p>
 
         {/* Data */}
@@ -364,7 +580,7 @@ export default function MaceFreezePage() {
         {/* Options */}
         <section className="mb-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
           <h2 className="mb-4 font-mono text-base font-bold text-white">Options</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="mb-1 block font-mono text-xs text-zinc-500">Run name</label>
               <input
@@ -395,17 +611,19 @@ export default function MaceFreezePage() {
                 <option value="cuda">CUDA</option>
               </select>
             </div>
-            <div>
-              <label className="mb-1 block font-mono text-xs text-zinc-500">Preset</label>
-              <select
-                value={quickDemo ? "quick" : "full"}
-                onChange={(e) => setQuickDemo(e.target.value === "quick")}
-                className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
-              >
-                <option value="quick">Quick demo (5 epochs)</option>
-                <option value="full">Full (800 epochs)</option>
-              </select>
-            </div>
+          </div>
+          <div className="mt-4 max-w-xs">
+            <label className="mb-1 block font-mono text-xs text-zinc-500">Max epochs (custom)</label>
+            <input
+              type="number"
+              min={1}
+              value={maxEpochs}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                setMaxEpochs(Number.isFinite(parsed) && parsed > 0 ? parsed : 1);
+              }}
+              className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
+            />
           </div>
           <div className="mt-4 flex flex-wrap gap-6">
             <label className="flex cursor-pointer items-center gap-2">
@@ -459,50 +677,218 @@ export default function MaceFreezePage() {
               </span>
             </label>
             {fineTune && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block font-mono text-xs text-zinc-500">Base checkpoint source</label>
-                  <select
-                    value={trainBaseFirst ? "train" : "existing"}
-                    onChange={(e) => setTrainBaseFirst(e.target.value === "train")}
-                    className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
-                  >
-                    <option value="train">Train base model first</option>
-                    <option value="existing">Use existing base checkpoint path</option>
-                  </select>
-                </div>
-                {!trainBaseFirst && (
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block font-mono text-xs text-zinc-500">Base checkpoint path</label>
-                    <input
-                      type="text"
-                      value={baseCheckpointPath}
-                      onChange={(e) => setBaseCheckpointPath(e.target.value)}
-                      placeholder="/absolute/path/to/best.pt"
+                    <label className="mb-1 block font-mono text-xs text-zinc-500">Base checkpoint source</label>
+                    <select
+                      value={trainBaseFirst ? "train" : "existing"}
+                      onChange={(e) => setTrainBaseFirst(e.target.value === "train")}
                       className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
-                    />
+                    >
+                      <option value="train">Train base model first</option>
+                      <option value="existing">Use existing base checkpoint path</option>
+                    </select>
+                  </div>
+                  {!trainBaseFirst && (
+                    <div>
+                      <label className="mb-1 block font-mono text-xs text-zinc-500">Base checkpoint path</label>
+                      <input
+                        type="text"
+                        value={baseCheckpointPath}
+                        onChange={(e) => setBaseCheckpointPath(e.target.value)}
+                        placeholder="/absolute/path/to/best.pt"
+                        className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-mono text-xs text-zinc-500">Freeze preset</label>
+                    <select
+                      value={freezePreset}
+                      onChange={(e) => applyFreezePreset(e.target.value as FreezePreset)}
+                      className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
+                    >
+                      <option value="conservative">Conservative</option>
+                      <option value="recommended">Recommended</option>
+                      <option value="aggressive">Aggressive</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    {freezePreset !== "custom" && (
+                      <p className="mt-1 font-mono text-[11px] text-zinc-500">
+                        {FREEZE_PRESETS[freezePreset as Exclude<FreezePreset, "custom">].hint}
+                      </p>
+                    )}
+                  </div>
+                  {!trainBaseFirst && (
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        onClick={() => void runFreezePreview(false)}
+                        className="w-full font-mono border-zinc-600 text-zinc-200 hover:bg-zinc-800"
+                      >
+                        {isPreviewLoading ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Previewing freeze...
+                          </span>
+                        ) : (
+                          "Preview freeze"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {availableFreezeModules.length > 0 && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="mb-2 font-mono text-xs text-zinc-500">Auto-discovered modules (freeze)</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableFreezeModules.map((pattern) => {
+                          const active = freezePatterns.includes(pattern);
+                          return (
+                            <button
+                              key={`f-${pattern}`}
+                              type="button"
+                              onClick={() => togglePattern("freeze", pattern)}
+                              className={`rounded border px-2 py-1 font-mono text-xs ${
+                                active
+                                  ? "border-matrix-green bg-matrix-green/20 text-matrix-green"
+                                  : "border-zinc-700 bg-black/40 text-zinc-300 hover:border-zinc-500"
+                              }`}
+                            >
+                              {pattern}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 font-mono text-xs text-zinc-500">Auto-discovered modules (unfreeze override)</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableFreezeModules.map((pattern) => {
+                          const active = unfreezePatterns.includes(pattern);
+                          return (
+                            <button
+                              key={`u-${pattern}`}
+                              type="button"
+                              onClick={() => togglePattern("unfreeze", pattern)}
+                              className={`rounded border px-2 py-1 font-mono text-xs ${
+                                active
+                                  ? "border-amber-400 bg-amber-400/20 text-amber-300"
+                                  : "border-zinc-700 bg-black/40 text-zinc-300 hover:border-zinc-500"
+                              }`}
+                            >
+                              {pattern}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
-                <div>
-                  <label className="mb-1 block font-mono text-xs text-zinc-500">Freeze patterns</label>
-                  <input
-                    type="text"
-                    value={freezePatterns}
-                    onChange={(e) => setFreezePatterns(e.target.value)}
-                    placeholder="embedding radial"
-                    className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
-                  />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-mono text-xs text-zinc-500">Add custom freeze patterns</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customFreezeInput}
+                        onChange={(e) => setCustomFreezeInput(e.target.value)}
+                        placeholder="e.g. embedding radial"
+                        className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
+                      />
+                      <Button type="button" onClick={() => addCustomPattern("freeze")} className="font-mono">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-mono text-xs text-zinc-500">Add custom unfreeze patterns</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customUnfreezeInput}
+                        onChange={(e) => setCustomUnfreezeInput(e.target.value)}
+                        placeholder="e.g. readout"
+                        className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
+                      />
+                      <Button type="button" onClick={() => addCustomPattern("unfreeze")} className="font-mono">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1 block font-mono text-xs text-zinc-500">Unfreeze patterns</label>
-                  <input
-                    type="text"
-                    value={unfreezePatterns}
-                    onChange={(e) => setUnfreezePatterns(e.target.value)}
-                    placeholder="readout"
-                    className="w-full rounded border border-zinc-700 bg-black/50 px-3 py-2 font-mono text-sm text-white focus:border-matrix-green focus:outline-none"
-                  />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-2 font-mono text-xs text-zinc-500">Selected freeze patterns</p>
+                    <div className="flex min-h-10 flex-wrap gap-2 rounded border border-zinc-800 bg-black/30 p-2">
+                      {freezePatterns.map((pattern) => (
+                        <button
+                          key={`freeze-selected-${pattern}`}
+                          type="button"
+                          onClick={() => togglePattern("freeze", pattern)}
+                          className="rounded border border-matrix-green/50 bg-matrix-green/10 px-2 py-1 font-mono text-xs text-matrix-green"
+                        >
+                          {pattern} ×
+                        </button>
+                      ))}
+                      {freezePatterns.length === 0 && (
+                        <span className="font-mono text-xs text-zinc-500">No freeze patterns selected.</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 font-mono text-xs text-zinc-500">Selected unfreeze patterns</p>
+                    <div className="flex min-h-10 flex-wrap gap-2 rounded border border-zinc-800 bg-black/30 p-2">
+                      {unfreezePatterns.map((pattern) => (
+                        <button
+                          key={`unfreeze-selected-${pattern}`}
+                          type="button"
+                          onClick={() => togglePattern("unfreeze", pattern)}
+                          className="rounded border border-amber-400/50 bg-amber-400/10 px-2 py-1 font-mono text-xs text-amber-300"
+                        >
+                          {pattern} ×
+                        </button>
+                      ))}
+                      {unfreezePatterns.length === 0 && (
+                        <span className="font-mono text-xs text-zinc-500">No unfreeze patterns selected.</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {!trainBaseFirst && freezePreview && (
+                  <div
+                    className={`rounded border p-3 ${
+                      (freezePreview.warning || freezePreview.num_frozen_params === 0)
+                        ? "border-amber-500/40 bg-amber-500/10"
+                        : "border-matrix-green/40 bg-matrix-green/10"
+                    }`}
+                  >
+                    <p className="font-mono text-sm text-zinc-200">
+                      Freeze preview: {freezePreview.num_frozen_params} / {freezePreview.num_total_params} parameters will be frozen.
+                    </p>
+                    {(freezePreview.warning || freezePreview.num_frozen_params === 0) && (
+                      <p className="mt-1 font-mono text-xs text-amber-300">
+                        Warning: patterns currently match nothing or too little. Check selected modules before training.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {trainBaseFirst && (
+                  <p className="font-mono text-xs text-zinc-500">
+                    Preview is available when using an existing base checkpoint path. With "Train base model first",
+                    freeze validation appears after base model creation.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -638,14 +1024,28 @@ export default function MaceFreezePage() {
         {/* Active learning steps (when runId exists and active learning) */}
         {runId && activeLearning && stepStatus.train === "done" && (
           <section className="mb-8 space-y-4 rounded-lg border border-violet-500/30 bg-violet-500/5 p-6">
-            <h2 className="font-mono text-base font-bold text-violet-400">
-              Active learning — iteration {iter}
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-mono text-base font-bold text-violet-400">
+                Active learning — iteration {iter}
+              </h2>
+              {stepStatus.append === "done" && (
+                <Badge
+                  variant="outline"
+                  className={
+                    activeLearningStopped
+                      ? "border-emerald-500/50 bg-emerald-500/10 font-mono text-emerald-300"
+                      : "border-amber-500/50 bg-amber-500/10 font-mono text-amber-300"
+                  }
+                >
+                  {activeLearningStopped ? "Stopped manually" : "Ready for next iteration"}
+                </Badge>
+              )}
+            </div>
             <p className="font-mono text-xs text-zinc-400">
               Steps 5–7: disagreement → select top-K → label ({labelReference === "qe" ? "Quantum ESPRESSO" : "MACE-MP-0"}) → append
             </p>
             <div className="space-y-2">
-              {(["disagreement", "select", "label", "append"] as const).map((step) => (
+              {ACTIVE_LEARNING_STEPS.map((step) => (
                 <div key={step} className="flex items-center justify-between rounded border border-zinc-800 bg-black/40 p-3">
                   <span className="font-mono text-sm text-zinc-300">
                     {step === "disagreement" && "Step 5: Compute disagreement"}
@@ -656,33 +1056,69 @@ export default function MaceFreezePage() {
                   <div className="flex items-center gap-2">
                     {stepStatus[step] === "done" && <CheckCircle2 className="h-4 w-4 text-matrix-green" />}
                     {stepStatus[step] === "error" && <AlertCircle className="h-4 w-4 text-red-500" />}
-                    {(stepStatus[step] === "pending" || stepStatus[step] === "error") && (
-                      <Button
-                        size="sm"
-                        onClick={() => runStep(step)}
-                        className="font-mono border-matrix-green/50 text-matrix-green hover:bg-matrix-green/20"
-                      >
-                        {stepStatus[step] === "error" ? "Retry" : "Run"}
-                      </Button>
-                    )}
+                    {stepStatus[step] === "pending" && <span className="font-mono text-xs text-zinc-500">Pending</span>}
                     {stepStatus[step] === "running" && <Loader2 className="h-4 w-4 animate-spin text-amber-400" />}
                   </div>
                 </div>
               ))}
             </div>
-            {stepStatus.append === "done" && (
+            {stepStatus.append !== "done" && (
               <Button
-                onClick={runNextIteration}
-                disabled={isTraining}
-                className="mt-4 w-full border-2 border-amber-500/50 bg-amber-500/10 font-mono text-amber-400 hover:bg-amber-500/20"
+                onClick={runActiveLearningSteps}
+                disabled={isTraining || isRunningActiveLearning || activeLearningStopped}
+                className="mt-4 w-full border-2 border-matrix-green/50 bg-matrix-green/10 font-mono text-matrix-green hover:bg-matrix-green/20"
               >
-                {isTraining ? (
+                {isRunningActiveLearning ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <Zap className="mr-2 h-4 w-4" />
                 )}
-                Next iteration ({iter + 1}) — train committee on expanded data
+                {stepStatus.disagreement === "error" || stepStatus.select === "error" || stepStatus.label === "error" || stepStatus.append === "error"
+                  ? "Retry steps 5-8 (continue from failed step)"
+                  : "Run steps 5-8 automatically"}
               </Button>
+            )}
+            {stepStatus.append === "done" && (
+              <div className="mt-4 space-y-3">
+                {!activeLearningStopped ? (
+                  <>
+                    <Button
+                      onClick={runNextIteration}
+                      disabled={isTraining || isRunningActiveLearning}
+                      className="w-full border-2 border-amber-500/50 bg-amber-500/10 font-mono text-amber-400 hover:bg-amber-500/20"
+                    >
+                      {isTraining ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      Next iteration ({iter + 1}) — train committee on expanded data
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={stopActiveLearning}
+                      disabled={isTraining || isRunningActiveLearning}
+                      className="w-full border border-emerald-500/50 bg-emerald-500/10 font-mono text-emerald-300 hover:bg-emerald-500/20"
+                    >
+                      Stop active learning here (model looks good)
+                    </Button>
+                  </>
+                ) : (
+                  <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-3">
+                    <p className="font-mono text-xs text-emerald-300">
+                      Active learning stopped manually at iteration {iter}. You can download the checkpoint below or resume later.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={resumeActiveLearning}
+                      className="mt-3 font-mono border-zinc-600 text-zinc-200 hover:bg-zinc-800"
+                    >
+                      Resume active learning
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         )}

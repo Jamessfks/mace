@@ -10,9 +10,30 @@ import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
+import { readdir, stat } from "node:fs/promises";
 
 const MACE_FREEZE_DIR = join(process.cwd(), "mace-api", "MACE_Freeze");
 const execFileAsync = promisify(execFile);
+
+async function resolveCheckpoint(checkpointsDir: string): Promise<string | null> {
+  const best = join(checkpointsDir, "best.pt");
+  if (existsSync(best)) return best;
+  if (!existsSync(checkpointsDir)) return null;
+  const files = await readdir(checkpointsDir);
+  const pts = files.filter((f) => f.toLowerCase().endsWith(".pt"));
+  if (pts.length === 0) return null;
+  const ranked = await Promise.all(
+    pts.map(async (name) => {
+      const full = join(checkpointsDir, name);
+      const m = /epoch-(\d+)\.pt$/i.exec(name);
+      const epoch = m ? Number(m[1]) : -1;
+      const st = await stat(full);
+      return { full, epoch, mtime: st.mtimeMs };
+    })
+  );
+  ranked.sort((a, b) => (b.epoch - a.epoch) || (b.mtime - a.mtime));
+  return ranked[0]?.full ?? null;
+}
 
 interface ActiveLearningParams {
   runId: string;
@@ -40,8 +61,8 @@ export async function POST(request: NextRequest) {
 
     const models: string[] = [];
     for (let i = 0; i < params.committeeSize; i++) {
-      const ckpt = join(workDir, `c${i}`, "checkpoints", "best.pt");
-      if (existsSync(ckpt)) models.push(ckpt);
+      const ckpt = await resolveCheckpoint(join(workDir, `c${i}`, "checkpoints"));
+      if (ckpt) models.push(ckpt);
     }
     if (models.length < 2) {
       return NextResponse.json(
