@@ -91,6 +91,27 @@ export function IntroSection() {
           Explore microchip materials · Browse community-shared calculations
         </p>
 
+        {/* Separator: main product vs local training */}
+        <div className="w-full max-w-md border-t border-zinc-800" aria-hidden />
+
+        {/* MACE Freeze Training — local-only, secondary CTA */}
+        <div className="flex flex-col items-center gap-2">
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="group relative overflow-hidden border-2 border-violet-500/50 bg-violet-500/5 font-mono text-violet-400 transition-all hover:bg-violet-500/15 hover:border-violet-500/70"
+          >
+            <Link href="/mace-freeze">
+              <span className="relative z-10">MACE FREEZE TRAINING</span>
+              <div className="absolute inset-0 -z-0 bg-violet-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
+          </Button>
+          <p className="font-mono text-xs text-zinc-500">
+            Fine-tune MACE locally · split, train, freeze, active learning
+          </p>
+        </div>
+
         {/* Acknowledgment */}
         <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900/60 px-6 py-4 text-center backdrop-blur-sm">
           <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">

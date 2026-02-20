@@ -17,7 +17,7 @@
 
 Built by a team of CS first-year students at **Northeastern University Oakland Campus**
 
-[Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
+[Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data) · [MACE Freeze](#mace-freeze-local-training)
 
 </div>
 
@@ -81,6 +81,21 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 | **Reference Comparison** | Calculated vs experimental with % error (Ioffe NSM, Materials Project, NIST) |
 | **Confidence Indicator** | Traffic-light gauge for MACE-MP-0 reliability per element coverage |
 | **Comparison View** | Side-by-side bulk vs vacancy with dual 3D viewers |
+
+### MACE Freeze (local training)
+
+**No-code fine-tuning in the browser.** Train or fine-tune MACE without writing a single line of code: choose data, set options, click **Start training**, and watch scientific graphs update live. When training finishes, download your checkpoint and use it in the Calculator or locally.
+
+| Feature | Description |
+|---------|-------------|
+| **Page** | [MACE Freeze Training](/mace-freeze) — single-page flow: data → options → **Start training** → live graphs → download |
+| **Data** | **Option A:** use bundled Liquid Water dataset. **Option B:** upload your own `.xyz` or `.extxyz` (drag-and-drop, structure summary and size warnings). |
+| **Options** | Run name, seed, device (CPU / CUDA), preset (**Quick demo** 15 epochs or **Full** 800 epochs). All via form controls — no CLI. |
+| **Live graphs** | **Training loss** vs epoch (area chart); **Validation MAE** — energy (meV/atom) and force (meV/Å) vs epoch. Dark, high-tech theme; data streams in as training runs. |
+| **When done** | **Download checkpoint** (best.pt) and **Open MACE Calculator** to use your model for other calculations. |
+| **Scope** | **Local only:** training runs on your machine when the app is run locally (`npm run dev`). Not deployed to Vercel/Railway for training. |
+| **Backend** | POST `/api/mace-freeze/train` streams progress (SSE); GET `/api/mace-freeze/checkpoint` serves the trained `.pt` file. Python wrapper `run_training_web.py` runs split → `mace_train.py`, parses MACE log lines, and emits JSON progress. |
+| **Advanced** | See [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md) for the full CLI workflow (freeze, committee disagreement, active learning, DFT labeling). |
 
 ---
 
@@ -167,7 +182,7 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 
 <table>
 <tr>
-<td width="50%">
+<td width="33%">
 
 **General Calculator**
 1. Go to `/calculate`
@@ -177,7 +192,7 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 5. View energy, forces, 3D structure
 
 </td>
-<td width="50%">
+<td width="33%">
 
 **Semiconductor Discovery**
 1. Go to `/semiconductor`
@@ -185,6 +200,16 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 3. Choose workflows (EOS, vacancy…)
 4. Click **RUN CALCULATIONS**
 5. Compare results to reference data
+
+</td>
+<td width="33%">
+
+**MACE Freeze (local)**
+1. Go to `/mace-freeze`
+2. Choose data (bundled water or upload)
+3. Set run name, seed, device, preset
+4. Click **Start training**
+5. Watch graphs, then download checkpoint
 
 </td>
 </tr>
@@ -197,29 +222,28 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 ```
 Browser (localhost:3000)
     │
-    ├── /calculate ──────── /semiconductor ──────── /community
-    │        │                     │                     │
-    │   Upload + params      Select from library    Browse + search
-    │        │                + choose workflows     shared results
-    ▼        │                     │                     │
-Next.js API routes                 │                     │
-    │                              │                     │
-    ├── /api/calculate       Multiple /api/calculate     │
-    │        │               calls (EOS, vacancy)        │
-    │   Python subprocess          │                     │
-    │        ▼               ├── /api/generate-surface   │
-    │   calculate_local.py   │        │                  │
-    │        │               │   generate_surface.py     │
-    ▼        ▼               ▼        ▼                  │
-Results in browser      Results in browser               │
-  + 3D viewer             + reference comparison         │
-  + MD animation          + EOS chart (E vs V)           │
-  + PDF report            + confidence indicator         │
-    │                                                    │
-    └──── "Share to Community" ──────────────────────────►│
-              │                                          │
-              ▼                                          ▼
-         /api/community/share ──► Supabase ◄── /api/community/list
+    ├── /calculate ─── /semiconductor ─── /community ─── /mace-freeze
+    │        │                │                │              │
+    │   Upload + params  Library + workflows  Browse shared   Data + options
+    │        │                │                │              │ Start training
+    ▼        │                │                │              ▼
+Next.js API routes             │                │        POST /api/mace-freeze/train
+    │                          │                │        (SSE stream)
+    ├── /api/calculate   Multiple /api/calculate │              │
+    │        │           (EOS, vacancy)          │              │ spawn
+    │   Python subprocess       │                │              ▼
+    │        ▼           /api/generate-surface   │        run_training_web.py
+    │   calculate_local.py      │                │        split_dataset → mace_train
+    │        │           generate_surface.py     │        parse log → JSON events
+    ▼        ▼                  ▼                │              │
+Results + 3D viewer    Results + EOS chart       │              ▼
+  MD animation         + reference table         │        Live graphs in browser
+  PDF report                                     │        (loss, MAE E, MAE F)
+    │                                             │              │
+    └──── "Share to Community" ──────────────────►│              │ done
+              │                                   │              ▼
+              ▼                                   ▼        GET /api/mace-freeze/checkpoint
+         /api/community/share ──► Supabase ◄── /api/community/list   (download best.pt)
                                 (PostgreSQL)
 ```
 
@@ -231,6 +255,8 @@ Results in browser      Results in browser               │
 | **Surface** | `/api/generate-surface` → `generate_surface.py` → ASE `surface()` builder |
 | **Share** | Results → opt-in "Share" button → `/api/community/share` → Supabase INSERT |
 | **Browse** | `/community` page → `/api/community/list` → Supabase SELECT with filters + sort |
+| **MACE Freeze train** | Data (bundled or upload) + params → POST `/api/mace-freeze/train` → spawn `run_training_web.py` → split_dataset → mace_train → stdout parsed for epoch/loss/MAE → SSE to browser → live charts; on done, run_id + run_name returned |
+| **MACE Freeze download** | GET `/api/mace-freeze/checkpoint?runId=&runName=` → stream `mace-api/MACE_Freeze/runs_web/{runId}/{runName}/checkpoints/best.pt` |
 
 ---
 
@@ -332,9 +358,13 @@ mace/
       community/
         share/route.ts              # POST — share calculation to community DB
         list/route.ts               # GET — query community calculations (filterable)
+      mace-freeze/
+        train/route.ts              # POST — run training, stream progress as SSE (local only)
+        checkpoint/route.ts         # GET — stream best.pt for a run (download)
     calculate/page.tsx              # General calculator page
     semiconductor/page.tsx          # Semiconductor discovery page
     community/page.tsx              # Community database browsing page
+    mace-freeze/page.tsx            # No-code training UI: data, options, Start training, live graphs
     globals.css
     layout.tsx
     page.tsx                        # Landing page
@@ -360,6 +390,10 @@ mace/
       semiconductor-results.tsx     # Results + EOS chart + ref table
       confidence-indicator.tsx      # MACE reliability gauge
       comparison-view.tsx           # Bulk vs vacancy comparison
+    mace-freeze/
+      dataset-upload.tsx            # Option B: .xyz/.extxyz upload + structure summary
+      training-charts.tsx           # Loss + MAE Energy/Force vs epoch (recharts)
+      command-block.tsx             # Copyable CLI block (optional / advanced use)
     ui/                             # shadcn/ui components
     Footer.tsx
     intro-section.tsx
@@ -376,6 +410,19 @@ mace/
     generate_surface.py             # ASE surface generator
     main.py                         # FastAPI server (cloud deploy)
     requirements.txt
+    MACE_Freeze/
+      run_training_web.py           # Web training entry: split → mace_train, parse log → JSON stdout
+      split_dataset.py              # Train/valid split
+      mace_train.py                 # Reproducible training wrapper (calls mace_run_train)
+      mace_freeze.py                # Freeze-init checkpoint for fine-tuning
+      model_disagreement.py         # Committee disagreement scores
+      mace_active_learning.py       # Top-K uncertain structure selection
+      inference_test.py             # Quick inference test
+      data/
+        Liquid_Water.xyz            # Bundled water dataset
+      data_uploads/                 # Uploaded datasets (per runId) when using Option B
+      runs_web/                     # Training run dirs: runs_web/{runId}/{runName}/checkpoints/
+      README.md                     # Full CLI workflow (freeze, committee, active learning)
   types/
     mace.ts                         # Calculator type definitions
     semiconductor.ts                # Semiconductor type definitions
@@ -401,6 +448,8 @@ mace/
 | `npm run dev` fails | Run `npm install` first. Requires Node.js 18+ |
 | Community DB not configured | Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` (local) or Vercel env vars (production). Run `supabase-schema.sql` in Supabase SQL editor. |
 | Share button returns error | Verify the `calculations` table exists in Supabase and RLS policies are enabled |
+| MACE Freeze training fails / no progress | Run locally (`npm run dev`). Ensure `mace-torch`, `ase`, `torch`, `numpy` are installed. Training runs in `mace-api/MACE_Freeze/`; check that `data/Liquid_Water.xyz` exists for Option A. |
+| MACE Freeze download 404 | Training may still be running or have failed. Check `mace-api/MACE_Freeze/runs_web/{runId}/` for the run directory and `checkpoints/best.pt`. |
 
 ---
 

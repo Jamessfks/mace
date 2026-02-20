@@ -1,0 +1,50 @@
+2026-02-19 21:09:47.062 INFO: ===========VERIFYING SETTINGS===========
+2026-02-19 21:09:47.062 INFO: MACE version: 0.3.14
+2026-02-19 21:09:47.063 INFO: Using CPU
+2026-02-19 21:09:47.142 INFO: ===========LOADING INPUT DATA===========
+2026-02-19 21:09:47.142 INFO: Using heads: ['Default']
+2026-02-19 21:09:47.142 INFO: Using the key specifications to parse data:
+2026-02-19 21:09:47.142 INFO: Default: KeySpecification(info_keys={'energy': 'TotEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head', 'elec_temp': 'elec_temp', 'total_charge': 'total_charge', 'polarizability': 'polarizability', 'total_spin': 'total_spin'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'})
+2026-02-19 21:09:47.142 INFO: =============    Processing head Default     ===========
+2026-02-19 21:09:47.550 INFO: Training set 1/1 [energy: 1434, stress: 0, virials: 0, dipole components: 0, head: 1434, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1434, charges: 0]
+2026-02-19 21:09:47.553 INFO: Total Training set [energy: 1434, stress: 0, virials: 0, dipole components: 0, head: 1434, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 1434, charges: 0]
+2026-02-19 21:09:47.603 INFO: Validation set 1/1 [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 21:09:47.603 INFO: Total Validation set [energy: 159, stress: 0, virials: 0, dipole components: 0, head: 159, elec_temp: 0, total_charge: 0, polarizability: 0, total_spin: 0, forces: 159, charges: 0]
+2026-02-19 21:09:47.604 INFO: Total number of configurations: train=1434, valid=159, tests=[],
+2026-02-19 21:09:47.617 INFO: Atomic Numbers used: [np.int64(1), np.int64(8)]
+2026-02-19 21:09:47.617 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2026-02-19 21:09:47.617 INFO: Computing average Atomic Energies using least squares regression
+2026-02-19 21:09:47.620 INFO: Atomic Energies used (z: eV) for head Default: {1: -6.894317631363322, 8: -3.4471588156816546}
+2026-02-19 21:09:47.620 INFO: Processing datasets for head 'Default'
+2026-02-19 21:09:48.043 INFO: Combining 1 list datasets for head 'Default'
+2026-02-19 21:09:48.091 INFO: Combining 1 list datasets for head 'Default_valid'
+2026-02-19 21:09:48.091 INFO: Combined validation datasets for Default
+2026-02-19 21:09:48.091 INFO: Head 'Default' training dataset size: 1434
+2026-02-19 21:09:48.091 INFO: Computing average number of neighbors
+2026-02-19 21:09:48.261 INFO: Average number of neighbors: 5.543300151824951
+2026-02-19 21:09:48.261 INFO: During training the following quantities will be reported: energy, forces
+2026-02-19 21:09:48.262 INFO: ===========MODEL DETAILS===========
+2026-02-19 21:09:48.373 INFO: Building model
+2026-02-19 21:09:48.374 INFO: Message passing with 32 channels and max_L=0 (32x0e)
+2026-02-19 21:09:48.374 INFO: 1 layers, each with correlation order: 2 (body order: 3) and spherical harmonics up to: l=3
+2026-02-19 21:09:48.374 INFO: 8 radial and 5 basis functions
+2026-02-19 21:09:48.374 INFO: Radial cutoff: 5.0 A (total receptive field for each atom: 5.0 A)
+2026-02-19 21:09:48.374 INFO: Distance transform for radial basis functions: None
+2026-02-19 21:09:48.374 INFO: Hidden irreps: 32x0e
+2026-02-19 21:09:48.522 INFO: Total number of parameters: 31648
+2026-02-19 21:09:48.522 INFO: 
+2026-02-19 21:09:48.522 INFO: ===========OPTIMIZER INFORMATION===========
+2026-02-19 21:09:48.522 INFO: Using ADAM as parameter optimizer
+2026-02-19 21:09:48.522 INFO: Batch size: 8
+2026-02-19 21:09:48.522 INFO: Number of gradient updates: 2688
+2026-02-19 21:09:48.522 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-02-19 21:09:48.522 INFO: WeightedEnergyForcesLoss(energy_weight=1.000, forces_weight=100.000)
+2026-02-19 21:09:48.522 INFO: Using gradient clipping with tolerance=10.000
+2026-02-19 21:09:48.522 INFO: 
+2026-02-19 21:09:48.523 INFO: ===========TRAINING===========
+2026-02-19 21:09:48.523 INFO: Started training, reporting errors on validation set
+2026-02-19 21:09:48.523 INFO: Loss metrics on validation set
+2026-02-19 21:09:49.968 INFO: Initial: head: Default, loss=0.02448982, RMSE_E_per_atom=    2.77 meV, RMSE_F=   44.14 meV / A
+2026-02-19 21:10:23.080 INFO: Epoch 0: head: Default, loss=0.00083812, RMSE_E_per_atom=   31.93 meV, RMSE_F=    7.53 meV / A
+2026-02-19 21:10:57.604 INFO: Epoch 1: head: Default, loss=0.00066136, RMSE_E_per_atom=   25.28 meV, RMSE_F=    6.81 meV / A
+2026-02-19 21:11:31.452 INFO: Epoch 2: head: Default, loss=0.00083177, RMSE_E_per_atom=   24.30 meV, RMSE_F=    7.77 meV / A
