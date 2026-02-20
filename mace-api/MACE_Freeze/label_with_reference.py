@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -44,6 +45,77 @@ COMMON_QE_EXECUTABLES = (
     "/opt/homebrew/bin/pw",
     "/usr/local/bin/pw",
 )
+
+COMMON_QE_PSEUDO_DIRS = (
+    "/usr/share/espresso/pseudo",
+    "/usr/local/share/espresso/pseudo",
+    "/opt/homebrew/share/qe/pseudo",
+    "/opt/homebrew/share/espresso/pseudo",
+    "/opt/local/share/qe/pseudo",
+    "/opt/local/share/espresso/pseudo",
+    "/opt/conda/share/qe/pseudo",
+    "/opt/conda/share/espresso/pseudo",
+)
+
+
+def _unique_paths(paths: list[Path]) -> list[Path]:
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for item in paths:
+        expanded = item.expanduser()
+        key = str(expanded)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(expanded)
+    return unique
+
+
+# QE 7.x expects UPF pseudopotentials for stable/portable usage.
+PSEUDO_SUFFIXES = (".upf",)
+
+
+def _iter_pseudo_files(pseudo_dir: Path) -> list[Path]:
+    files: list[Path] = []
+    try:
+        for item in pseudo_dir.iterdir():
+            if not item.is_file():
+                continue
+            if item.name.lower().endswith(PSEUDO_SUFFIXES):
+                files.append(item)
+    except Exception:
+        return []
+    return sorted(files, key=lambda p: p.name.lower())
+
+
+def _pseudo_filename_score(symbol: str, filename: str) -> int:
+    """
+    Score how confidently a pseudo filename matches an element symbol.
+    Higher is better; 0 means "does not look like a match".
+    """
+    sym = symbol.lower()
+    stem = Path(filename).stem.lower()
+    if re.match(rf"^{re.escape(sym)}($|[._\-0-9])", stem):
+        return 4
+    if re.search(rf"(^|[._\-]){re.escape(sym)}($|[._\-])", stem):
+        return 3
+    if stem.startswith(sym):
+        return 2
+    return 0
+
+
+def _pseudo_declares_symbol(path: Path, symbol: str) -> bool:
+    """
+    Fallback matcher for unusual filenames:
+    parse the UPF header and check declared element.
+    """
+    try:
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            head = handle.read(8192)
+    except Exception:
+        return False
+    match = re.search(r'element\s*=\s*["\']?\s*([A-Za-z]{1,2})', head, flags=re.IGNORECASE)
+    return bool(match and match.group(1).capitalize() == symbol.capitalize())
 
 
 def _resolve_executable_path(token: str) -> str | None:
@@ -73,16 +145,7 @@ def _iter_env_bin_dirs() -> list[Path]:
         raw = os.environ.get(key, "").strip()
         if raw:
             dirs.append(Path(raw).expanduser() / "bin")
-    # de-duplicate while preserving order
-    seen: set[str] = set()
-    unique: list[Path] = []
-    for item in dirs:
-        key = str(item)
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(item)
-    return unique
+    return _unique_paths(dirs)
 
 
 def _resolve_from_login_shell(token: str) -> str | None:
@@ -151,17 +214,11 @@ def _iter_qe_source_roots() -> list[Path]:
         home / "QuantumESPRESSO*",
     ]
     roots: list[Path] = []
-    seen: set[str] = set()
     for pattern in patterns:
         for source_root in sorted(pattern.parent.glob(pattern.name)):
-            if not source_root.is_dir():
-                continue
-            key = str(source_root.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            roots.append(source_root)
-    return roots
+            if source_root.is_dir():
+                roots.append(source_root)
+    return _unique_paths(roots)
 
 
 def _resolve_from_user_locations(tokens: list[str]) -> str | None:
@@ -280,6 +337,98 @@ def resolve_qe_command(raw_command: str) -> str:
     return shlex.join(parts)
 
 
+def _has_upf_files(pseudo_dir: Path) -> bool:
+    if not pseudo_dir.is_dir():
+        return False
+    try:
+        for item in pseudo_dir.iterdir():
+            if item.is_file() and item.name.lower().endswith(".upf"):
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _iter_env_pseudo_dirs() -> list[Path]:
+    dirs: list[Path] = []
+    for key in ("ESPRESSO_PSEUDO", "QE_PSEUDO_DIR", "PSEUDO_DIR"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw))
+    for key in ("QE_HOME", "ESPRESSO_HOME"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw) / "pseudo")
+    conda_prefix = os.environ.get("CONDA_PREFIX", "").strip()
+    if conda_prefix:
+        dirs.append(Path(conda_prefix) / "share" / "qe" / "pseudo")
+        dirs.append(Path(conda_prefix) / "share" / "espresso" / "pseudo")
+    return _unique_paths(dirs)
+
+
+def _iter_pseudo_dirs_from_qe_command(qe_command: str) -> list[Path]:
+    try:
+        parts = shlex.split(qe_command)
+    except ValueError:
+        return []
+    if not parts:
+        return []
+
+    dirs: list[Path] = []
+    exe_path = Path(parts[0]).expanduser()
+    if exe_path.exists():
+        resolved_exe = exe_path.resolve()
+        for parent in list(resolved_exe.parents)[:8]:
+            dirs.append(parent / "pseudo")
+            dirs.append(parent / "share" / "qe" / "pseudo")
+            dirs.append(parent / "share" / "espresso" / "pseudo")
+            dirs.append(parent / "share" / "quantum-espresso" / "pseudo")
+
+    for source_root in _iter_qe_source_roots():
+        dirs.append(source_root / "pseudo")
+    return _unique_paths(dirs)
+
+
+def resolve_pseudo_dir(raw_pseudo_dir: str, qe_command: str) -> Path:
+    explicit = raw_pseudo_dir.strip()
+    if explicit:
+        pseudo_dir = Path(explicit).expanduser()
+        if not pseudo_dir.exists():
+            raise FileNotFoundError(f"pseudo_dir not found: {pseudo_dir}")
+        if not _has_upf_files(pseudo_dir):
+            raise ValueError(
+                f"pseudo_dir contains no .UPF files: {pseudo_dir}. "
+                "Provide a directory containing UPF pseudopotentials."
+            )
+        return pseudo_dir.resolve()
+
+    candidates: list[Path] = []
+    candidates.extend(_iter_env_pseudo_dirs())
+    candidates.extend(_iter_pseudo_dirs_from_qe_command(qe_command))
+    candidates.extend(Path(item) for item in COMMON_QE_PSEUDO_DIRS)
+    unique_candidates = _unique_paths(candidates)
+
+    for candidate in unique_candidates:
+        if _has_upf_files(candidate):
+            return candidate.resolve()
+
+    existing_dirs = [path for path in unique_candidates if path.is_dir()]
+    if existing_dirs:
+        sample = ", ".join(f"`{path}`" for path in existing_dirs[:3])
+        raise ValueError(
+            "pseudo_dir is required for QE labeling (or set ESPRESSO_PSEUDO). "
+            f"Auto-detection found directories without .UPF files: {sample}. "
+            "Set pseudo_dir in the UI, set ESPRESSO_PSEUDO/QE_PSEUDO_DIR, "
+            "or provide UPF files in one of those directories."
+        )
+
+    raise ValueError(
+        "pseudo_dir is required for QE labeling (or set ESPRESSO_PSEUDO). "
+        "Could not auto-detect a pseudopotential directory containing .UPF files. "
+        "Set pseudo_dir in the UI or set ESPRESSO_PSEUDO / QE_PSEUDO_DIR."
+    )
+
+
 def parse_kpts(kpts: str) -> tuple[int, int, int]:
     raw = [part.strip() for part in kpts.split(",")]
     if len(raw) != 3:
@@ -298,37 +447,68 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 
 def find_pseudo(symbol: str, pseudo_dir: Path) -> str:
-    symbol_lower = symbol.lower()
-    candidates: list[Path] = []
-    for item in pseudo_dir.iterdir():
-        if not item.is_file():
-            continue
-        name = item.name.lower()
-        if not name.endswith(".upf"):
-            continue
-        if name.startswith(symbol_lower):
-            candidates.append(item)
-    if not candidates:
-        for item in pseudo_dir.iterdir():
-            if not item.is_file():
-                continue
-            name = item.name.lower()
-            if name.endswith(".upf") and symbol_lower in name:
-                candidates.append(item)
-    if not candidates:
-        raise ValueError(f"No UPF pseudopotential found for element {symbol} in {pseudo_dir}")
-    return candidates[0].name
+    pseudo_files = _iter_pseudo_files(pseudo_dir)
+    if not pseudo_files:
+        raise ValueError(
+            f"No UPF pseudopotential files found in {pseudo_dir}. "
+            "Provide QE-compatible .UPF files or pass --pseudos_json mapping."
+        )
+
+    # First: strict filename-token matching to avoid accidental O->Au/H->Rh matches.
+    scored: list[tuple[int, str]] = []
+    for item in pseudo_files:
+        score = _pseudo_filename_score(symbol, item.name)
+        if score > 0:
+            scored.append((score, item.name))
+    if scored:
+        # Deterministic choice: highest confidence, then lexicographically smallest.
+        scored.sort(key=lambda t: (-t[0], t[1].lower()))
+        return scored[0][1]
+
+    # Fallback for unconventional filenames: inspect element declared in UPF header.
+    declared = [item.name for item in pseudo_files if _pseudo_declares_symbol(item, symbol)]
+    if declared:
+        return sorted(declared, key=str.lower)[0]
+
+    available_preview = ", ".join(item.name for item in pseudo_files[:8])
+    suffix = " ..." if len(pseudo_files) > 8 else ""
+    raise ValueError(
+        f"No UPF pseudopotential found for element {symbol} in {pseudo_dir}. "
+        f"Available UPF files: {available_preview}{suffix}. "
+        "Pass --pseudos_json for explicit mapping if filenames are non-standard."
+    )
 
 
-def build_pseudos(atoms, pseudo_dir: Path, pseudos_override: dict[str, str]) -> dict[str, str]:
-    symbols = sorted(set(atoms.get_chemical_symbols()))
-    pseudos: dict[str, str] = {}
-    for sym in symbols:
+def resolve_pseudos_for_symbols(
+    symbols: list[str],
+    pseudo_dir: Path,
+    pseudos_override: dict[str, str],
+) -> dict[str, str]:
+    """
+    Resolve a deterministic pseudo mapping for all required symbols before QE starts.
+    Failing early here avoids expensive runs ending with opaque runtime errors.
+    """
+    resolved: dict[str, str] = {}
+    for sym in sorted(set(symbols)):
         if sym in pseudos_override:
-            pseudos[sym] = pseudos_override[sym]
-        else:
-            pseudos[sym] = find_pseudo(sym, pseudo_dir)
-    return pseudos
+            candidate = pseudos_override[sym]
+            cpath = Path(candidate).expanduser()
+            if cpath.is_absolute():
+                if not cpath.is_file():
+                    raise FileNotFoundError(
+                        f"pseudos_json entry for {sym} points to missing file: {cpath}"
+                    )
+                resolved[sym] = str(cpath.resolve())
+                continue
+            rel = pseudo_dir / candidate
+            if not rel.is_file():
+                raise FileNotFoundError(
+                    f"pseudos_json entry for {sym} not found under pseudo_dir: {rel}"
+                )
+            resolved[sym] = candidate
+            continue
+        resolved[sym] = find_pseudo(sym, pseudo_dir)
+    return resolved
 
 
 def get_demo_calculator(reference: str, device: str):
@@ -359,6 +539,16 @@ def build_qe_input(template_path: Path | None, ecutwfc: float, ecutrho: float) -
     return deep_merge(default_input, user_input)
 
 
+def _is_espresso_api_mismatch(exc: Exception) -> bool:
+    msg = str(exc)
+    markers = (
+        "Espresso calculator is being restructured",
+        "unexpected keyword argument",
+        "missing 1 required positional argument",
+    )
+    return any(marker in msg for marker in markers)
+
+
 def make_espresso_calc(
     pseudo_dir: Path,
     pseudos: dict[str, str],
@@ -372,7 +562,7 @@ def make_espresso_calc(
     workdir.mkdir(parents=True, exist_ok=True)
 
     # ASE has changed Espresso constructor signatures across versions.
-    # Try legacy command/pseudo_dir first, then profile-based fallback.
+    # Try legacy command/pseudo_dir first.
     try:
         return Espresso(
             pseudopotentials=pseudos,
@@ -382,22 +572,126 @@ def make_espresso_calc(
             directory=str(workdir),
             command=command,
         )
-    except TypeError:
+    except Exception as legacy_exc:
+        if not _is_espresso_api_mismatch(legacy_exc):
+            raise
+
+    # Then try profile-based variants (newer ASE APIs).
+    try:
+        from ase.calculators.espresso import EspressoProfile
+    except Exception as exc:  # pragma: no cover - depends on ASE version
+        raise RuntimeError(
+            "ASE Espresso constructor mismatch and EspressoProfile is unavailable. "
+            "Upgrade ASE or provide a compatible version."
+        ) from exc
+
+    argv = shlex.split(command)
+    profile_kwargs_candidates: list[dict[str, Any]] = [
+        {"command": command, "pseudo_dir": str(pseudo_dir)},
+        {"argv": argv, "pseudo_dir": str(pseudo_dir)},
+        {"argv": argv},
+    ]
+    profile_errors: list[str] = []
+
+    for profile_kwargs in profile_kwargs_candidates:
         try:
-            from ase.calculators.espresso import EspressoProfile
-        except Exception as exc:  # pragma: no cover - depends on ASE version
-            raise RuntimeError(
-                "ASE Espresso constructor mismatch and EspressoProfile is unavailable. "
-                "Upgrade ASE or provide a compatible version."
-            ) from exc
-        profile = EspressoProfile(command=command, pseudo_dir=str(pseudo_dir))
-        return Espresso(
-            profile=profile,
-            pseudopotentials=pseudos,
-            input_data=input_data,
-            kpts=kpts,
-            directory=str(workdir),
-        )
+            profile = EspressoProfile(**profile_kwargs)
+        except Exception as exc:
+            profile_errors.append(f"EspressoProfile({profile_kwargs!r}) failed: {exc}")
+            continue
+
+        espresso_base = {
+            "profile": profile,
+            "pseudopotentials": pseudos,
+            "input_data": input_data,
+            "kpts": kpts,
+            "directory": str(workdir),
+        }
+        # Some versions accept pseudo_dir in profile only; some also accept it in Espresso kwargs.
+        for include_pseudo_dir in (False, True):
+            espresso_kwargs = dict(espresso_base)
+            if include_pseudo_dir:
+                espresso_kwargs["pseudo_dir"] = str(pseudo_dir)
+            try:
+                return Espresso(**espresso_kwargs)
+            except Exception as exc:
+                profile_errors.append(
+                    f"Espresso(profile=..., include_pseudo_dir={include_pseudo_dir}) failed: {exc}"
+                )
+                continue
+
+    raise RuntimeError(
+        "Unable to construct ASE Espresso calculator with this ASE version. "
+        "Try upgrading ASE, or provide compatible QE/ASE versions. "
+        + " | ".join(profile_errors[-3:])
+    )
+
+
+def _configure_qe_runtime_env() -> None:
+    """
+    Apply conservative defaults for threaded math runtimes when running QE.
+    This reduces oversubscription/memory spikes on laptops while still letting
+    users override via explicit environment variables.
+    """
+    for key in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        os.environ.setdefault(key, "1")
+
+
+def _collect_required_symbols(atoms_list) -> list[str]:
+    symbols: set[str] = set()
+    for atoms in atoms_list:
+        symbols.update(atoms.get_chemical_symbols())
+    return sorted(symbols)
+
+
+def _read_qe_output_tail(workdir: Path, max_lines: int = 30) -> str:
+    for name in ("espresso.pwo", "espresso.out", "pw.out", "espresso.err", "pw.err"):
+        path = workdir / name
+        if not path.exists():
+            continue
+        try:
+            lines = path.read_text(errors="ignore").splitlines()
+        except Exception:
+            continue
+        if not lines:
+            continue
+        tail = lines[-max_lines:]
+        return " | ".join(line.strip() for line in tail if line.strip())
+    return ""
+
+
+def _format_qe_runtime_failure(
+    exc: Exception,
+    *,
+    idx: int,
+    atoms,
+    workdir: Path,
+    command: str,
+    pseudos: dict[str, str],
+) -> str:
+    parts: list[str] = [
+        f"QE labeling failed for structure index {idx} ({len(atoms)} atoms).",
+        f"workdir={workdir}.",
+        f"command={command}.",
+    ]
+    if isinstance(exc, subprocess.CalledProcessError):
+        parts.append(f"pw.x return code={exc.returncode}.")
+        if exc.returncode in (-9, 9):
+            parts.append(
+                "pw.x was killed by SIGKILL (likely OS memory pressure). "
+                "Try fewer/lighter structures, lower cutoffs, and verify pseudo mapping."
+            )
+    parts.append(f"pseudopotentials={json.dumps(pseudos, sort_keys=True)}.")
+    tail = _read_qe_output_tail(workdir)
+    if tail:
+        parts.append(f"QE output tail: {tail}")
+    return " ".join(parts)
 
 
 def label_with_qe(atoms_list, args) -> list:
@@ -410,12 +704,7 @@ def label_with_qe(atoms_list, args) -> list:
 
     qe_command = resolve_qe_command(args.qe_command)
 
-    pseudo_dir_raw = args.pseudo_dir or os.environ.get("ESPRESSO_PSEUDO", "")
-    if not pseudo_dir_raw:
-        raise ValueError("pseudo_dir is required for QE labeling (or set ESPRESSO_PSEUDO).")
-    pseudo_dir = Path(pseudo_dir_raw).expanduser()
-    if not pseudo_dir.exists():
-        raise FileNotFoundError(f"pseudo_dir not found: {pseudo_dir}")
+    pseudo_dir = resolve_pseudo_dir(args.pseudo_dir, qe_command)
 
     pseudos_override: dict[str, str] = {}
     if args.pseudos_json:
@@ -432,10 +721,19 @@ def label_with_qe(atoms_list, args) -> list:
     kpts = parse_kpts(args.kpts)
     qe_work_root = Path(args.qe_workdir).expanduser() if args.qe_workdir else args.output.parent / "qe_work"
     qe_work_root.mkdir(parents=True, exist_ok=True)
+    _configure_qe_runtime_env()
+
+    # Resolve pseudo mapping once up front so we fail fast with a clear message
+    # instead of launching QE and failing deep in SCF.
+    required_symbols = _collect_required_symbols(atoms_list)
+    resolved_pseudos = resolve_pseudos_for_symbols(required_symbols, pseudo_dir, pseudos_override)
 
     labeled = []
     for idx, atoms in enumerate(atoms_list):
-        pseudos = build_pseudos(atoms, pseudo_dir, pseudos_override)
+        pseudos = {
+            sym: resolved_pseudos[sym]
+            for sym in sorted(set(atoms.get_chemical_symbols()))
+        }
         workdir = qe_work_root / f"struct_{idx:04d}"
         calc = make_espresso_calc(
             pseudo_dir=pseudo_dir,
@@ -445,9 +743,21 @@ def label_with_qe(atoms_list, args) -> list:
             workdir=workdir,
             command=qe_command,
         )
-        atoms.calc = calc
-        energy = atoms.get_potential_energy()
-        forces = atoms.get_forces()
+        try:
+            atoms.calc = calc
+            energy = atoms.get_potential_energy()
+            forces = atoms.get_forces()
+        except Exception as exc:
+            raise RuntimeError(
+                _format_qe_runtime_failure(
+                    exc,
+                    idx=idx,
+                    atoms=atoms,
+                    workdir=workdir,
+                    command=qe_command,
+                    pseudos=pseudos,
+                )
+            ) from exc
         atoms.info["TotEnergy"] = energy
         atoms.arrays["force"] = forces
         labeled.append(atoms)
@@ -493,4 +803,9 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
 
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as exc:
+        # Keep CLI/API stderr concise and structured for frontend parsing.
+        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        sys.exit(1)

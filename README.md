@@ -93,7 +93,7 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 | **Options** | Run name, seed, device (CPU / CUDA), preset (**Quick demo** 5 epochs or **Full** 800 epochs), active-learning settings, and optional freeze fine-tuning (presets + custom patterns + preview + base checkpoint source). |
 | **Live graphs** | **Training loss** vs epoch (area chart); **Validation MAE** — energy (meV/atom) and force (meV/Å) vs epoch. Dark, high-tech theme; data streams in as training runs. |
 | **When done** | **Download checkpoint** (resolved as `best.pt` or latest `*_epoch-*.pt`) and **Open MACE Calculator** to use your model for other calculations. |
-| **Loop control** | Active learning does not auto-stop by threshold. After append, either continue with **Next iteration** or click **Stop active learning here (model looks good)** to end manually. |
+| **Loop control** | Active learning suggests stopping when convergence criteria are met (low disagreement, good validation MAE, or pool exhausted). After append, either continue with **Next iteration** or click **Stop active learning here (model looks good)** to end manually. |
 | **Scope** | **Local only:** training runs on your machine when the app is run locally (`npm run dev`). Not deployed to Vercel/Railway for training. |
 | **Backend** | POST `/api/mace-freeze/train` streams progress (SSE), POST `/api/mace-freeze/committee` continues iterations, POST `/api/mace-freeze/freeze` + `/freeze-preview` manage freeze-init planning, POST `/api/mace-freeze/label` supports MACE-MP-0 or Quantum ESPRESSO, GET `/api/mace-freeze/checkpoint` serves resolved `.pt` files. |
 | **Advanced** | See [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md) for the full CLI workflow (freeze, committee disagreement, active learning, DFT labeling). |
@@ -203,11 +203,13 @@ make pw
    - adding the QE `bin/` directory to your `PATH`
    - setting QE command in the app UI (absolute `pw.x` path, or QE root dir such as `~/Downloads/qe-7.5`)
    - setting `QE_COMMAND=/absolute/path/to/pw.x`
-4. Configure pseudopotentials by setting `ESPRESSO_PSEUDO` or passing `pseudo_dir`.
+4. Configure pseudopotentials by setting `ESPRESSO_PSEUDO` / `QE_PSEUDO_DIR` or passing `pseudo_dir` (if omitted, backend will try auto-detect from common QE/source locations).
 5. Before DFT labeling, run:
 
 ```bash
 python3 mace-api/MACE_Freeze/scripts/check_qe.py
+# Optional: validate pseudo coverage for expected elements
+python3 mace-api/MACE_Freeze/scripts/check_qe.py --symbols "H O"
 ```
 
 For full CLI details, see [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md).
@@ -464,7 +466,6 @@ mace/
       model_disagreement.py         # Committee disagreement scores
       mace_active_learning.py       # Top-K uncertain structure selection
       label_with_reference.py       # Labeling (MACE-MP-0 / EMT / Quantum ESPRESSO)
-      inference_test.py             # Quick inference test
       data/
         Liquid_Water.xyz            # Bundled water dataset
       data_uploads/                 # Uploaded datasets (per runId) when using Option B
@@ -497,9 +498,11 @@ mace/
 | Share button returns error | Verify the `calculations` table exists in Supabase and RLS policies are enabled |
 | MACE Freeze training fails / no progress | Run locally (`npm run dev`). Ensure `mace-torch`, `ase`, `torch`, `numpy` are installed. Training runs in `mace-api/MACE_Freeze/`; check that `data/Liquid_Water.xyz` exists for Option A. |
 | Fine-tune committee fails at `Model c0 failed with code 1` | Update to latest code in this repo. The fine-tune path now seeds per-model checkpoints + `--restart_latest` (instead of invalid `--model <checkpoint>`). |
-| QE labeling fails (`pw.x` not found / pseudo error) | Install Quantum ESPRESSO, build `pw.x`, and run `python3 mace-api/MACE_Freeze/scripts/check_qe.py`. Then set `ESPRESSO_PSEUDO` or provide `pseudo_dir`. See [Optional: Installing Quantum ESPRESSO](#optional-installing-quantum-espresso-dft-labeling). |
+| QE labeling fails (`pw.x` not found / pseudo error) | Install Quantum ESPRESSO, build `pw.x`, and run `python3 mace-api/MACE_Freeze/scripts/check_qe.py` (optionally `--symbols "H O"` for element coverage). Then set `ESPRESSO_PSEUDO`, `QE_PSEUDO_DIR`, `pseudo_dir`, or provide `pseudos_json` for explicit element-to-file mapping. See [Optional: Installing Quantum ESPRESSO](#optional-installing-quantum-espresso-dft-labeling). |
+| QE process dies with `SIGKILL` | Usually memory pressure or bad pseudo mapping. Reduce structure size/top-K/cutoffs, and verify pseudo coverage with `python3 mace-api/MACE_Freeze/scripts/check_qe.py --symbols "..."`. |
 | MACE Freeze download 404 | Training may still be running or have failed. Check `mace-api/MACE_Freeze/runs_web/{runId}/` for the run directory and checkpoint files (`best.pt` or `*_epoch-*.pt`). |
 | `Controller is already closed` during train/committee streaming | Update to latest code in this repo; SSE routes now guard stream close/enqueue and handle client disconnects safely. |
+| Training process exited with code 1 | The error panel now shows the actual Python error (e.g. split failed, model failed, base checkpoint not found). To debug manually: `cd mace-api/MACE_Freeze && RUN_ID=debug USE_BUNDLED=1 python3 run_training_web.py` (set env vars to match your run). |
 
 ---
 

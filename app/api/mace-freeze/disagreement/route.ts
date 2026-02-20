@@ -2,7 +2,8 @@
  * POST /api/mace-freeze/disagreement
  *
  * Run model_disagreement.py on pool.xyz with committee checkpoints.
- * Returns per-structure scores (higher = more uncertain).
+ * Returns per-structure scores (higher = more uncertain), aggregate stats,
+ * and convergence status for active learning auto-stop.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -10,7 +11,7 @@ import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, stat, readFile } from "node:fs/promises";
 
 const MACE_FREEZE_DIR = join(process.cwd(), "mace-api", "MACE_Freeze");
 const execFileAsync = promisify(execFile);
@@ -82,10 +83,32 @@ export async function POST(request: NextRequest) {
       { cwd: MACE_FREEZE_DIR }
     );
 
-    const fs = await import("node:fs/promises");
-    const json = await fs.readFile(outJson, "utf-8");
-    const data = JSON.parse(json);
-    return NextResponse.json({ success: true, data });
+    const jsonStr = await readFile(outJson, "utf-8");
+    const data = JSON.parse(jsonStr);
+
+    // Run convergence check (non-blocking; include in response for UI)
+    let convergence: Record<string, unknown> | null = null;
+    try {
+      const { stdout } = await execFileAsync(
+        process.env.PYTHON ?? "python3",
+        [
+          join(MACE_FREEZE_DIR, "check_convergence.py"),
+          "--run_id", params.runId,
+          "--iter", String(params.iter),
+          "--committee_size", String(params.committeeSize),
+        ],
+        { cwd: MACE_FREEZE_DIR, maxBuffer: 1024 * 1024 }
+      );
+      convergence = JSON.parse(stdout.trim()) as Record<string, unknown>;
+    } catch {
+      // Convergence check is best-effort; omit if script fails
+    }
+
+    return NextResponse.json({
+      success: true,
+      data,
+      convergence: convergence ?? undefined,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Disagreement calculation failed" },

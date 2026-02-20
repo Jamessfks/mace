@@ -26,9 +26,6 @@ This repo provides a reproducible workflow to:
 - `mace_train.py`  
   Reproducible training wrapper. Writes `manifest.json` and calls `mace_run_train` internally.
 
-- `inference_test.py`  
-  Tests if the outputted mace model can make inferences.
-
 - `mace_freeze.py`  
   Creates a “freeze-init” checkpoint and freeze plan metadata (used when fine-tuning).
 
@@ -72,11 +69,13 @@ After building, the binary to use is typically `qe-7.x/bin/pw.x`.
    - adding the QE `bin/` directory to `PATH`
    - passing `--qe_command /absolute/path/to/pw.x` (or QE source/install root; resolver checks `bin/pw.x`)
    - setting `QE_COMMAND=/absolute/path/to/pw.x`
-4. Provide pseudopotentials by passing `--pseudo_dir /path/to/upf` or setting `ESPRESSO_PSEUDO`.
+4. Provide pseudopotentials by passing `--pseudo_dir /path/to/upf` or setting `ESPRESSO_PSEUDO` / `QE_PSEUDO_DIR` (if omitted, backend attempts auto-detection from common QE/source locations).
 5. Before using DFT labeling, run the preflight check:
 
 ```bash
 python3 mace-api/MACE_Freeze/scripts/check_qe.py
+# Optional: verify pseudo coverage for expected elements
+python3 mace-api/MACE_Freeze/scripts/check_qe.py --symbols "H O"
 ```
 
 ## Step 1: Split dataset (if not split already)
@@ -159,9 +158,6 @@ runs/water_1k_small/
   checkpoints/
   logs...
 ```
-## Step 2.5: Run a quick test to see if it worked
-We want to see if the mace model we trained can actually infer data, and we just have to run `inference_test.py` for that.
-
 ## Step 3: (Optional) Freeze parts of a model (fine-tune)
 ### Freezing is useful when:
 - you have a good base model
@@ -347,10 +343,26 @@ The web UI supports both:
 
 For QE mode, configure:
 - `pw.x` available on `PATH` (or pass custom `qe_command`)
-- pseudopotential directory (`--pseudo_dir` or `ESPRESSO_PSEUDO`)
-- optional pseudopotential mapping JSON (`--pseudos_json`)
+- pseudopotential directory (`--pseudo_dir`, `ESPRESSO_PSEUDO`, `QE_PSEUDO_DIR`, or auto-detected from common QE/source paths)
+- optional pseudopotential mapping JSON (`--pseudos_json`, recommended when pseudo filenames are non-standard)
 - optional input template JSON (`--input_template`) for custom QE control/system/electrons settings
-- preflight check: `python3 mace-api/MACE_Freeze/scripts/check_qe.py`
+- preflight check: `python3 mace-api/MACE_Freeze/scripts/check_qe.py` (or `--symbols "..."` to validate element coverage)
+
+---
+
+### Active learning convergence (auto-stop hints)
+
+The disagreement step now runs a convergence check and returns hints for when to stop:
+
+- **Committee disagreement** — Low when max &lt; 10 meV/Å and mean &lt; 5 meV/Å
+- **Validation MAE** — Good when energy &lt; 50 meV/atom and force &lt; 50 meV/Å
+- **Pool exhaustion** — No structures with disagreement &gt; 1 meV/Å
+
+The web UI shows a "When to stop" guide, validation metrics, and a convergence banner when criteria are met. Use `check_convergence.py` for CLI:
+
+```bash
+python check_convergence.py --run_id RUN_ID --iter 0 --committee_size 2
+```
 
 ---
 

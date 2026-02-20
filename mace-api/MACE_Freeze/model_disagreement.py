@@ -15,7 +15,8 @@ We compute:
 - force vector std
 
 Output:
-JSON per structure.
+JSON with per-structure scores plus aggregate stats (max, mean, median, count)
+for convergence checks (see check_convergence.py).
 """
 
 from __future__ import annotations
@@ -161,11 +162,22 @@ def main() -> None:
             "energy_std": float(np.std(energies)),
         })
 
-    # Step 4 — write result
+    # Step 4 — compute aggregate stats for convergence checks
+    scores_arr = np.array([p["score"] for p in per_structure])
+    stats = {
+        "max": float(np.max(scores_arr)) if len(scores_arr) > 0 else 0.0,
+        "mean": float(np.mean(scores_arr)) if len(scores_arr) > 0 else 0.0,
+        "median": float(np.median(scores_arr)) if len(scores_arr) > 0 else 0.0,
+        "count": len(scores_arr),
+    }
+
+    # Step 5 — write result (includes stats for convergence criteria)
     args.out_json.write_text(json.dumps({
         "models": [str(m) for m in args.models],
         "xyz": str(args.xyz),
         "per_structure": per_structure,
+        "stats": stats,
+        "pool_size": N,
     }, indent=2))
 
     print("Finished disagreement calculation.")

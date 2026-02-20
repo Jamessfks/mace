@@ -114,6 +114,20 @@ export default function MaceFreezePage() {
   });
   const [checkpoints, setCheckpoints] = useState<string[]>([]);
   const [activeLearningStopped, setActiveLearningStopped] = useState(false);
+  /** Convergence status from disagreement API (converged, suggest_stop, reasons, metrics) */
+  const [convergence, setConvergence] = useState<{
+    converged: boolean;
+    suggest_stop: boolean;
+    reasons: string[];
+    metrics?: {
+      disagreement_max?: number;
+      disagreement_mean?: number;
+      validation_mae_energy?: number;
+      validation_mae_force?: number;
+      pool_size?: number;
+      structures_above_cutoff?: number;
+    };
+  } | null>(null);
 
   const mergeUniquePatterns = useCallback((current: string[], incoming: string[]) => {
     const normalized = [...current, ...incoming]
@@ -262,6 +276,7 @@ export default function MaceFreezePage() {
     setError(null);
     setProgressLog([]);
     setMetrics([]);
+    setConvergence(null);
     setStepStatus({ train: "running", disagreement: "pending", select: "pending", label: "pending", append: "pending" });
 
     const formData = new FormData();
@@ -391,6 +406,21 @@ export default function MaceFreezePage() {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Step failed");
+      // Capture convergence status from disagreement response for UI hints
+      if (step === "disagreement" && data.convergence) {
+        const c = data.convergence as {
+          converged?: boolean;
+          suggest_stop?: boolean;
+          reasons?: string[];
+          metrics?: Record<string, number>;
+        };
+        setConvergence({
+          converged: c.converged ?? false,
+          suggest_stop: c.suggest_stop ?? false,
+          reasons: Array.isArray(c.reasons) ? c.reasons : [],
+          metrics: c.metrics,
+        });
+      }
     },
     [runId, iter, device, committeeSize, topK, labelReference, pseudoDir, pseudosJson, qeInputTemplate, qeCommand, qeKpts, qeEcutwfc, qeEcutrho]
   );
@@ -435,6 +465,7 @@ export default function MaceFreezePage() {
     setError(null);
     setProgressLog([]);
     setMetrics([]);
+    setConvergence(null); // Reset convergence for new iteration
     const nextIter = iter + 1;
     setStepStatus({ train: "running", disagreement: "pending", select: "pending", label: "pending", append: "pending" });
 
@@ -1044,6 +1075,76 @@ export default function MaceFreezePage() {
             <p className="font-mono text-xs text-zinc-400">
               Steps 5–7: disagreement → select top-K → label ({labelReference === "qe" ? "Quantum ESPRESSO" : "MACE-MP-0"}) → append
             </p>
+
+            {/* When to stop guide — always visible for active learning */}
+            <div className="rounded border border-zinc-700/60 bg-zinc-900/40 p-3">
+              <h4 className="mb-2 font-mono text-xs font-bold uppercase tracking-wider text-cyan-400">
+                When to stop active learning
+              </h4>
+              <ul className="space-y-1 font-mono text-[11px] text-zinc-400">
+                <li>• MAE force &lt; 50 meV/Å and disagreement is low → model is accurate</li>
+                <li>• Committee disagreement (max) &lt; 10 meV/Å → models agree on pool</li>
+                <li>• Pool exhausted (no high-uncertainty structures left) → little to gain</li>
+                <li>• Stop manually when the model looks good for your use case</li>
+              </ul>
+            </div>
+
+            {/* Validation MAE summary — from training metrics or convergence */}
+            {(metrics.length > 0 || convergence?.metrics) && (
+              <div className="rounded border border-zinc-700/60 bg-black/40 p-3">
+                <h4 className="mb-2 font-mono text-xs font-bold uppercase tracking-wider text-violet-400">
+                  Validation metrics (iteration {iter})
+                </h4>
+                <div className="flex flex-wrap gap-4 font-mono text-xs">
+                  {convergence?.metrics?.validation_mae_energy != null && (
+                    <span className="text-zinc-300">
+                      MAE Energy: <strong className="text-cyan-400">{convergence.metrics.validation_mae_energy.toFixed(1)}</strong> meV/atom
+                    </span>
+                  )}
+                  {convergence?.metrics?.validation_mae_force != null && (
+                    <span className="text-zinc-300">
+                      MAE Force: <strong className="text-violet-400">{convergence.metrics.validation_mae_force.toFixed(1)}</strong> meV/Å
+                    </span>
+                  )}
+                  {!convergence?.metrics?.validation_mae_energy && metrics.length > 0 && (
+                    <>
+                      <span className="text-zinc-300">
+                        Last MAE Energy: <strong className="text-cyan-400">{metrics[metrics.length - 1]?.mae_energy?.toFixed(1) ?? "—"}</strong> meV/atom
+                      </span>
+                      <span className="text-zinc-300">
+                        Last MAE Force: <strong className="text-violet-400">{metrics[metrics.length - 1]?.mae_force?.toFixed(1) ?? "—"}</strong> meV/Å
+                      </span>
+                    </>
+                  )}
+                  {convergence?.metrics?.disagreement_max != null && (
+                    <span className="text-zinc-300">
+                      Disagreement max: <strong className="text-amber-400">{convergence.metrics.disagreement_max.toFixed(2)}</strong> meV/Å
+                    </span>
+                  )}
+                  {convergence?.metrics?.pool_size != null && (
+                    <span className="text-zinc-500">Pool: {convergence.metrics.pool_size} structures</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Convergence hint — suggest stop when criteria met */}
+            {convergence?.suggest_stop && (
+              <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-3">
+                <p className="font-mono text-sm font-bold text-emerald-300">
+                  Convergence criteria met — consider stopping
+                </p>
+                <ul className="mt-2 space-y-1 font-mono text-xs text-emerald-200/90">
+                  {convergence.reasons.map((r, i) => (
+                    <li key={i}>• {r}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 font-mono text-[11px] text-zinc-400">
+                  Click &quot;Stop active learning here&quot; below if the model looks good.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               {ACTIVE_LEARNING_STEPS.map((step) => (
                 <div key={step} className="flex items-center justify-between rounded border border-zinc-800 bg-black/40 p-3">

@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import argparse
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -23,6 +25,30 @@ COMMON_QE_EXECUTABLES = (
     "/opt/homebrew/bin/pw",
     "/usr/local/bin/pw",
 )
+
+COMMON_QE_PSEUDO_DIRS = (
+    "/usr/share/espresso/pseudo",
+    "/usr/local/share/espresso/pseudo",
+    "/opt/homebrew/share/qe/pseudo",
+    "/opt/homebrew/share/espresso/pseudo",
+    "/opt/local/share/qe/pseudo",
+    "/opt/local/share/espresso/pseudo",
+    "/opt/conda/share/qe/pseudo",
+    "/opt/conda/share/espresso/pseudo",
+)
+
+
+def _unique_paths(paths: list[Path]) -> list[Path]:
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for item in paths:
+        expanded = item.expanduser()
+        key = str(expanded)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(expanded)
+    return unique
 
 
 def _resolve_executable_path(token: str) -> str | None:
@@ -52,7 +78,7 @@ def _iter_env_bin_dirs() -> list[Path]:
         raw = os.environ.get(key, "").strip()
         if raw:
             dirs.append(Path(raw).expanduser() / "bin")
-    return dirs
+    return _unique_paths(dirs)
 
 
 def _iter_qe_source_roots() -> list[Path]:
@@ -70,17 +96,11 @@ def _iter_qe_source_roots() -> list[Path]:
         home / "QuantumESPRESSO*",
     ]
     roots: list[Path] = []
-    seen: set[str] = set()
     for pattern in patterns:
         for source_root in sorted(pattern.parent.glob(pattern.name)):
-            if not source_root.is_dir():
-                continue
-            key = str(source_root.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            roots.append(source_root)
-    return roots
+            if source_root.is_dir():
+                roots.append(source_root)
+    return _unique_paths(roots)
 
 
 def _resolve_from_user_locations(tokens: list[str]) -> str | None:
@@ -93,6 +113,119 @@ def _resolve_from_user_locations(tokens: list[str]) -> str | None:
                 if resolved:
                     return resolved
     return None
+
+
+def _has_upf_files(pseudo_dir: Path) -> bool:
+    if not pseudo_dir.is_dir():
+        return False
+    try:
+        for item in pseudo_dir.iterdir():
+            if item.is_file() and item.name.lower().endswith(".upf"):
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _iter_upf_files(pseudo_dir: Path) -> list[Path]:
+    files: list[Path] = []
+    try:
+        for item in pseudo_dir.iterdir():
+            if item.is_file() and item.name.lower().endswith(".upf"):
+                files.append(item)
+    except Exception:
+        return []
+    return sorted(files, key=lambda p: p.name.lower())
+
+
+def _pseudo_filename_score(symbol: str, filename: str) -> int:
+    sym = symbol.lower()
+    stem = Path(filename).stem.lower()
+    if re.match(rf"^{re.escape(sym)}($|[._\-0-9])", stem):
+        return 4
+    if re.search(rf"(^|[._\-]){re.escape(sym)}($|[._\-])", stem):
+        return 3
+    if stem.startswith(sym):
+        return 2
+    return 0
+
+
+def _pseudo_declares_symbol(path: Path, symbol: str) -> bool:
+    try:
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            head = handle.read(8192)
+    except Exception:
+        return False
+    match = re.search(r'element\s*=\s*["\']?\s*([A-Za-z]{1,2})', head, flags=re.IGNORECASE)
+    return bool(match and match.group(1).capitalize() == symbol.capitalize())
+
+
+def find_pseudo_for_symbol(symbol: str, pseudo_dir: Path) -> str | None:
+    files = _iter_upf_files(pseudo_dir)
+    if not files:
+        return None
+    scored: list[tuple[int, str]] = []
+    for item in files:
+        score = _pseudo_filename_score(symbol, item.name)
+        if score > 0:
+            scored.append((score, item.name))
+    if scored:
+        scored.sort(key=lambda t: (-t[0], t[1].lower()))
+        return scored[0][1]
+    declared = [item.name for item in files if _pseudo_declares_symbol(item, symbol)]
+    if declared:
+        return sorted(declared, key=str.lower)[0]
+    return None
+
+
+def _iter_env_pseudo_dirs() -> list[Path]:
+    dirs: list[Path] = []
+    for key in ("ESPRESSO_PSEUDO", "QE_PSEUDO_DIR", "PSEUDO_DIR"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw))
+    for key in ("QE_HOME", "ESPRESSO_HOME"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            dirs.append(Path(raw) / "pseudo")
+    conda_prefix = os.environ.get("CONDA_PREFIX", "").strip()
+    if conda_prefix:
+        dirs.append(Path(conda_prefix) / "share" / "qe" / "pseudo")
+        dirs.append(Path(conda_prefix) / "share" / "espresso" / "pseudo")
+    return _unique_paths(dirs)
+
+
+def _iter_pseudo_dirs_from_qe_exe(qe_executable: str) -> list[Path]:
+    dirs: list[Path] = []
+    exe_path = Path(qe_executable).expanduser()
+    if exe_path.exists():
+        resolved_exe = exe_path.resolve()
+        for parent in list(resolved_exe.parents)[:8]:
+            dirs.append(parent / "pseudo")
+            dirs.append(parent / "share" / "qe" / "pseudo")
+            dirs.append(parent / "share" / "espresso" / "pseudo")
+            dirs.append(parent / "share" / "quantum-espresso" / "pseudo")
+    for source_root in _iter_qe_source_roots():
+        dirs.append(source_root / "pseudo")
+    return _unique_paths(dirs)
+
+
+def resolve_pseudo_dir(qe_executable: str) -> tuple[Path | None, str | None]:
+    candidates: list[Path] = []
+    candidates.extend(_iter_env_pseudo_dirs())
+    candidates.extend(_iter_pseudo_dirs_from_qe_exe(qe_executable))
+    candidates.extend(Path(item) for item in COMMON_QE_PSEUDO_DIRS)
+    unique_candidates = _unique_paths(candidates)
+
+    for candidate in unique_candidates:
+        if _has_upf_files(candidate):
+            return candidate.resolve(), None
+
+    existing_dirs = [path for path in unique_candidates if path.is_dir()]
+    if existing_dirs:
+        sample = ", ".join(str(path) for path in existing_dirs[:3])
+        return None, f"Pseudo directories found but no .UPF files detected (sample: {sample})."
+    return None, "No pseudopotential directory with .UPF files was auto-detected."
 
 
 def resolve_qe_binary() -> tuple[str | None, str, str | None]:
@@ -129,6 +262,16 @@ def resolve_qe_binary() -> tuple[str | None, str, str | None]:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Check Quantum ESPRESSO executable and pseudopotential setup."
+    )
+    ap.add_argument(
+        "--symbols",
+        default="",
+        help="Optional comma/space separated element symbols to validate pseudo mapping (e.g. H,O or Si Ge).",
+    )
+    args = ap.parse_args()
+
     resolved, selected_command, error = resolve_qe_binary()
     if error:
         print("pw.x not found")
@@ -147,16 +290,37 @@ def main() -> int:
     print("QE ready")
     print(f"- Resolved executable: {resolved}")
 
-    pseudo_raw = os.environ.get("ESPRESSO_PSEUDO", "").strip()
-    if not pseudo_raw:
-        print("- ESPRESSO_PSEUDO not set (required for QE labeling unless pseudo_dir is passed).")
+    pseudo_dir, pseudo_warning = resolve_pseudo_dir(resolved)
+    if pseudo_dir:
+        print(f"- Pseudopotentials: {pseudo_dir}")
+        if not args.symbols.strip():
+            print("- Note: pseudo directory presence was checked, but element coverage was not.")
+            print("- Use --symbols \"...\" to validate required elements.")
+    else:
+        print("- Pseudopotentials: not auto-detected")
+        if pseudo_warning:
+            print(f"- {pseudo_warning}")
+        print("- Set ESPRESSO_PSEUDO / QE_PSEUDO_DIR, or provide pseudo_dir in the UI.")
         return 0
 
-    pseudo_dir = Path(pseudo_raw).expanduser()
-    if pseudo_dir.exists():
-        print(f"- ESPRESSO_PSEUDO: {pseudo_dir.resolve()}")
-    else:
-        print(f"- ESPRESSO_PSEUDO is set but path does not exist: {pseudo_dir}")
+    raw_symbols = args.symbols.replace(",", " ").split()
+    symbols = sorted({sym.strip().capitalize() for sym in raw_symbols if sym.strip()})
+    if symbols:
+        missing: list[str] = []
+        print(f"- Validating pseudo mapping for symbols: {', '.join(symbols)}")
+        for sym in symbols:
+            pseudo = find_pseudo_for_symbol(sym, pseudo_dir)
+            if pseudo:
+                print(f"  - {sym}: {pseudo}")
+            else:
+                missing.append(sym)
+        if missing:
+            print(
+                "- Missing UPF files for symbols: "
+                + ", ".join(missing)
+                + ". Provide matching .UPF files or use pseudos_json explicit mapping."
+            )
+            return 1
     return 0
 
 

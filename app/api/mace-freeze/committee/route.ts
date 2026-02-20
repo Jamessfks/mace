@@ -64,10 +64,19 @@ export async function POST(request: NextRequest) {
         const proc = child;
         let buffer = "";
         let streamClosed = false;
+        let lastPythonError: string | null = null;
         const send = (line: string) => {
           if (streamClosed || !line.trim()) return;
           try {
             controller.enqueue(`data: ${line}\n\n`);
+            try {
+              const parsed = JSON.parse(line) as { event?: string; message?: string };
+              if (parsed?.event === "error" && typeof parsed.message === "string") {
+                lastPythonError = parsed.message;
+              }
+            } catch {
+              /* not JSON */
+            }
           } catch {
             streamClosed = true;
           }
@@ -92,7 +101,10 @@ export async function POST(request: NextRequest) {
         proc.on("close", (code: number | null) => {
           if (buffer.trim()) send(buffer.trim());
           if (code && code !== 0) {
-            send(JSON.stringify({ event: "error", message: `Committee process exited with code ${code}` }));
+            const msg = lastPythonError
+              ? `${lastPythonError} (exit code ${code})`
+              : `Committee process exited with code ${code}. Check the log above for details.`;
+            send(JSON.stringify({ event: "error", message: msg }));
           }
           closeStream();
         });

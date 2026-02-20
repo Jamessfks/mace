@@ -469,4 +469,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as e:
+        emit({"event": "error", "message": f"Training failed: {e}"})
+        import traceback
+
+        emit({"event": "log", "message": traceback.format_exc()})
+        sys.exit(1)

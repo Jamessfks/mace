@@ -118,10 +118,21 @@ export async function POST(request: NextRequest) {
 
         let buffer = "";
         let streamClosed = false;
+        /** Last error message from Python (event: "error") — surfaced when process exits with code 1 */
+        let lastPythonError: string | null = null;
         const sendLine = (line: string) => {
           if (streamClosed || !line.trim()) return;
           try {
             controller.enqueue(`data: ${line}\n\n`);
+            // Capture Python error events for better exit-code-1 messaging
+            try {
+              const parsed = JSON.parse(line) as { event?: string; message?: string };
+              if (parsed?.event === "error" && typeof parsed.message === "string") {
+                lastPythonError = parsed.message;
+              }
+            } catch {
+              // not JSON, ignore
+            }
           } catch {
             streamClosed = true;
           }
@@ -149,7 +160,10 @@ export async function POST(request: NextRequest) {
         child.on("close", (code: number | null) => {
           if (buffer.trim()) sendLine(buffer.trim());
           if (code && code !== 0) {
-            sendLine(JSON.stringify({ event: "error", message: `Training process exited with code ${code}` }));
+            const msg = lastPythonError
+              ? `${lastPythonError} (exit code ${code})`
+              : `Training process exited with code ${code}. Check the log above for details.`;
+            sendLine(JSON.stringify({ event: "error", message: msg }));
           }
           closeStream();
         });
