@@ -90,11 +90,11 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 |---------|-------------|
 | **Page** | [MACE Freeze Training](/mace-freeze) — single-page flow: data → options → **Start training** → live graphs → download |
 | **Data** | **Option A:** use bundled Liquid Water dataset. **Option B:** upload your own `.xyz` or `.extxyz` (drag-and-drop, structure summary and size warnings). |
-| **Options** | Run name, seed, device (CPU / CUDA), preset (**Quick demo** 15 epochs or **Full** 800 epochs). All via form controls — no CLI. |
+| **Options** | Run name, seed, device (CPU / CUDA), preset (**Quick demo** 5 epochs or **Full** 800 epochs), active-learning settings, and optional freeze fine-tuning (freeze/unfreeze patterns + base checkpoint source). |
 | **Live graphs** | **Training loss** vs epoch (area chart); **Validation MAE** — energy (meV/atom) and force (meV/Å) vs epoch. Dark, high-tech theme; data streams in as training runs. |
 | **When done** | **Download checkpoint** (best.pt) and **Open MACE Calculator** to use your model for other calculations. |
 | **Scope** | **Local only:** training runs on your machine when the app is run locally (`npm run dev`). Not deployed to Vercel/Railway for training. |
-| **Backend** | POST `/api/mace-freeze/train` streams progress (SSE); GET `/api/mace-freeze/checkpoint` serves the trained `.pt` file. Python wrapper `run_training_web.py` runs split → `mace_train.py`, parses MACE log lines, and emits JSON progress. |
+| **Backend** | POST `/api/mace-freeze/train` streams progress (SSE), POST `/api/mace-freeze/committee` continues iterations, POST `/api/mace-freeze/freeze` prepares freeze-init checkpoints, POST `/api/mace-freeze/label` supports MACE-MP-0 or Quantum ESPRESSO. GET `/api/mace-freeze/checkpoint` serves `.pt` files. |
 | **Advanced** | See [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md) for the full CLI workflow (freeze, committee disagreement, active learning, DFT labeling). |
 
 ---
@@ -207,9 +207,9 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 **MACE Freeze (local)**
 1. Go to `/mace-freeze`
 2. Choose data (bundled water or upload)
-3. Set run name, seed, device, preset
-4. Click **Start training**
-5. Watch graphs, then download checkpoint
+3. Set run options (and optional freeze fine-tune)
+4. Click **Start iteration 0**
+5. Run active-learning steps (disagreement → select → label → append), then download checkpoint
 
 </td>
 </tr>
@@ -255,8 +255,9 @@ Results + 3D viewer    Results + EOS chart       │              ▼
 | **Surface** | `/api/generate-surface` → `generate_surface.py` → ASE `surface()` builder |
 | **Share** | Results → opt-in "Share" button → `/api/community/share` → Supabase INSERT |
 | **Browse** | `/community` page → `/api/community/list` → Supabase SELECT with filters + sort |
-| **MACE Freeze train** | Data (bundled or upload) + params → POST `/api/mace-freeze/train` → spawn `run_training_web.py` → split_dataset → mace_train → stdout parsed for epoch/loss/MAE → SSE to browser → live charts; on done, run_id + run_name returned |
-| **MACE Freeze download** | GET `/api/mace-freeze/checkpoint?runId=&runName=` → stream `mace-api/MACE_Freeze/runs_web/{runId}/{runName}/checkpoints/best.pt` |
+| **MACE Freeze train** | Data + options (including optional freeze fine-tune) → POST `/api/mace-freeze/train` → `run_training_web.py` (split, optional `mace_freeze.py`, train/committee) → SSE logs/metrics → live charts |
+| **MACE Freeze active learning** | POST `/api/mace-freeze/disagreement` → `/active-learning` → `/label` (MACE-MP-0 or QE) → `/append` → optional `/committee` for next iteration |
+| **MACE Freeze download** | GET `/api/mace-freeze/checkpoint?runId=&runName=&iter=` → stream `mace-api/MACE_Freeze/runs_web/{runId}/.../checkpoints/best.pt` |
 
 ---
 
@@ -359,7 +360,13 @@ mace/
         share/route.ts              # POST — share calculation to community DB
         list/route.ts               # GET — query community calculations (filterable)
       mace-freeze/
-        train/route.ts              # POST — run training, stream progress as SSE (local only)
+        train/route.ts              # POST — initial split + train/committee, stream progress as SSE
+        committee/route.ts          # POST — train committee for next iteration
+        disagreement/route.ts       # POST — committee disagreement scoring on pool.xyz
+        active-learning/route.ts    # POST — select top-K uncertain structures
+        label/route.ts              # POST — label selected structures (MACE-MP-0 or QE)
+        append/route.ts             # POST — append labeled data into train.xyz
+        freeze/route.ts             # POST — run mace_freeze.py to create freeze_init.pt
         checkpoint/route.ts         # GET — stream best.pt for a run (download)
     calculate/page.tsx              # General calculator page
     semiconductor/page.tsx          # Semiconductor discovery page
@@ -412,16 +419,19 @@ mace/
     requirements.txt
     MACE_Freeze/
       run_training_web.py           # Web training entry: split → mace_train, parse log → JSON stdout
+      run_committee_web.py          # Committee training entry for subsequent iterations
       split_dataset.py              # Train/valid split
+      split_dataset_pool.py         # Train/valid/pool split for active learning
       mace_train.py                 # Reproducible training wrapper (calls mace_run_train)
       mace_freeze.py                # Freeze-init checkpoint for fine-tuning
       model_disagreement.py         # Committee disagreement scores
       mace_active_learning.py       # Top-K uncertain structure selection
+      label_with_reference.py       # Labeling (MACE-MP-0 / EMT / Quantum ESPRESSO)
       inference_test.py             # Quick inference test
       data/
         Liquid_Water.xyz            # Bundled water dataset
       data_uploads/                 # Uploaded datasets (per runId) when using Option B
-      runs_web/                     # Training run dirs: runs_web/{runId}/{runName}/checkpoints/
+      runs_web/                     # Training run dirs: runs_web/{runId}/data, freeze, iter_00, iter_01...
       README.md                     # Full CLI workflow (freeze, committee, active learning)
   types/
     mace.ts                         # Calculator type definitions
@@ -449,6 +459,7 @@ mace/
 | Community DB not configured | Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` (local) or Vercel env vars (production). Run `supabase-schema.sql` in Supabase SQL editor. |
 | Share button returns error | Verify the `calculations` table exists in Supabase and RLS policies are enabled |
 | MACE Freeze training fails / no progress | Run locally (`npm run dev`). Ensure `mace-torch`, `ase`, `torch`, `numpy` are installed. Training runs in `mace-api/MACE_Freeze/`; check that `data/Liquid_Water.xyz` exists for Option A. |
+| QE labeling fails (`pw.x` not found / pseudo error) | Install Quantum ESPRESSO, ensure `pw.x` is on `PATH`, and set `ESPRESSO_PSEUDO` or provide `pseudo_dir` in the MACE Freeze label options. |
 | MACE Freeze download 404 | Training may still be running or have failed. Check `mace-api/MACE_Freeze/runs_web/{runId}/` for the run directory and `checkpoints/best.pt`. |
 
 ---

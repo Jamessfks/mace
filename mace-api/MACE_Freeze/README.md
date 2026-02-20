@@ -20,6 +20,9 @@ This repo provides a reproducible workflow to:
 - `split_dataset.py`  
   Split one dataset into `train.xyz` and `valid.xyz`.
 
+- `split_dataset_pool.py`  
+  Split into `train.xyz`, `valid.xyz`, and `pool.xyz` for active learning.
+
 - `mace_train.py`  
   Reproducible training wrapper. Writes `manifest.json` and calls `mace_run_train` internally.
 
@@ -35,6 +38,12 @@ This repo provides a reproducible workflow to:
 - `mace_active_learning.py`  
   Uses committee disagreement to pick top-K structures to label next.
 
+- `label_with_reference.py`  
+  Label structures with a reference calculator (MACE-MP-0 / EMT / Quantum ESPRESSO via ASE).
+
+- `run_training_web.py` / `run_committee_web.py`  
+  Web UI entry points for training and committee training.
+
 ---
 
 ## Step 0: Install dependencies
@@ -42,6 +51,8 @@ This repo provides a reproducible workflow to:
 ```bash
 pip install mace-torch ase torch numpy
 ```
+If you want real DFT labeling with Quantum ESPRESSO, also install QE (`pw.x`) and prepare UPF pseudopotentials.
+
 ## Step 1: Split dataset (if not split already)
 ```bash
 python split_dataset.py
@@ -107,7 +118,7 @@ python -u mace_train.py
   --r_max 5.0 
   --batch_size 8 
   --valid_batch_size 8 
-  --max_num_epochs 15 
+  --max_num_epochs 5 
   --forces_weight 100 
   --energy_weight 1 
   --default_dtype float32 
@@ -226,6 +237,83 @@ move /Y data\train_next.xyz data\train.xyz
 ## Step 8. Repeat!
 
 train (or fine-tune) → committee → disagreement → select → label → append
+
+---
+
+## Web Interface (MACE Freeze Training Page)
+
+The MACE web app provides a no-code UI that implements the full workflow above.
+
+### Access
+
+Navigate to **MACE Freeze** from the home page (or `/mace-freeze`).
+
+### Workflow
+
+1. **Data** — Choose Option A (bundled Liquid Water) or Option B (upload your own .xyz / .extxyz).
+2. **Options** — Set run name, seed, device, preset (Quick demo = 5 epochs, Full = 800 epochs).
+3. **Fine-tune (freeze)** *(optional)* — Enable freeze workflow to:
+   - train a base model first or use an existing base checkpoint path,
+   - run `mace_freeze.py` with configurable freeze/unfreeze patterns,
+   - train/fine-tune with `--model freeze_init.pt`.
+4. **Active learning** — Enable to use committee + pool split + labeling loop.
+5. **Start iteration 0** — Splits data (train 70%, valid 10%, pool 20% when active learning is on), trains committee models (c0, c1, …) in `runs_web/{runId}/iter_00/`.
+6. **Steps 5–8** (when active learning is on):
+   - **Disagreement** — Run `model_disagreement.py` on `pool.xyz` with committee checkpoints.
+   - **Select top-K** — Run `mace_active_learning.py` to pick the most uncertain structures → `to_label.xyz`.
+   - **Label** — Run `label_with_reference.py` using either:
+     - MACE-MP-0 (demo surrogate), or
+     - Quantum ESPRESSO (`--reference qe`) for real DFT.
+   - **Append** — Append `labeled_new.xyz` to `train.xyz`.
+7. **Next iteration** — Train committee again on expanded data (calls `run_committee_web.py`), then repeat steps 5–8.
+
+### Directory layout (web runs)
+
+```
+runs_web/{runId}/
+  data/
+    train.xyz
+    valid.xyz
+    pool.xyz
+  freeze/
+    freeze_init.pt
+    freeze_plan.json
+  iter_00/
+    c0/checkpoints/best.pt
+    c1/checkpoints/best.pt
+    ...
+    to_label.xyz
+    labeled_new.xyz
+    pool_disagreement.json
+  iter_01/
+    ...
+```
+
+### CLI ↔ Web mapping
+
+| CLI step | Web action |
+|----------|------------|
+| `split_dataset_pool.py` | Automatic when "Start iteration 0" with active learning |
+| `mace_freeze.py` | Fine-tune mode in Options (or POST `/api/mace-freeze/freeze`) |
+| `mace_train.py` (committee) | "Start iteration 0" or "Next iteration" |
+| `model_disagreement.py` | Step 5: "Run" on Disagreement |
+| `mace_active_learning.py` | Step 6: "Run" on Select top-K |
+| DFT / reference labeling | Step 7: "Run" on Label (`reference=mace-mp` or `reference=qe`) |
+| Append to train | Step 8: "Run" on Append |
+
+### Note on labeling
+
+The web UI supports both:
+- **MACE-MP-0** for fast demo/surrogate labeling
+- **Quantum ESPRESSO (DFT)** for real ab initio labeling (`reference=qe`)
+
+For QE mode, configure:
+- `pw.x` available on `PATH` (or pass custom `qe_command`)
+- pseudopotential directory (`--pseudo_dir` or `ESPRESSO_PSEUDO`)
+- optional pseudopotential mapping JSON (`--pseudos_json`)
+- optional input template JSON (`--input_template`) for custom QE control/system/electrons settings
+
+---
 
 # To-Dos
 1. Add delta-force/energy implementation

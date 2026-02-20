@@ -14,7 +14,8 @@ const MACE_FREEZE_DIR = join(process.cwd(), "mace-api", "MACE_Freeze");
 
 export async function GET(request: NextRequest) {
   const runId = request.nextUrl.searchParams.get("runId");
-  const runName = request.nextUrl.searchParams.get("runName") ?? "web_train";
+  const runName = request.nextUrl.searchParams.get("runName") ?? "c0";
+  const iterParam = request.nextUrl.searchParams.get("iter");
 
   if (!runId || /[^a-zA-Z0-9-]/.test(runId)) {
     return NextResponse.json({ error: "Invalid runId" }, { status: 400 });
@@ -23,14 +24,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid runName" }, { status: 400 });
   }
 
-  const checkpointPath = join(
-    MACE_FREEZE_DIR,
-    "runs_web",
-    runId,
-    runName,
-    "checkpoints",
-    "best.pt"
-  );
+  const base = join(MACE_FREEZE_DIR, "runs_web", runId);
+  const checkpointPath =
+    iterParam != null
+      ? join(base, `iter_${String(iterParam).padStart(2, "0")}`, runName, "checkpoints", "best.pt")
+      : join(base, runName, "checkpoints", "best.pt");
 
   if (!existsSync(checkpointPath)) {
     return NextResponse.json(

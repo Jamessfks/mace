@@ -21,6 +21,24 @@ interface TrainParams {
   seed: number;
   device: string;
   quickDemo: boolean;
+  /** Enable pool split for active learning (train/valid/pool) */
+  splitWithPool?: boolean;
+  poolFraction?: number;
+  /** Train committee (multiple models) for active learning */
+  committee?: boolean;
+  committeeSize?: number;
+  iter?: number;
+  /** Fine-tune from a freeze-init checkpoint workflow */
+  fineTune?: boolean;
+  /** Train a base model first (then run mace_freeze.py) */
+  trainBaseFirst?: boolean;
+  /** Optional existing base checkpoint path */
+  baseCheckpointPath?: string;
+  /** Optional existing freeze-init checkpoint path */
+  freezeInitPath?: string;
+  /** Freeze/unfreeze patterns for mace_freeze.py */
+  freezePatterns?: string[];
+  unfreezePatterns?: string[];
 }
 
 export async function POST(request: NextRequest) {
@@ -42,7 +60,7 @@ export async function POST(request: NextRequest) {
     const params: TrainParams = JSON.parse(paramsStr);
     runId = randomUUID();
 
-    const env: Record<string, string> = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       RUN_ID: runId,
       USE_BUNDLED: params.useBundled ? "1" : "0",
@@ -50,6 +68,18 @@ export async function POST(request: NextRequest) {
       SEED: String(params.seed ?? 1),
       DEVICE: params.device || "cpu",
       QUICK_DEMO: params.quickDemo !== false ? "1" : "0",
+      SPLIT_WITH_POOL: params.splitWithPool || params.committee ? "1" : "0",
+      POOL_FRACTION: String(params.poolFraction ?? 0.2),
+      COMMITTEE: params.committee ? "1" : "0",
+      COMMITTEE_SIZE: String(params.committeeSize ?? 2),
+      ITER: String(params.iter ?? 0),
+      FINE_TUNE: params.fineTune ? "1" : "0",
+      TRAIN_BASE_FIRST: params.trainBaseFirst !== false ? "1" : "0",
+      BASE_CHECKPOINT_PATH: params.baseCheckpointPath ?? "",
+      FREEZE_INIT_PATH: params.freezeInitPath ?? "",
+      FREEZE_PATTERNS_JSON: JSON.stringify(params.freezePatterns ?? ["embedding", "radial"]),
+      UNFREEZE_PATTERNS_JSON: JSON.stringify(params.unfreezePatterns ?? ["readout"]),
+      PYTHONUNBUFFERED: "1",
     };
 
     if (!params.useBundled && file && file.size > 0) {
@@ -75,7 +105,7 @@ export async function POST(request: NextRequest) {
           [scriptPath],
           {
             cwd: MACE_FREEZE_DIR,
-            env: { ...env, PYTHONUNBUFFERED: "1" },
+            env,
           }
         );
 
@@ -93,7 +123,7 @@ export async function POST(request: NextRequest) {
           lines.forEach(sendLine);
         });
 
-        child.on("close", (code) => {
+        child.on("close", (_code: number | null) => {
           if (buffer.trim()) sendLine(buffer.trim());
           controller.close();
         });
