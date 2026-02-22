@@ -19,6 +19,7 @@
 import { useState, useCallback } from "react";
 import { Share2, CheckCircle2, AlertCircle, Loader2, Users } from "lucide-react";
 import type { CalculationResult } from "@/types/mace";
+import { computeRmsForce } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -52,13 +53,7 @@ export function ShareToCommunity({ result, filename }: ShareToCommunityProps) {
       ? result.energy / atomCount
       : null;
 
-  const flatForces = result.forces?.flat() ?? [];
-  const rmsForce =
-    flatForces.length > 0
-      ? Math.sqrt(
-          flatForces.reduce((s, f) => s + f * f, 0) / flatForces.length
-        )
-      : null;
+  const rmsForce = computeRmsForce(result.forces);
 
   let maxForce: number | null = null;
   if (result.forces && result.forces.length > 0) {

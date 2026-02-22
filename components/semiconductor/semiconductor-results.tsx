@@ -17,6 +17,7 @@ import {
   REFERENCE_DATA,
   PROPERTY_CONTEXT,
 } from "@/lib/semiconductor-constants";
+import { computeRmsForce } from "@/lib/utils";
 import type { PropertyResult } from "@/types/semiconductor";
 import type { CalculationResult } from "@/types/mace";
 
@@ -57,13 +58,7 @@ export function SemiconductorResults({
       ? (primaryResult.energy / atomCount).toFixed(4)
       : "N/A";
 
-  const rmsForce =
-    primaryResult?.forces && primaryResult.forces.length > 0
-      ? Math.sqrt(
-          primaryResult.forces.flat().reduce((s, f) => s + f * f, 0) /
-            primaryResult.forces.length
-        )
-      : null;
+  const rmsForce = computeRmsForce(primaryResult?.forces);
 
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(results, null, 2)], {

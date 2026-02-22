@@ -14,7 +14,8 @@
  *   zinc     → run configuration / metadata
  */
 
-import { Download, FileText, Zap, ArrowRightLeft, TrendingUp, Activity } from "lucide-react";
+import { Download, Zap, ArrowRightLeft, TrendingUp, Activity } from "lucide-react";
+import { computeRmsForce } from "@/lib/utils";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
 import { TrajectoryViewer } from "./trajectory/trajectory-viewer";
 import { PDFReportButton } from "./pdf-report";
@@ -48,13 +49,7 @@ export function ResultsDisplay({ result, filename }: ResultsDisplayProps) {
       ? (result.energy / atomCount).toFixed(4)
       : "N/A";
 
-  const flatForces = result.forces?.flat() ?? [];
-  const rmsForce =
-    flatForces.length > 0
-      ? Math.sqrt(
-          flatForces.reduce((s, f) => s + f * f, 0) / flatForces.length
-        )
-      : null;
+  const rmsForce = computeRmsForce(result.forces);
 
   let maxForce = 0;
   let maxForceIdx = 0;

@@ -10,6 +10,7 @@
 
 import { MoleculeViewer3D } from "@/components/calculate/molecule-viewer-3d";
 import { Zap, ArrowRightLeft, ArrowLeftRight } from "lucide-react";
+import { computeRmsForce } from "@/lib/utils";
 import type { CalculationResult } from "@/types/mace";
 
 // ---------------------------------------------------------------------------
@@ -139,13 +140,7 @@ function ResultColumn({
       ? (result.energy / atomCount).toFixed(4)
       : "N/A";
 
-  const rmsForce =
-    result.forces && result.forces.length > 0
-      ? Math.sqrt(
-          result.forces.flat().reduce((s, f) => s + f * f, 0) /
-            result.forces.length
-        )
-      : null;
+  const rmsForce = computeRmsForce(result.forces);
 
   return (
     <div className="space-y-3">

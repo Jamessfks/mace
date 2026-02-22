@@ -17,7 +17,7 @@
 
 Built by a team of CS first-year students at **Northeastern University Oakland Campus**
 
-[Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data) · [MACE Freeze](#mace-freeze-local-training)
+[Features](#features) · [Community Database](#community-database) · [Quick Start](#quick-start) · [Screenshots](#screenshots) · [Architecture](#architecture) · [Deploy](#deploy-online) · [Reference Data](#semiconductor-reference-data)
 
 </div>
 
@@ -82,30 +82,6 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 | **Confidence Indicator** | Traffic-light gauge for MACE-MP-0 reliability per element coverage |
 | **Comparison View** | Side-by-side bulk vs vacancy with dual 3D viewers |
 
-### MACE Freeze (local training, Beta Stage)
-
-**We are working our best to make it works, right now it's still buggy.**
-
-**No-code fine-tuning in the browser.** Train or fine-tune MACE without writing a single line of code: choose data, set options, click **Start training**, and watch scientific graphs update live. When training finishes, download your checkpoint and use it in the Calculator or locally. 
-
-| Feature | Description |
-|---------|-------------|
-| **Page** | [MACE Freeze Training](/mace-freeze) — single-page flow: data → options → **Start training** → live graphs → download |
-| **Data** | **Option A:** use bundled Liquid Water dataset. **Option B:** upload your own `.xyz` or `.extxyz` (drag-and-drop, structure summary and size warnings). |
-| **Options** | Run name, seed, device (CPU / CUDA), preset (**Quick demo** 5 epochs or **Full** 800 epochs), active-learning settings, and optional freeze fine-tuning (presets + custom patterns + preview + base checkpoint source). |
-| **Live graphs** | **Training loss** vs epoch (area chart); **Validation MAE** — energy (meV/atom) and force (meV/Å) vs epoch. Dark, high-tech theme; data streams in as training runs. |
-| **When done** | **Download checkpoint** (resolved as `best.pt` or latest `*_epoch-*.pt`) and **Open MACE Calculator** to use your model for other calculations. |
-| **Loop control** | Active learning suggests stopping when convergence criteria are met (low disagreement, good validation MAE, or pool exhausted). After append, either continue with **Next iteration** or click **Stop active learning here (model looks good)** to end manually. |
-| **Scope** | **Local only:** training runs on your machine when the app is run locally (`npm run dev`). Not deployed to Vercel/Railway for training. |
-| **Backend** | POST `/api/mace-freeze/train` streams progress (SSE), POST `/api/mace-freeze/committee` continues iterations, POST `/api/mace-freeze/freeze` + `/freeze-preview` manage freeze-init planning, POST `/api/mace-freeze/label` supports MACE-MP-0 or Quantum ESPRESSO, GET `/api/mace-freeze/checkpoint` serves resolved `.pt` files. |
-| **Advanced** | See [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md) for the full CLI workflow (freeze, committee disagreement, active learning, DFT labeling). |
-
-Recent reliability updates:
-- Fine-tune + committee no longer fails at `c0` due to invalid `--model <checkpoint>` usage; training now seeds per-model checkpoints and resumes with `--restart_latest`.
-- Checkpoint lookup is robust across MACE versions (`best.pt` or latest `*_epoch-*.pt`).
-- SSE training streams are hardened against disconnects (`Controller is already closed` no longer crashes route handlers).
-- Freeze preview validates pattern matches and shows available module patterns before training.
-
 ---
 
 ## Community Database
@@ -165,7 +141,6 @@ Schema follows conventions from [Materials Project](https://materialsproject.org
 |------|---------|---------|
 | Node.js | v18+ | [nodejs.org](https://nodejs.org) |
 | Python | 3.10+ | [python.org](https://www.python.org/downloads) |
-| Quantum ESPRESSO (optional) | 7.x (`pw.x`) | For MACE Freeze DFT labeling only. See [MACE Freeze README](mace-api/MACE_Freeze/README.md) or [Optional: Installing Quantum ESPRESSO](#optional-installing-quantum-espresso-dft-labeling). |
 
 ### Setup
 
@@ -187,34 +162,6 @@ npm run dev
 Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud, no sign-ups.
 
 > **Note:** First calculation may take ~30s while the MACE model downloads. Subsequent runs are fast.
-
-### Optional: Installing Quantum ESPRESSO (DFT labeling)
-
-This is only required for MACE Freeze Step 7 when labeling with `reference=qe`.
-
-1. Download Quantum ESPRESSO source from the official site: [quantum-espresso.org](https://www.quantum-espresso.org/).
-2. Build the plane-wave executable:
-
-```bash
-cd ~/Downloads/qe-7.5
-./configure
-make pw
-```
-
-3. Point MACE Freeze to `pw.x` (typically `qe-7.x/bin/pw.x`) by one of:
-   - adding the QE `bin/` directory to your `PATH`
-   - setting QE command in the app UI (absolute `pw.x` path, or QE root dir such as `~/Downloads/qe-7.5`)
-   - setting `QE_COMMAND=/absolute/path/to/pw.x`
-4. Configure pseudopotentials by setting `ESPRESSO_PSEUDO` / `QE_PSEUDO_DIR` or passing `pseudo_dir` (if omitted, backend will try auto-detect from common QE/source locations).
-5. Before DFT labeling, run:
-
-```bash
-python3 mace-api/MACE_Freeze/scripts/check_qe.py
-# Optional: validate pseudo coverage for expected elements
-python3 mace-api/MACE_Freeze/scripts/check_qe.py --symbols "H O"
-```
-
-For full CLI details, see [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/README.md).
 
 ### Try It
 
@@ -240,16 +187,6 @@ For full CLI details, see [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/
 5. Compare results to reference data
 
 </td>
-<td width="33%">
-
-**MACE Freeze (local)**
-1. Go to `/mace-freeze`
-2. Choose data (bundled water or upload)
-3. Set run options (and optional freeze fine-tune)
-4. Click **Start iteration 0**
-5. Run active-learning steps (disagreement → select → label → append), then either stop manually if the model looks good or continue with next iteration
-
-</td>
 </tr>
 </table>
 
@@ -260,28 +197,28 @@ For full CLI details, see [mace-api/MACE_Freeze/README.md](mace-api/MACE_Freeze/
 ```
 Browser (localhost:3000)
     │
-    ├── /calculate ─── /semiconductor ─── /community ─── /mace-freeze
-    │        │                │                │              │
-    │   Upload + params  Library + workflows  Browse shared   Data + options
-    │        │                │                │              │ Start training
-    ▼        │                │                │              ▼
-Next.js API routes             │                │        POST /api/mace-freeze/train
-    │                          │                │        (SSE stream)
-    ├── /api/calculate   Multiple /api/calculate │              │
-    │        │           (EOS, vacancy)          │              │ spawn
-    │   Python subprocess       │                │              ▼
-    │        ▼           /api/generate-surface   │        run_training_web.py
-    │   calculate_local.py      │                │        split_dataset → mace_train
-    │        │           generate_surface.py     │        parse log → JSON events
-    ▼        ▼                  ▼                │              │
-Results + 3D viewer    Results + EOS chart       │              ▼
-  MD animation         + reference table         │        Live graphs in browser
-  PDF report                                     │        (loss, MAE E, MAE F)
-    │                                             │              │
-    └──── "Share to Community" ──────────────────►│              │ done
-              │                                   │              ▼
-              ▼                                   ▼        GET /api/mace-freeze/checkpoint
-         /api/community/share ──► Supabase ◄── /api/community/list   (download best.pt)
+    ├── /calculate ─── /semiconductor ─── /community
+    │        │                │                │
+    │   Upload + params  Library + workflows  Browse shared
+    │        │                │                │
+    ▼        │                │                │
+Next.js API routes             │                │
+    │                          │                │
+    ├── /api/calculate   Multiple /api/calculate │
+    │        │           (EOS, vacancy)          │
+    │   Python subprocess       │                │
+    │        ▼           /api/generate-surface   │
+    │   calculate_local.py      │                │
+    │        │           generate_surface.py     │
+    ▼        ▼                  ▼                │
+Results + 3D viewer    Results + EOS chart       │
+  MD animation         + reference table         │
+  PDF report                                     │
+    │                                             │
+    └──── "Share to Community" ──────────────────►│
+              │                                   │
+              ▼                                   ▼
+         /api/community/share ──► Supabase ◄── /api/community/list
                                 (PostgreSQL)
 ```
 
@@ -293,9 +230,6 @@ Results + 3D viewer    Results + EOS chart       │              ▼
 | **Surface** | `/api/generate-surface` → `generate_surface.py` → ASE `surface()` builder |
 | **Share** | Results → opt-in "Share" button → `/api/community/share` → Supabase INSERT |
 | **Browse** | `/community` page → `/api/community/list` → Supabase SELECT with filters + sort |
-| **MACE Freeze train** | Data + options (including optional freeze fine-tune) → POST `/api/mace-freeze/train` → `run_training_web.py` (split, optional `mace_freeze.py`, per-model fine-tune checkpoint seeding, train/committee) → SSE logs/metrics → live charts |
-| **MACE Freeze active learning** | POST `/api/mace-freeze/disagreement` → `/active-learning` → `/label` (MACE-MP-0 or QE) → `/append` → optional `/committee` for next iteration |
-| **MACE Freeze download** | GET `/api/mace-freeze/checkpoint?runId=&runName=&iter=` → stream resolved checkpoint in `mace-api/MACE_Freeze/runs_web/{runId}/.../checkpoints/` |
 
 ---
 
@@ -397,20 +331,9 @@ mace/
       community/
         share/route.ts              # POST — share calculation to community DB
         list/route.ts               # GET — query community calculations (filterable)
-      mace-freeze/
-        train/route.ts              # POST — initial split + train/committee, stream progress as SSE
-        committee/route.ts          # POST — train committee for next iteration
-        disagreement/route.ts       # POST — committee disagreement scoring on pool.xyz
-        active-learning/route.ts    # POST — select top-K uncertain structures
-        label/route.ts              # POST — label selected structures (MACE-MP-0 or QE)
-        append/route.ts             # POST — append labeled data into train.xyz
-        freeze/route.ts             # POST — run mace_freeze.py to create freeze_init.pt
-        freeze-preview/route.ts     # POST — preview freeze matches and counts before training
-        checkpoint/route.ts         # GET — stream resolved checkpoint for a run (download)
     calculate/page.tsx              # General calculator page
     semiconductor/page.tsx          # Semiconductor discovery page
     community/page.tsx              # Community database browsing page
-    mace-freeze/page.tsx            # No-code training UI: data, options, Start training, live graphs
     globals.css
     layout.tsx
     page.tsx                        # Landing page
@@ -436,10 +359,6 @@ mace/
       semiconductor-results.tsx     # Results + EOS chart + ref table
       confidence-indicator.tsx      # MACE reliability gauge
       comparison-view.tsx           # Bulk vs vacancy comparison
-    mace-freeze/
-      dataset-upload.tsx            # Option B: .xyz/.extxyz upload + structure summary
-      training-charts.tsx           # Loss + MAE Energy/Force vs epoch (recharts)
-      command-block.tsx             # Copyable CLI block (optional / advanced use)
     ui/                             # shadcn/ui components
     Footer.tsx
     intro-section.tsx
@@ -456,23 +375,6 @@ mace/
     generate_surface.py             # ASE surface generator
     main.py                         # FastAPI server (cloud deploy)
     requirements.txt
-    MACE_Freeze/
-      run_training_web.py           # Web training entry: split → mace_train, parse log → JSON stdout
-      run_committee_web.py          # Committee training entry for subsequent iterations
-      checkpoint_resolver.py        # Resolve best.pt or latest epoch checkpoint
-      split_dataset.py              # Train/valid split
-      split_dataset_pool.py         # Train/valid/pool split for active learning
-      mace_train.py                 # Reproducible training wrapper (calls mace_run_train)
-      mace_freeze.py                # Freeze-init checkpoint for fine-tuning
-      freeze_preview.py             # Freeze preview utility (counts + available patterns)
-      model_disagreement.py         # Committee disagreement scores
-      mace_active_learning.py       # Top-K uncertain structure selection
-      label_with_reference.py       # Labeling (MACE-MP-0 / EMT / Quantum ESPRESSO)
-      data/
-        Liquid_Water.xyz            # Bundled water dataset
-      data_uploads/                 # Uploaded datasets (per runId) when using Option B
-      runs_web/                     # Training run dirs: runs_web/{runId}/data, freeze, iter_00, iter_01...
-      README.md                     # Full CLI workflow (freeze, committee, active learning)
   types/
     mace.ts                         # Calculator type definitions
     semiconductor.ts                # Semiconductor type definitions
@@ -498,13 +400,6 @@ mace/
 | `npm run dev` fails | Run `npm install` first. Requires Node.js 18+ |
 | Community DB not configured | Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` (local) or Vercel env vars (production). Run `supabase-schema.sql` in Supabase SQL editor. |
 | Share button returns error | Verify the `calculations` table exists in Supabase and RLS policies are enabled |
-| MACE Freeze training fails / no progress | Run locally (`npm run dev`). Ensure `mace-torch`, `ase`, `torch`, `numpy` are installed. Training runs in `mace-api/MACE_Freeze/`; check that `data/Liquid_Water.xyz` exists for Option A. |
-| Fine-tune committee fails at `Model c0 failed with code 1` | Update to latest code in this repo. The fine-tune path now seeds per-model checkpoints + `--restart_latest` (instead of invalid `--model <checkpoint>`). |
-| QE labeling fails (`pw.x` not found / pseudo error) | Install Quantum ESPRESSO, build `pw.x`, and run `python3 mace-api/MACE_Freeze/scripts/check_qe.py` (optionally `--symbols "H O"` for element coverage). Then set `ESPRESSO_PSEUDO`, `QE_PSEUDO_DIR`, `pseudo_dir`, or provide `pseudos_json` for explicit element-to-file mapping. See [Optional: Installing Quantum ESPRESSO](#optional-installing-quantum-espresso-dft-labeling). |
-| QE process dies with `SIGKILL` | Usually memory pressure or bad pseudo mapping. Reduce structure size/top-K/cutoffs, and verify pseudo coverage with `python3 mace-api/MACE_Freeze/scripts/check_qe.py --symbols "..."`. |
-| MACE Freeze download 404 | Training may still be running or have failed. Check `mace-api/MACE_Freeze/runs_web/{runId}/` for the run directory and checkpoint files (`best.pt` or `*_epoch-*.pt`). |
-| `Controller is already closed` during train/committee streaming | Update to latest code in this repo; SSE routes now guard stream close/enqueue and handle client disconnects safely. |
-| Training process exited with code 1 | The error panel now shows the actual Python error (e.g. split failed, model failed, base checkpoint not found). To debug manually: `cd mace-api/MACE_Freeze && RUN_ID=debug USE_BUNDLED=1 python3 run_training_web.py` (set env vars to match your run). |
 
 ---
 
