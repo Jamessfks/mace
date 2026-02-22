@@ -106,7 +106,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    return NextResponse.json({ success: true, ...parsed });
+    const obj = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+    return NextResponse.json({ success: true, ...obj });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Freeze preview failed" },

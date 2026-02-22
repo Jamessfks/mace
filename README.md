@@ -82,9 +82,11 @@ Built by a team of CS first-year students at **Northeastern University Oakland C
 | **Confidence Indicator** | Traffic-light gauge for MACE-MP-0 reliability per element coverage |
 | **Comparison View** | Side-by-side bulk vs vacancy with dual 3D viewers |
 
-### MACE Freeze (local training)
+### MACE Freeze (local training, Beta Stage)
 
-**No-code fine-tuning in the browser.** Train or fine-tune MACE without writing a single line of code: choose data, set options, click **Start training**, and watch scientific graphs update live. When training finishes, download your checkpoint and use it in the Calculator or locally.
+**We are working our best to make it works, right now it's still buggy.**
+
+**No-code fine-tuning in the browser.** Train or fine-tune MACE without writing a single line of code: choose data, set options, click **Start training**, and watch scientific graphs update live. When training finishes, download your checkpoint and use it in the Calculator or locally. 
 
 | Feature | Description |
 |---------|-------------|
@@ -112,7 +114,7 @@ Recent reliability updates:
 
 **The one of the first open, community-driven calculation database for machine learning interatomic potentials.**
 
-*No other MLIP — not Meta's UMA, not Microsoft's MatterSim, not Google's GNoME — has a community feedback loop like this.*
+*No other MLIP, not Meta's UMA, not Microsoft's MatterSim, not Google's GNoME, has a community feedback loop like this.*
 
 </div>
 

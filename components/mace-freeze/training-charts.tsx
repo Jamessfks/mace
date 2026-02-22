@@ -88,7 +88,7 @@ export function TrainingCharts({ data, compact }: TrainingChartsProps) {
                 fontSize: "12px",
               }}
               labelFormatter={(v) => `Epoch ${v}`}
-              formatter={(value: number) => [value.toExponential(4), "Loss"]}
+              formatter={(value: number | undefined) => [value != null ? value.toExponential(4) : "—", "Loss"]}
             />
             <Area
               type="monotone"
@@ -130,8 +130,8 @@ export function TrainingCharts({ data, compact }: TrainingChartsProps) {
                 fontSize: "12px",
               }}
               labelFormatter={(v) => `Epoch ${v}`}
-              formatter={(value: number, name: string) => [
-                typeof value === "number" ? value.toFixed(3) : value,
+              formatter={(value: number | undefined, name?: string) => [
+                typeof value === "number" ? value.toFixed(3) : value ?? "—",
                 name === "mae_energy" ? "MAE E (meV/atom)" : "MAE F (meV/Å)",
               ]}
             />
