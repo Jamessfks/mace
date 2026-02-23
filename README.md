@@ -27,18 +27,23 @@ Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
 >
 > *How many talented scientists are we losing because of inaccessible tools? We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
-**Team:** Zicheng Zhao (zhao.zic@northeastern.edu), Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri
 &nbsp;|&nbsp; Built on the [MACE framework](https://github.com/ACEsuit/mace) (NeurIPS 2022)
 
 ---
 
 ## Why This Exists
 
-Running MACE calculations today requires writing Python scripts, managing ASE atoms objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists — but it locks out students learning materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
-
-This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard — energy, forces, 3D visualization, parity plots, error histograms, trajectory animations, PDF reports — in your browser. No terminal, no scripts, no environment setup.
+Running MACE calculations today requires writing Python scripts, managing ASE atom objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists.  But it locks out students who try to learn materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
+This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard in your browser. No terminal, no scripts, no environment setup.
 
 It also solves a problem that even experienced MACE users face: **model comparison**. When you train a custom MACE model, how does it stack up against the foundation model on the same structure? This interface lets you run both side-by-side and see a radar chart comparing Energy MAE, Force MAE, R², RMSE, and Max Force Error — instantly.
+
+## Usage
+1. Quick Live Demo
+2. Educational Platform
+3. Model Comparison
+4. Output Visualization
+5. Pharmacy Drug Discovery
 
 ---
 
