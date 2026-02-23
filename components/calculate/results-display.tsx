@@ -19,7 +19,6 @@ import { computeRmsForce } from "@/lib/utils";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
 import { TrajectoryViewer } from "./trajectory/trajectory-viewer";
 import { PDFReportButton } from "./pdf-report";
-import { ShareToCommunity } from "./share-to-community";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +27,7 @@ import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 interface ResultsDisplayProps {
   result: CalculationResult;
-  /** Original uploaded filename — passed to ShareToCommunity for metadata */
+  /** Original uploaded filename */
   filename?: string;
 }
 
@@ -300,8 +299,6 @@ export function ResultsDisplay({ result, filename }: ResultsDisplayProps) {
         </div>
       )}
 
-      {/* ═══ Share to Community Database ═══ */}
-      <ShareToCommunity result={result} filename={filename} />
     </div>
   );
 }

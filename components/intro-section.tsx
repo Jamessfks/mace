@@ -51,45 +51,18 @@ export function IntroSection() {
           </div>
         </div>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
-          >
-            <Link href="/calculate">
-              <span className="relative z-10">MACE CALCULATOR</span>
-              <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="group relative overflow-hidden border-2 border-blue-500/70 bg-blue-500/5 font-mono text-blue-400 transition-all hover:bg-blue-500/20 hover:border-blue-500"
-          >
-            <Link href="/semiconductor">
-              <span className="relative z-10">SEMICONDUCTOR DISCOVERY</span>
-              <div className="absolute inset-0 -z-0 bg-blue-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="group relative overflow-hidden border-2 border-amber-500/70 bg-amber-500/5 font-mono text-amber-400 transition-all hover:bg-amber-500/20 hover:border-amber-500"
-          >
-            <Link href="/community">
-              <span className="relative z-10">COMMUNITY DATABASE</span>
-              <div className="absolute inset-0 -z-0 bg-amber-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
-            </Link>
-          </Button>
-        </div>
-        <p className="font-mono text-xs text-zinc-600">
-          Explore microchip materials · Browse community-shared calculations
-        </p>
+        {/* CTA Button */}
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
+        >
+          <Link href="/calculate">
+            <span className="relative z-10">MACE CALCULATOR</span>
+            <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
+          </Link>
+        </Button>
 
         {/* Acknowledgment */}
         <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900/60 px-6 py-4 text-center backdrop-blur-sm">

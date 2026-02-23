@@ -178,12 +178,6 @@ export default function CalculatePage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href="/community"
-              className="hidden font-mono text-xs text-zinc-600 transition-colors hover:text-matrix-green sm:inline"
-            >
-              Community DB →
-            </Link>
             <div
               className={`h-2 w-2 rounded-full ${
                 isCalculating
