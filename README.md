@@ -15,7 +15,7 @@
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
 </p>
 
-Contact: zhao.zic@northeasten or zezepy070413@gmail.com
+Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
 
 [Why This Exists](#why-this-exists) · [Core Features](#core-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
