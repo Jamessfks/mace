@@ -15,6 +15,7 @@ import {
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
+import { ModelComparison } from "@/components/calculate/model-comparison";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 
 // ---------------------------------------------------------------------------
@@ -133,6 +134,33 @@ function CalculatePageInner() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [isCalculating]);
+
+  const isCustomModel = params.modelType === "custom";
+
+  const handleRunFoundation = useCallback(async (): Promise<CalculationResult | null> => {
+    if (uploadedFiles.length === 0) return null;
+
+    const foundationParams: CalculationParams = {
+      ...params,
+      modelType: params.modelType === "MACE-OFF" ? "MACE-OFF" : "MACE-MP-0",
+    };
+
+    const formData = new FormData();
+    uploadedFiles.forEach((file) => formData.append("files", file));
+    formData.append("params", JSON.stringify(foundationParams));
+
+    const response = await fetch("/api/calculate", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Foundation model calculation failed");
+    }
+
+    return response.json();
+  }, [uploadedFiles, params]);
 
   const handleCalculate = async () => {
     if (uploadedFiles.length === 0) {
@@ -349,8 +377,16 @@ function CalculatePageInner() {
 
             {/* Results — tabbed scientific dashboard */}
             {result && !isCalculating && (
-              <div className="animate-fade-in-up">
+              <div className="animate-fade-in-up space-y-6">
                 <MetricsDashboard result={result} filename={uploadedFiles[0]?.name} />
+
+                {isCustomModel && (
+                  <ModelComparison
+                    customResult={result}
+                    customModelName={params.customModelName || customModelFile?.name || "Custom Model"}
+                    onRunFoundation={handleRunFoundation}
+                  />
+                )}
               </div>
             )}
           </section>
