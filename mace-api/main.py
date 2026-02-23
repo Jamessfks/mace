@@ -201,13 +201,15 @@ async def calculate(
                 "properties": {
                     "volume": float(atoms.get_volume()) if atoms.pbc.any() else None,
                 },
-                "message": f"MD ({ensemble}) completed for {file.filename} ({md_steps} steps)",
+                # FIX: file.filename can be None → use fallback
+                "message": f"MD ({ensemble}) completed for {file.filename or 'structure'} ({md_steps} steps)",
             }
         else:
             # single-point (default)
             energy = atoms.get_potential_energy()
             forces = atoms.get_forces()
-            msg = f"Calculation completed for {file.filename} using MACE"
+            # FIX: file.filename can be None → use fallback
+            msg = f"Calculation completed for {file.filename or 'structure'} using MACE"
 
         symbols = [a.symbol for a in atoms]
         positions = atoms.get_positions().tolist()

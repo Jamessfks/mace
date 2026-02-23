@@ -160,7 +160,8 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
               {result.forces.slice(0, 50).map((force, i) => (
                 <View key={i} style={styles.tableRow}>
                   <Text style={styles.tableCol1}>{i + 1}</Text>
-                  <Text style={styles.tableCol2}>{result.symbols![i]}</Text>
+                  {/* FIX: symbols may be shorter than forces → guard with fallback */}
+                  <Text style={styles.tableCol2}>{result.symbols![i] ?? "?"}</Text>
                   <Text style={styles.tableCol3}>{force[0].toFixed(4)}</Text>
                   <Text style={styles.tableCol4}>{force[1].toFixed(4)}</Text>
                   <Text style={styles.tableCol5}>{force[2].toFixed(4)}</Text>

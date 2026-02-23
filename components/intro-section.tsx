@@ -35,7 +35,7 @@ const FEATURES = [
     icon: BarChart3,
     title: "Scientific Visualization",
     description:
-      "Parity plots, error distributions, and force correlation graphs with publication-quality exports.",
+      "Parity plots, error histograms, and energy convergence charts with publication-quality exports.",
   },
   {
     icon: GitCompareArrows,
@@ -93,14 +93,6 @@ export function IntroSection() {
           Many-body Atomic Cluster Expansion — equivariant message-passing
           neural networks for fast, accurate interatomic potentials across
           the periodic table.
-        </p>
-
-        {/* ── Team ── */}
-        <p className="font-mono text-sm text-[var(--color-text-muted)]">
-          Created by: Zicheng Zhao
-          <br />
-          Team: Arya Baviskar &middot; Isaac Sohn &middot; Harshitha
-          Somasundaram &middot; Kartik Patri
         </p>
 
         {/* ── Stats Row ── */}

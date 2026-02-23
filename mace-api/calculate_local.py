@@ -80,12 +80,37 @@ def get_custom_calculator(model_path: str, device: str):
         )
 
 
+def extract_reference_data(atoms) -> dict:
+    """Extract reference energy/forces from extended XYZ info/arrays."""
+    ref = {}
+
+    for key in ("REF_energy", "ref_energy", "energy", "dft_energy"):
+        if key in atoms.info:
+            try:
+                ref["referenceEnergy"] = float(atoms.info[key])
+                break
+            except (TypeError, ValueError):
+                pass
+
+    for key in ("REF_forces", "ref_forces", "forces", "dft_forces"):
+        if key in atoms.arrays:
+            try:
+                ref["referenceForces"] = atoms.arrays[key].tolist()
+                break
+            except Exception:
+                pass
+
+    return ref
+
+
 def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict:
     from ase.io import read
 
     fmt = detect_format(filepath)
     atoms = read(filepath, format=fmt)
     filename = Path(filepath).name
+
+    ref_data = extract_reference_data(atoms)
 
     model_type = params.get("modelType", "MACE-MP-0")
     model_size = params.get("modelSize", "medium")
@@ -145,7 +170,7 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
         dyn.attach(write_frame, interval=1)
         dyn.run(md_steps)
 
-        return {
+        result = {
             "status": "success",
             "energy": float(atoms.get_potential_energy()),
             "forces": atoms.get_forces().tolist(),
@@ -156,6 +181,8 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
             "properties": {"volume": float(atoms.get_volume()) if atoms.pbc.any() else None},
             "message": f"MD ({ensemble}) completed for {filename} ({md_steps} steps)",
         }
+        result.update(ref_data)
+        return result
     else:
         energy = atoms.get_potential_energy()
         forces = atoms.get_forces()
@@ -166,7 +193,7 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
     forces_list = forces.tolist()
     lattice = atoms.get_cell().tolist() if atoms.pbc.any() else None
 
-    return {
+    result = {
         "status": "success",
         "energy": float(energy),
         "forces": forces_list,
@@ -176,6 +203,8 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
         "properties": {"volume": float(atoms.get_volume()) if atoms.pbc.any() else None},
         "message": msg,
     }
+    result.update(ref_data)
+    return result
 
 
 if __name__ == "__main__":
@@ -185,6 +214,10 @@ if __name__ == "__main__":
 
     if "--model-path" in args:
         idx = args.index("--model-path")
+        # FIX: bounds check → --model-path as last arg without value caused IndexError
+        if idx + 1 >= len(args):
+            print(json.dumps({"status": "error", "message": "--model-path requires a file path argument"}))
+            sys.exit(1)
         model_path = args[idx + 1]
         args = args[:idx] + args[idx + 2:]
 

@@ -49,7 +49,8 @@ export function EnergyConvergence({
     },
   ];
 
-  if (currentFrame != null && currentFrame < steps.length) {
+  // FIX: also check energies bounds → steps and energies may have different lengths
+  if (currentFrame != null && currentFrame < steps.length && currentFrame < energies.length) {
     traces.push({
       x: [steps[currentFrame]],
       y: [energies[currentFrame]],

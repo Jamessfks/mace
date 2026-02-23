@@ -7,10 +7,8 @@
  * accuracy metrics. Each axis represents a metric; each model gets a
  * polygon. Smaller area = better model (lower errors).
  *
- * Axes: Energy MAE, Force MAE, Energy R², Force RMSE, Max Force Error
- *
- * Note: R² is inverted (1 - R²) so that all axes follow the convention
- * where smaller = better, making the radar chart visually consistent.
+ * Axes: Energy MAE, Force MAE, Force RMSE, Max Force Error
+ * All axes follow the convention where smaller = better.
  */
 
 import dynamic from "next/dynamic";
@@ -23,7 +21,6 @@ export interface ModelMetrics {
   label: string;
   energyMAE: number;
   forceMAE: number;
-  energyR2: number;
   forceRMSE: number;
   maxForceError: number;
 }
@@ -36,10 +33,9 @@ interface RadarComparisonProps {
 
 const AXES = [
   "Energy MAE (meV/atom)",
-  "Force MAE (meV/A)",
-  "1 - R\u00B2",
-  "Force RMSE (meV/A)",
-  "Max Force Error (meV/A)",
+  "Force MAE (meV/\u00C5)",
+  "Force RMSE (meV/\u00C5)",
+  "Max Force Error (meV/\u00C5)",
 ];
 
 export function RadarComparison({
@@ -50,7 +46,6 @@ export function RadarComparison({
   const toValues = (m: ModelMetrics) => [
     m.energyMAE,
     m.forceMAE,
-    (1 - m.energyR2) * 100,
     m.forceRMSE,
     m.maxForceError,
   ];

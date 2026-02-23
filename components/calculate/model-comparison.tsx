@@ -17,8 +17,6 @@ import { useState } from "react";
 import {
   GitCompareArrows,
   Loader2,
-  Zap,
-  ArrowRightLeft,
 } from "lucide-react";
 import { computeRmsForce } from "@/lib/utils";
 import { RadarComparison, type ModelMetrics } from "./charts/radar-comparison";
@@ -175,7 +173,7 @@ export function ModelComparison({
               {(deltaE * 1000).toFixed(1)} meV
             </span>
             <span className="text-[var(--color-text-muted)]">
-              ({deltaE > 0 ? "custom higher" : "foundation higher"})
+              ({deltaE > 0 ? "custom higher" : deltaE < 0 ? "foundation higher" : "equal"})
             </span>
           </div>
         )}
@@ -205,15 +203,15 @@ function buildRadarMetrics(
   let forceRMSE = 0;
   let maxForceError = 0;
   let energyMAE = 0;
-  let energyR2 = 1;
 
   if (result.referenceForces && result.forces) {
+    const n = Math.min(result.forces.length, result.referenceForces.length);
     let sumAbsErr = 0;
     let sumSqErr = 0;
     let count = 0;
     let maxErr = 0;
 
-    for (let i = 0; i < result.referenceForces.length; i++) {
+    for (let i = 0; i < n; i++) {
       for (let c = 0; c < 3; c++) {
         const err = Math.abs(result.forces[i][c] - result.referenceForces[i][c]);
         sumAbsErr += err;
@@ -223,9 +221,11 @@ function buildRadarMetrics(
       }
     }
 
-    forceMAE = (sumAbsErr / count) * 1000;
-    forceRMSE = Math.sqrt(sumSqErr / count) * 1000;
-    maxForceError = maxErr * 1000;
+    if (count > 0) {
+      forceMAE = (sumAbsErr / count) * 1000;
+      forceRMSE = Math.sqrt(sumSqErr / count) * 1000;
+      maxForceError = maxErr * 1000;
+    }
   }
 
   if (result.referenceEnergy != null && result.energy != null) {
@@ -233,5 +233,5 @@ function buildRadarMetrics(
       (Math.abs(result.energy - result.referenceEnergy) / atomCount) * 1000;
   }
 
-  return { label, energyMAE, forceMAE, energyR2, forceRMSE, maxForceError };
+  return { label, energyMAE, forceMAE, forceRMSE, maxForceError };
 }

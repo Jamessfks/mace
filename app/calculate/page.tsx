@@ -140,9 +140,12 @@ function CalculatePageInner() {
   const handleRunFoundation = useCallback(async (): Promise<CalculationResult | null> => {
     if (uploadedFiles.length === 0) return null;
 
+    const nameHint = (params.customModelName || customModelFile?.name || "").toLowerCase();
+    const isOFF = nameHint.includes("off") || nameHint.includes("organic");
+
     const foundationParams: CalculationParams = {
       ...params,
-      modelType: params.modelType === "MACE-OFF" ? "MACE-OFF" : "MACE-MP-0",
+      modelType: isOFF ? "MACE-OFF" : "MACE-MP-0",
     };
 
     const formData = new FormData();
@@ -160,7 +163,8 @@ function CalculatePageInner() {
     }
 
     return response.json();
-  }, [uploadedFiles, params]);
+  // FIX: customModelFile was missing → stale closure when reading customModelFile?.name
+  }, [uploadedFiles, params, customModelFile]);
 
   const handleCalculate = async () => {
     if (uploadedFiles.length === 0) {

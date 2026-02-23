@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
         }
 
         const data: CalculationResult = await response.json();
+        // FIX: remote API may return HTTP 200 with status:"error" → surface it
+        if (data.status === "error") {
+          throw new Error(data.message || "MACE API returned an error");
+        }
         return NextResponse.json(data);
       } catch (err) {
         clearTimeout(timeoutId);
@@ -155,6 +159,10 @@ export async function POST(request: NextRequest) {
         throw new Error(stdout || "No JSON output from MACE");
       }
       const data: CalculationResult = JSON.parse(stdout.slice(jsonStart));
+      // FIX: Python script may exit 0 but return status:"error" → surface it
+      if (data.status === "error") {
+        throw new Error(data.message || "MACE calculation returned an error");
+      }
       return NextResponse.json(data);
     } finally {
       // Cleanup temp files

@@ -170,7 +170,8 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
     const header = "#,Element,Fx (eV/A),Fy (eV/A),Fz (eV/A),|F| (eV/A)\n";
     const rows = result.forces.map((f, i) => {
       const mag = Math.sqrt(f[0] ** 2 + f[1] ** 2 + f[2] ** 2);
-      return `${i + 1},${result.symbols![i]},${f[0].toFixed(6)},${f[1].toFixed(6)},${f[2].toFixed(6)},${mag.toFixed(6)}`;
+      // FIX: symbols may be shorter than forces → guard with fallback
+      return `${i + 1},${result.symbols![i] ?? "?"},${f[0].toFixed(6)},${f[1].toFixed(6)},${f[2].toFixed(6)},${mag.toFixed(6)}`;
     });
     const blob = new Blob([header + rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -449,7 +450,9 @@ function ForcesTab({
     const elemFlat: string[] = [];
     const errFlat: number[] = [];
 
-    for (let i = 0; i < result.referenceForces.length; i++) {
+    // FIX: use min length → forces/referenceForces may have mismatched lengths
+    const n = Math.min(result.referenceForces.length, result.forces.length);
+    for (let i = 0; i < n; i++) {
       for (let c = 0; c < 3; c++) {
         refFlat.push(result.referenceForces[i][c]);
         predFlat.push(result.forces[i][c]);

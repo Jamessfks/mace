@@ -104,8 +104,12 @@ function buildTrajectoryXYZ(
 // ---------------------------------------------------------------------------
 
 export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
-  const traj = result.trajectory!;
-  const symbols = result.symbols!;
+  // FIX: guard against null trajectory/symbols → parent should prevent this, but crash-proof here
+  if (!result.trajectory || !result.symbols) {
+    return <div className="p-4 text-sm text-[var(--color-text-muted)]">No trajectory data available.</div>;
+  }
+  const traj = result.trajectory;
+  const symbols = result.symbols;
   const totalFrames = traj.positions.length;
 
   // ── State ──
