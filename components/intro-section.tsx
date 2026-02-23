@@ -1,98 +1,186 @@
 "use client";
 
+/**
+ * IntroSection — Hero + features for the MACE landing page.
+ *
+ * Design: Premium scientific computing aesthetic inspired by Schrodinger.com.
+ * Deep navy background, blue accent palette, commanding typography.
+ *
+ * Sections:
+ *   1. Hero — badge, title, subtitle, stats row, dual CTA buttons
+ *   2. Features — 4-card grid highlighting core capabilities
+ *   3. Attribution — MACE framework credits and citation
+ */
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Layers,
+  BarChart3,
+  GitCompareArrows,
+  Box,
+} from "lucide-react";
+import { WaterMDCanvas } from "@/components/water-md-canvas";
+
+/* ── Feature card data ── */
+const FEATURES = [
+  {
+    icon: Layers,
+    title: "Foundation Models",
+    description:
+      "Run MACE-MP-0, MACE-OFF, or upload your own fine-tuned .model files for custom potentials.",
+  },
+  {
+    icon: BarChart3,
+    title: "Scientific Visualization",
+    description:
+      "Parity plots, error distributions, and force correlation graphs with publication-quality exports.",
+  },
+  {
+    icon: GitCompareArrows,
+    title: "Model Benchmarking",
+    description:
+      "Compare your fine-tuned model against MACE foundation models on standard benchmarks.",
+  },
+  {
+    icon: Box,
+    title: "3D Structure Viewer",
+    description:
+      "Interactive molecular visualization with force vectors, trajectory animation, and dual rendering engines.",
+  },
+];
+
+/* ── Stats data ── */
+const STATS = [
+  { value: "89", label: "Elements Supported" },
+  { value: "meV", label: "Accuracy Scale" },
+  { value: "2022", label: "NeurIPS Publication" },
+  { value: "10M+", label: "Training Structures" },
+];
 
 export function IntroSection() {
   return (
     <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-20">
-      {/* Matrix rain overlay effect */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-20">
-        <div className="matrix-rain absolute inset-0" />
+      {/* Animated liquid water MD simulation background —
+          positioned behind all text content via z-0 */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <WaterMDCanvas />
       </div>
 
-      <div className="relative flex max-w-4xl flex-col items-center gap-8 text-center">
-        {/* Glowing title */}
-        <div className="space-y-4">
-          <Badge
-            variant="outline"
-            className="border-matrix-green/50 bg-matrix-green/10 px-4 py-1.5 text-matrix-green font-mono text-xs tracking-widest"
-          >
-            WEB-BASED INTERFACE FOR MACE CALCULATOR
-          </Badge>
-          <h1 className="font-mono text-4xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
-            <span className="text-shadow-matrix">MACE</span>
+      <div className="relative z-10 flex max-w-5xl flex-col items-center gap-10 text-center">
+        {/* ── Badge ── */}
+        <Badge
+          variant="outline"
+          className="border-[var(--color-accent-primary)]/40 bg-[var(--color-bg-elevated)] px-4 py-1.5 text-[var(--color-accent-primary)] font-mono text-xs tracking-widest"
+        >
+          MACHINE LEARNING INTERATOMIC POTENTIALS
+        </Badge>
+
+        {/* ── Hero Title ── */}
+        <div className="space-y-2">
+          <h1 className="font-sans text-5xl font-bold tracking-tight text-white sm:text-7xl md:text-8xl">
+            <span className="text-shadow-accent">MACE</span>
             <br />
-            <span className="text-matrix-green text-shadow-matrix-green">
+            <span className="text-[var(--color-accent-primary)] text-shadow-accent-strong">
               FORCE FIELDS
             </span>
           </h1>
         </div>
 
-        {/* Subtitle - MACE project context */}
-        <p className="max-w-2xl font-mono text-lg text-zinc-400 sm:text-xl">
-          Machine learning for predicting many-body atomic interactions.
-          Modernized graph theory → fast <em>and</em> quantum-mechanical
-          precision.
+        {/* ── Subtitle ── */}
+        <p className="max-w-3xl text-lg text-[var(--color-text-secondary)] sm:text-xl leading-relaxed">
+          Many-body Atomic Cluster Expansion — equivariant message-passing
+          neural networks for fast, accurate interatomic potentials across
+          the periodic table.
         </p>
 
-        {/* Team members */}
-        <p className="font-mono text-sm text-zinc-500">
-          Created by: Zicheng Zhao <br /> Team: Arya Baviskar • Isaac Sohn • Harshitha Somasundaram •
-          Kartik Patri
+        {/* ── Team ── */}
+        <p className="font-mono text-sm text-[var(--color-text-muted)]">
+          Created by: Zicheng Zhao
+          <br />
+          Team: Arya Baviskar &middot; Isaac Sohn &middot; Harshitha
+          Somasundaram &middot; Kartik Patri
         </p>
 
-        {/* Stats row */}
-        <div className="flex flex-wrap justify-center gap-6 font-mono text-sm">
-          <div className="flex flex-col items-center">
-            <span className="text-matrix-green text-2xl">2022</span>
-            <span className="text-zinc-500">MACE Release</span>
-          </div>
+        {/* ── Stats Row ── */}
+        <div className="flex flex-wrap justify-center gap-8 sm:gap-12">
+          {STATS.map((stat) => (
+            <div key={stat.label} className="flex flex-col items-center">
+              <span className="font-mono text-2xl font-bold text-[var(--color-accent-primary)]">
+                {stat.value}
+              </span>
+              <span className="font-mono text-xs text-[var(--color-text-muted)]">
+                {stat.label}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* CTA Button */}
-        <Button
-          asChild
-          size="lg"
-          variant="outline"
-          className="group relative overflow-hidden border-2 border-matrix-green/70 bg-matrix-green/5 font-mono text-matrix-green transition-all hover:bg-matrix-green/20 hover:border-matrix-green"
-        >
-          <Link href="/calculate">
-            <span className="relative z-10">MACE CALCULATOR</span>
-            <div className="absolute inset-0 -z-0 bg-matrix-green/10 opacity-0 transition-opacity group-hover:opacity-100" />
-          </Link>
-        </Button>
+        {/* ── CTA Buttons ── */}
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Button
+            asChild
+            size="lg"
+            className="bg-[var(--color-accent-primary)] px-8 font-sans text-white hover:bg-[var(--color-accent-primary)]/90 transition-all"
+          >
+            <Link href="/calculate">Launch Calculator</Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="border-[var(--color-border-emphasis)] bg-transparent px-8 font-sans text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-white transition-all"
+          >
+            <Link href="/calculate?demo=true">Quick Demo</Link>
+          </Button>
+        </div>
 
-        {/* Acknowledgment */}
-        <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900/60 px-6 py-4 text-center backdrop-blur-sm">
-          <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">
+        {/* ── Features Grid ── */}
+        <div className="mt-8 grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((feature) => (
+            <div
+              key={feature.title}
+              className="group rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-5 text-left transition-colors hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-bg-elevated)]"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-accent-primary)]/10">
+                <feature.icon className="h-5 w-5 text-[var(--color-accent-primary)]" />
+              </div>
+              <h3 className="mb-1 font-sans text-sm font-semibold text-white">
+                {feature.title}
+              </h3>
+              <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+                {feature.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Attribution ── */}
+        <div className="mt-4 max-w-2xl rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]/60 px-6 py-4 text-center backdrop-blur-sm">
+          <p className="font-mono text-xs uppercase tracking-widest text-[var(--color-text-muted)] mb-2">
             Powered by
           </p>
-          <p className="font-mono text-sm text-zinc-400">
+          <p className="text-sm text-[var(--color-text-secondary)]">
             The{" "}
             <a
               href="https://github.com/ACEsuit/mace"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-matrix-green hover:underline"
+              className="text-[var(--color-accent-primary)] hover:underline"
             >
               MACE
             </a>{" "}
-            framework — created by Ilyes Batatia, David P. Kovacs, Gregor N. C.
-            Simm, and the group of Gabor Csanyi at the University of Cambridge.
+            framework — created by Ilyes Batatia, David P. Kovacs, Gregor
+            N. C. Simm, and the group of Gabor Csanyi at the University of
+            Cambridge.
           </p>
-          <p className="mt-2 font-mono text-xs text-zinc-600">
-            Batatia et al., &quot;MACE: Higher Order Equivariant Message Passing
-            Neural Networks for Fast and Accurate Force Fields,&quot; NeurIPS
-            2022.
+          <p className="mt-2 font-mono text-xs text-[var(--color-text-muted)]">
+            Batatia et al., &quot;MACE: Higher Order Equivariant Message
+            Passing Neural Networks for Fast and Accurate Force
+            Fields,&quot; NeurIPS 2022.
           </p>
         </div>
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce">
-        <div className="h-8 w-px bg-gradient-to-b from-matrix-green to-transparent" />
       </div>
     </section>
   );

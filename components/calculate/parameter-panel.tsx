@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronUp, Info, Upload, X, FileText, Info as InfoIcon } from "lucide-react";
 import type { CalculationParams } from "@/types/mace";
 
 interface ParameterPanelProps {
   params: CalculationParams;
   onChange: (params: CalculationParams) => void;
+  customModelFile: File | null;
+  onCustomModelChange: (file: File | null) => void;
 }
 
-export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
+export function ParameterPanel({ params, onChange, customModelFile, onCustomModelChange }: ParameterPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const updateParam = <K extends keyof CalculationParams>(
@@ -19,27 +21,21 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
     onChange({ ...params, [key]: value });
   };
 
+  useEffect(() => {
+    if (params.modelType !== "custom") {
+      onCustomModelChange(null);
+    }
+  }, [params.modelType]);
+
   return (
     <div className="sticky top-6 space-y-4">
       {/* Model Selection */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           MODEL SELECTION
         </h2>
 
         <div className="space-y-4">
-          <ParamSelect
-            label="Model Size"
-            value={params.modelSize}
-            onChange={(v) => updateParam("modelSize", v as any)}
-            options={[
-              { value: "small", label: "Small (fast)" },
-              { value: "medium", label: "Medium (balanced)" },
-              { value: "large", label: "Large (accurate)" },
-            ]}
-            tooltip="Model size affects accuracy and speed"
-          />
-
           <ParamSelect
             label="Model Type"
             value={params.modelType}
@@ -47,9 +43,75 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
             options={[
               { value: "MACE-MP-0", label: "MACE-MP-0 (materials, 89 elements)" },
               { value: "MACE-OFF", label: "MACE-OFF (organic molecules, ethanol, H2O)" },
+              { value: "custom", label: "Custom Model (upload .model file)" },
             ]}
-            tooltip="MACE-MP: bulk crystals. MACE-OFF: organic molecules."
+            tooltip="MACE-MP: bulk crystals. MACE-OFF: organic molecules. Custom: upload your own."
           />
+
+          {params.modelType === "custom" && (
+            <div className="space-y-3 rounded border border-[var(--color-accent-secondary)]/30 bg-[var(--color-accent-secondary)]/5 p-3">
+              <div className="flex items-start gap-2 text-xs text-[var(--color-accent-secondary)]">
+                <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>Upload a MACE-compatible .model file. This can be a fine-tuned model trained with <code className="font-mono">mace_run_train</code> or any MACE architecture checkpoint.</span>
+              </div>
+
+              {!customModelFile ? (
+                <div className="relative cursor-pointer rounded border-2 border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-bg-primary)]/50 p-4 text-center transition-colors hover:border-[var(--color-accent-primary)]/50 hover:bg-[var(--color-accent-primary)]/5">
+                  <input
+                    type="file"
+                    accept=".model"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) onCustomModelChange(e.target.files[0]);
+                    }}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                  <Upload className="mx-auto mb-1 h-6 w-6 text-[var(--color-text-muted)]" />
+                  <p className="font-mono text-xs text-[var(--color-text-secondary)]">Drop .model file or click to browse</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 p-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-[var(--color-accent-primary)]" />
+                    <div>
+                      <p className="font-mono text-xs text-[var(--color-text-primary)]">{customModelFile.name}</p>
+                      <p className="font-mono text-[10px] text-[var(--color-text-muted)]">{(customModelFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                    </div>
+                  </div>
+                  <button onClick={() => onCustomModelChange(null)} className="text-[var(--color-text-muted)] hover:text-[var(--color-error)]">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block font-mono text-xs text-[var(--color-text-muted)]">Model Label</label>
+                <input
+                  type="text"
+                  value={params.customModelName ?? ""}
+                  onChange={(e) => updateParam("customModelName", e.target.value)}
+                  placeholder="e.g. My Fine-tuned MACE"
+                  className="w-full rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 px-3 py-2 font-mono text-xs text-[var(--color-text-secondary)] focus:border-[var(--color-accent-primary)] focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className={params.modelType === "custom" ? "opacity-50 pointer-events-none" : ""}>
+            <ParamSelect
+              label="Model Size"
+              value={params.modelSize}
+              onChange={(v) => updateParam("modelSize", v as any)}
+              options={[
+                { value: "small", label: "Small (fast)" },
+                { value: "medium", label: "Medium (balanced)" },
+                { value: "large", label: "Large (accurate)" },
+              ]}
+              tooltip={params.modelType === "custom" ? "Custom models have fixed architecture" : "Model size affects accuracy and speed"}
+            />
+            {params.modelType === "custom" && (
+              <p className="mt-1 font-mono text-[10px] text-[var(--color-text-muted)]">Custom models have fixed architecture</p>
+            )}
+          </div>
 
           <ParamSelect
             label="Precision"
@@ -74,8 +136,8 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
       </div>
 
       {/* Calculation Type */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           CALCULATION TYPE
         </h2>
 
@@ -96,7 +158,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
               className={`flex items-center gap-3 rounded p-2 transition-colors ${
                 opt.disabled
                   ? "cursor-not-allowed opacity-60"
-                  : "cursor-pointer hover:bg-matrix-green/5"
+                  : "cursor-pointer hover:bg-[var(--color-accent-primary)]/15"
               }`}
             >
               <input
@@ -109,7 +171,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
                   updateParam("calculationType", e.target.value as any)
                 }
                 disabled={"disabled" in opt && opt.disabled}
-                className="accent-matrix-green"
+                className="accent-[#4A7BF7]"
               />
               <span className="font-mono text-xs text-zinc-300">
                 {opt.label}
@@ -125,8 +187,8 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
       </div>
 
       {/* Physical Parameters */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           PHYSICAL PARAMETERS
         </h2>
 
@@ -136,7 +198,7 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
               type="checkbox"
               checked={params.dispersion}
               onChange={(e) => updateParam("dispersion", e.target.checked)}
-              className="accent-matrix-green"
+              className="accent-[#4A7BF7]"
             />
             <span className="font-mono text-xs text-zinc-300">
               Enable D3 Dispersion
@@ -215,10 +277,10 @@ export function ParameterPanel({ params, onChange }: ParameterPanelProps) {
       </div>
 
       {/* Advanced Options */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex w-full items-center justify-between font-mono text-sm font-bold text-matrix-green"
+          className="flex w-full items-center justify-between font-sans text-sm font-bold text-[var(--color-accent-primary)]"
         >
           ADVANCED OPTIONS
           {showAdvanced ? (
@@ -272,8 +334,8 @@ function ParamSelect({
         {label}
         {tooltip && (
           <span className="group relative">
-            <Info className="h-3 w-3 text-matrix-green/60" />
-            <span className="pointer-events-none absolute left-6 top-0 w-48 rounded bg-matrix-green/90 px-2 py-1 text-xs text-black opacity-0 transition-opacity group-hover:opacity-100">
+            <Info className="h-3 w-3 text-[var(--color-accent-primary)]/70" />
+            <span className="pointer-events-none absolute left-6 top-0 w-48 rounded bg-[var(--color-accent-primary)]/90 px-2 py-1 text-xs text-black opacity-0 transition-opacity group-hover:opacity-100">
               {tooltip}
             </span>
           </span>
@@ -282,7 +344,7 @@ function ParamSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded border border-matrix-green/30 bg-black/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-matrix-green focus:outline-none"
+        className="w-full rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-[var(--color-accent-primary)] focus:outline-none"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -312,7 +374,6 @@ function ParamInput({
   const [localValue, setLocalValue] = useState<string>(String(value));
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync from parent when not focused (e.g. external reset)
   const displayValue = isFocused ? localValue : String(value);
 
   return (
@@ -341,7 +402,6 @@ function ParamInput({
           if (isNaN(parsed)) {
             setLocalValue(String(value));
           } else {
-            // Clamp to min/max when provided
             const clamped =
               min != null && max != null
                 ? Math.min(max, Math.max(min, parsed))
@@ -357,7 +417,7 @@ function ParamInput({
         min={min}
         max={max}
         step={step || 1}
-        className="no-spinner w-full rounded border border-matrix-green/30 bg-black/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-matrix-green focus:outline-none"
+        className="no-spinner w-full rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 px-3 py-2 font-mono text-xs text-zinc-300 focus:border-[var(--color-accent-primary)] focus:outline-none"
       />
     </div>
   );

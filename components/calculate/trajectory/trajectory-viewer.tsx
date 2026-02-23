@@ -146,7 +146,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
 
       viewerRef.current.innerHTML = "";
       const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "black",
+        backgroundColor: "#0B0E17",
       });
       viewerInstance.current = viewer;
 
@@ -246,7 +246,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
   return (
     <div className="space-y-4">
       {/* ── 3D Viewer ── */}
-      <div className="relative overflow-hidden rounded-lg border border-matrix-green/20 bg-black shadow-inner">
+      <div className="relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] shadow-inner">
         <div
           ref={viewerRef}
           className="w-full"
@@ -254,13 +254,13 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
         />
         {/* Loading overlay */}
         {!viewerReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-matrix-green/30 border-t-matrix-green" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-secondary)]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border-subtle)] border-t-[var(--color-accent-primary)]" />
           </div>
         )}
         {/* Frame badge overlay (top-right) */}
         {viewerReady && (
-          <div className="absolute right-3 top-3 rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-matrix-green backdrop-blur-sm">
+          <div className="absolute right-3 top-3 rounded bg-[var(--color-bg-primary)]/70 px-2 py-1 font-mono text-[10px] text-[var(--color-accent-primary)] backdrop-blur-sm">
             Frame {currentFrame + 1}/{totalFrames}
           </div>
         )}
@@ -282,7 +282,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
             className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
               playing
                 ? "border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                : "border-matrix-green bg-matrix-green/10 text-matrix-green hover:bg-matrix-green/20"
+                : "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/20"
             }`}
           >
             {playing ? (
@@ -314,7 +314,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
             setPlaying(false);
             setCurrentFrame(Number(e.target.value));
           }}
-          className="flex-1 accent-[#00ff41]"
+          className="flex-1 accent-[#4A7BF7]"
           title={`Frame ${currentFrame + 1}`}
         />
 
@@ -369,7 +369,7 @@ function ControlButton({
       type="button"
       onClick={onClick}
       title={title}
-      className="flex h-7 w-7 items-center justify-center rounded border border-matrix-green/30 bg-black/60 text-zinc-400 transition-colors hover:border-matrix-green/60 hover:text-matrix-green"
+      className="flex h-7 w-7 items-center justify-center rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] text-zinc-400 transition-colors hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
     >
       {children}
     </button>

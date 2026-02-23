@@ -49,7 +49,38 @@ def get_mace_calculator(model_type: str, model_size: str, device: str, dispersio
     return mace_mp(model=model_size, device=device, dispersion=dispersion)
 
 
-def run_calculation(filepath: str, params: dict) -> dict:
+def resolve_device(requested: str) -> str:
+    """Resolve the compute device, falling back to CPU if CUDA is unavailable."""
+    if requested == "cuda":
+        try:
+            import torch
+            if not torch.cuda.is_available():
+                return "cpu"
+        except ImportError:
+            return "cpu"
+    return requested
+
+
+def get_custom_calculator(model_path: str, device: str):
+    """Load a user-uploaded MACE model checkpoint."""
+    from mace.calculators import MACECalculator
+
+    if not Path(model_path).exists():
+        raise ValueError(f"Model file not found: {model_path}")
+
+    device = resolve_device(device)
+
+    try:
+        calc = MACECalculator(model_paths=model_path, device=device)
+        return calc
+    except Exception as e:
+        raise ValueError(
+            f"Failed to load custom model '{Path(model_path).name}': {e}. "
+            "Ensure the file is a valid MACE .model checkpoint."
+        )
+
+
+def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict:
     from ase.io import read
 
     fmt = detect_format(filepath)
@@ -58,11 +89,14 @@ def run_calculation(filepath: str, params: dict) -> dict:
 
     model_type = params.get("modelType", "MACE-MP-0")
     model_size = params.get("modelSize", "medium")
-    device = params.get("device", "cpu")
+    device = resolve_device(params.get("device", "cpu"))
     dispersion = params.get("dispersion", False)
     calc_type = params.get("calculationType", "single-point")
 
-    calc = get_mace_calculator(model_type, model_size, device, dispersion)
+    if model_path:
+        calc = get_custom_calculator(model_path, device)
+    else:
+        calc = get_mace_calculator(model_type, model_size, device, dispersion)
     atoms.calc = calc
 
     if calc_type == "geometry-opt":
@@ -145,12 +179,21 @@ def run_calculation(filepath: str, params: dict) -> dict:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(json.dumps({"status": "error", "message": "Usage: python calculate_local.py <file> [params_json]"}))
+    # Parse arguments: <file> <params_json> [--model-path <path>]
+    model_path = None
+    args = sys.argv[1:]
+
+    if "--model-path" in args:
+        idx = args.index("--model-path")
+        model_path = args[idx + 1]
+        args = args[:idx] + args[idx + 2:]
+
+    if not args:
+        print(json.dumps({"status": "error", "message": "Usage: python calculate_local.py <file> [params_json] [--model-path <path>]"}))
         sys.exit(1)
 
-    filepath = sys.argv[1]
-    params_json = sys.argv[2] if len(sys.argv) > 2 else "{}"
+    filepath = args[0]
+    params_json = args[1] if len(args) > 1 else "{}"
 
     try:
         params = json.loads(params_json)
@@ -159,8 +202,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        result = run_calculation(filepath, params)
+        result = run_calculation(filepath, params, model_path=model_path)
         print(json.dumps(result))
     except Exception as e:
-        print(json.dumps({"status": "error", "message": str(e)}))
+        err_msg = str(e)
+        # Provide actionable hints for common errors
+        if "CUDA" in err_msg or "cuda" in err_msg:
+            err_msg += " (Hint: CUDA/GPU not available on this machine. Switch Device to CPU.)"
+        elif "No module named" in err_msg:
+            err_msg += " (Hint: required Python package not installed.)"
+        print(json.dumps({"status": "error", "message": err_msg}))
         sys.exit(1)

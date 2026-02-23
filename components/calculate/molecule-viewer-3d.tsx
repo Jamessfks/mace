@@ -123,7 +123,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
             z: pos[2] + force[2] * scale,
           },
           radius: 0.08,
-          color: "#00ff41",
+          color: "#4A7BF7",
         });
       });
       viewer.render();
@@ -147,7 +147,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
       viewerRef.current.innerHTML = "";
       viewerInstance.current = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "black",
+        backgroundColor: "#0B0E17",
       });
       const viewer = viewerInstance.current;
 
@@ -234,8 +234,8 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       title={title}
       className={`flex h-8 w-8 items-center justify-center rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         active
-          ? "border-matrix-green bg-matrix-green/20 text-matrix-green"
-          : "border-matrix-green/40 bg-black/60 text-zinc-400 hover:border-matrix-green/60 hover:text-matrix-green"
+          ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+          : "border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)] text-zinc-400 hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
       }`}
     >
       {children}
@@ -245,14 +245,14 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   return (
     <div
       ref={containerRef}
-      className={`group relative rounded-lg border border-matrix-green/20 bg-black/80 p-4 transition-all ${
+      className={`group relative rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4 transition-all ${
         fullscreen ? "flex h-screen flex-col" : ""
       }`}
     >
       {/* ── Header & toolbar ── */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <h3 className="font-mono text-sm font-bold text-matrix-green">
+          <h3 className="font-mono text-sm font-bold text-[var(--color-accent-primary)]">
             3D STRUCTURE VIEWER
           </h3>
           <span className="font-mono text-xs text-zinc-500">
@@ -262,15 +262,15 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
         <div className="flex items-center gap-2">
           {/* ── Engine toggle: 3Dmol ↔ WEAS ── */}
-          <div className="flex rounded border border-matrix-green/40 bg-black/60">
+          <div className="flex rounded border border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]">
             <button
               type="button"
               onClick={() => setEngine("3dmol")}
               title="3Dmol.js viewer (force arrows supported)"
               className={`flex h-8 items-center justify-center rounded-l px-2 font-mono text-[10px] transition-colors ${
                 is3Dmol
-                  ? "bg-matrix-green/20 text-matrix-green"
-                  : "text-zinc-400 hover:text-matrix-green"
+                  ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                  : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
               }`}
             >
               3Dmol
@@ -281,20 +281,20 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               title="WEAS viewer (ml-peg compatible)"
               className={`flex h-8 items-center justify-center rounded-r px-2 font-mono text-[10px] transition-colors ${
                 !is3Dmol
-                  ? "bg-matrix-green/20 text-matrix-green"
-                  : "text-zinc-400 hover:text-matrix-green"
+                  ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                  : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
               }`}
             >
               WEAS
             </button>
           </div>
 
-          <div className="h-4 w-px bg-matrix-green/30" />
+          <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
 
           {/* ── 3Dmol.js-only controls: representation + forces + spin + reset ── */}
           {is3Dmol && (
             <>
-              <div className="flex rounded border border-matrix-green/40 bg-black/60">
+              <div className="flex rounded border border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]">
                 {(
                   [
                     ["ball-and-stick", Boxes, "Ball-and-stick"],
@@ -309,8 +309,8 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                     title={label}
                     className={`flex h-8 w-8 items-center justify-center transition-colors ${
                       representation === key
-                        ? "bg-matrix-green/20 text-matrix-green"
-                        : "text-zinc-400 hover:text-matrix-green"
+                        ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -318,7 +318,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                 ))}
               </div>
 
-              <div className="h-4 w-px bg-matrix-green/30" />
+              <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
 
               <div className="flex items-center gap-1">
                 <ToolbarButton
@@ -364,7 +364,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
       {/* ── Viewer canvas ── */}
       <div
-        className={`relative overflow-hidden rounded-lg border border-matrix-green/20 bg-black shadow-inner ${
+        className={`relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] shadow-inner ${
           fullscreen ? "min-h-0 flex-1" : ""
         }`}
       >
@@ -392,8 +392,8 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
         {/* Loading spinner (3Dmol only — WEAS has its own) */}
         {is3Dmol && loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-matrix-green/30 border-t-matrix-green" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-secondary)]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border-subtle)] border-t-[var(--color-accent-primary)]" />
           </div>
         )}
       </div>

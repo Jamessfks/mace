@@ -75,9 +75,8 @@ function generateWeasHTML(
 <head>
   <meta charset="utf-8" />
   <style>
-    /* Full-page viewer with black background to match Matrix theme */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0B0E17; }
     #viewer { width: 100%; height: 100%; }
     /* Hide only the zoom button — it doesn't work in iframe context.
        Keep all other WEAS control buttons (settings, etc.) */
@@ -196,12 +195,12 @@ export function WeasViewer({
           title="WEAS Structure Viewer"
           sandbox="allow-scripts"
           className="h-full w-full border-0"
-          style={{ height, minHeight: height, background: "#000" }}
+          style={{ height, minHeight: height, background: "#0B0E17" }}
         />
       )}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-matrix-green/30 border-t-matrix-green" />
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-primary)]/80">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-accent-primary)]/30 border-t-[var(--color-accent-primary)]" />
         </div>
       )}
     </div>

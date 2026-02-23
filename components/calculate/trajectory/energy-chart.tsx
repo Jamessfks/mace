@@ -164,8 +164,8 @@ export function EnergyChart({
         <defs>
           {/* Gradient fill under the energy line */}
           <linearGradient id="energyFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#00ff41" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#00ff41" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="#4A7BF7" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#4A7BF7" stopOpacity="0.02" />
           </linearGradient>
           {/* Glow filter for the current-frame dot */}
           <filter id="glow">
@@ -197,7 +197,7 @@ export function EnergyChart({
         <path
           d={linePath}
           fill="none"
-          stroke="#00ff41"
+          stroke="#4A7BF7"
           strokeWidth="1.5"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -209,12 +209,12 @@ export function EnergyChart({
           y1={PADDING.top}
           x2={cfX}
           y2={PADDING.top + plotH}
-          stroke="#00ff41"
+          stroke="#4A7BF7"
           strokeWidth="1"
           strokeDasharray="3,3"
           opacity="0.5"
         />
-        <circle cx={cfX} cy={cfY} r="4" fill="#00ff41" filter="url(#glow)" />
+        <circle cx={cfX} cy={cfY} r="4" fill="#4A7BF7" filter="url(#glow)" />
 
         {/* ── Hover crosshair ── */}
         {hover && (
@@ -233,7 +233,7 @@ export function EnergyChart({
               cy={toY(energies[hover.idx])}
               r="3"
               fill="white"
-              stroke="#00ff41"
+              stroke="#4A7BF7"
               strokeWidth="1"
             />
             {/* Hover tooltip */}

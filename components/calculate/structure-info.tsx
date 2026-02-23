@@ -115,7 +115,7 @@ export function StructureInfo({ file }: StructureInfoProps) {
   if (parsing) {
     return (
       <div className="mt-3 flex items-center gap-2 font-mono text-xs text-zinc-500">
-        <div className="h-3 w-3 animate-spin rounded-full border border-matrix-green/30 border-t-matrix-green" />
+        <div className="h-3 w-3 animate-spin rounded-full border border-[var(--color-border-subtle)] border-t-[var(--color-accent-primary)]" />
         Parsing structure...
       </div>
     );
@@ -147,7 +147,7 @@ export function StructureInfo({ file }: StructureInfoProps) {
     ? "text-red-400 border-red-500/50 bg-red-500/10"
     : isLarge
       ? "text-amber-400 border-amber-500/50 bg-amber-500/10"
-      : "text-matrix-green border-matrix-green/50 bg-matrix-green/10";
+      : "text-[var(--color-success)] border-[var(--color-success)]/50 bg-[var(--color-success)]/10";
 
   // ── Geometry sanity checks ──
   const hasOverlap = parsed.minNeighborDist < 0.4;
@@ -156,10 +156,10 @@ export function StructureInfo({ file }: StructureInfoProps) {
   return (
     <div className="mt-3 space-y-2">
       {/* ── Structure info card ── */}
-      <div className="rounded border border-matrix-green/20 bg-black/60 p-3">
+      <div className="rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-3">
         <div className="mb-2 flex items-center gap-2">
-          <Info className="h-3.5 w-3.5 text-matrix-green/70" />
-          <span className="font-mono text-xs font-bold text-matrix-green/80">
+          <Info className="h-3.5 w-3.5 text-[var(--color-accent-primary)]/70" />
+          <span className="font-mono text-xs font-bold text-[var(--color-accent-primary)]/70">
             STRUCTURE INFO
           </span>
         </div>
@@ -182,7 +182,7 @@ export function StructureInfo({ file }: StructureInfoProps) {
               className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-300"
             >
               {el}
-              <span className="ml-0.5 text-matrix-green">
+              <span className="ml-0.5 text-[var(--color-accent-primary)]">
                 ×{parsed.elementCounts[el]}
               </span>
             </span>
@@ -285,7 +285,7 @@ export function StructureInfo({ file }: StructureInfoProps) {
 
       {/* All clear — no issues */}
       {!hasWarnings && (
-        <div className="flex items-center gap-2 font-mono text-xs text-matrix-green/70">
+        <div className="flex items-center gap-2 font-mono text-xs text-[var(--color-accent-primary)]/70">
           <CheckCircle className="h-3.5 w-3.5" />
           Structure looks good. Ready to calculate.
         </div>

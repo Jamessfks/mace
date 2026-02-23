@@ -1,3 +1,15 @@
+/**
+ * MACE Web Interface — Global Styles & Design System
+ *
+ * Design: Premium scientific computing aesthetic — deep navy/indigo palette
+ * with blue accent. Inspired by Schrodinger.com and MLIP leaders.
+ *
+ * Color palette:
+ *   Background tiers:  #0B0E17 → #111827 → #1A2035 → #1F2A42
+ *   Accent:            #4A7BF7 (primary blue), #00B4D8 (secondary teal)
+ *   Data viz:          Paul Tol colorblind-safe palette (7 colors)
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,9 +18,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-matrix-green: #00ff41;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -38,83 +56,114 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MACE Scientific Palette — Runtime CSS Custom Properties
+   These are plain CSS vars that var() can resolve in any context.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
   --radius: 0.625rem;
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+
+  /* ── MACE palette (always dark — this IS a dark-only scientific app) ── */
+  --color-bg-primary: #0B0E17;
+  --color-bg-secondary: #111827;
+  --color-bg-elevated: #1A2035;
+  --color-bg-surface: #1F2A42;
+  --color-border-subtle: #2A3650;
+  --color-border-emphasis: #3B4F72;
+  --color-text-primary: #E8ECF4;
+  --color-text-secondary: #9BA4B8;
+  --color-text-muted: #5D6A82;
+  --color-accent-primary: #4A7BF7;
+  --color-accent-secondary: #00B4D8;
+  --color-accent-glow: #6C8EFF;
+  --color-success: #34D399;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  /* ── Paul Tol colorblind-safe data visualization palette ── */
+  --color-data-blue: #4477AA;
+  --color-data-red: #EE6677;
+  --color-data-green: #228833;
+  --color-data-yellow: #CCBB44;
+  --color-data-cyan: #66CCEE;
+  --color-data-purple: #AA3377;
+  --color-data-gray: #BBBBBB;
+
+  /* ── shadcn/ui light mode (unused — app is dark-only, but required) ── */
+  --background: #0B0E17;
+  --foreground: #E8ECF4;
+  --card: #111827;
+  --card-foreground: #E8ECF4;
+  --popover: #1A2035;
+  --popover-foreground: #E8ECF4;
+  --primary: #4A7BF7;
+  --primary-foreground: #ffffff;
+  --secondary: #1A2035;
+  --secondary-foreground: #E8ECF4;
+  --muted: #1A2035;
+  --muted-foreground: #5D6A82;
+  --accent: #1F2A42;
+  --accent-foreground: #E8ECF4;
+  --destructive: #EF4444;
+  --border: #2A3650;
+  --input: #2A3650;
+  --ring: #4A7BF7;
+  --chart-1: #4477AA;
+  --chart-2: #228833;
+  --chart-3: #CCBB44;
+  --chart-4: #EE6677;
+  --chart-5: #AA3377;
+  --sidebar: #111827;
+  --sidebar-foreground: #E8ECF4;
+  --sidebar-primary: #4A7BF7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1A2035;
+  --sidebar-accent-foreground: #E8ECF4;
+  --sidebar-border: #2A3650;
+  --sidebar-ring: #4A7BF7;
 }
 
+/* Dark mode uses the same values (app is always dark) */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0B0E17;
+  --foreground: #E8ECF4;
+  --card: #111827;
+  --card-foreground: #E8ECF4;
+  --popover: #1A2035;
+  --popover-foreground: #E8ECF4;
+  --primary: #4A7BF7;
+  --primary-foreground: #ffffff;
+  --secondary: #1A2035;
+  --secondary-foreground: #E8ECF4;
+  --muted: #1A2035;
+  --muted-foreground: #5D6A82;
+  --accent: #1F2A42;
+  --accent-foreground: #E8ECF4;
+  --destructive: #EF4444;
+  --border: #2A3650;
+  --input: #2A3650;
+  --ring: #4A7BF7;
+  --chart-1: #4477AA;
+  --chart-2: #228833;
+  --chart-3: #CCBB44;
+  --chart-4: #EE6677;
+  --chart-5: #AA3377;
+  --sidebar: #111827;
+  --sidebar-foreground: #E8ECF4;
+  --sidebar-primary: #4A7BF7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1A2035;
+  --sidebar-accent-foreground: #E8ECF4;
+  --sidebar-border: #2A3650;
+  --sidebar-ring: #4A7BF7;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
@@ -125,101 +174,74 @@
   }
 }
 
-/* Matrix theme - green & black */
-.matrix-bg {
-  background: linear-gradient(180deg, #000000 0%, #0a0f0a 50%, #000000 100%);
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scientific UI — Background Treatments
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.scientific-bg {
+  background: linear-gradient(180deg, #0B0E17 0%, #0F1423 50%, #0B0E17 100%);
 }
 
-/* Matrix rain effect */
-.matrix-rain {
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 255, 65, 0.03) 2px,
-    rgba(0, 255, 65, 0.03) 4px
+.dot-grid {
+  background-image: radial-gradient(circle, #2A3650 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+  opacity: 0.15;
+}
+
+.ambient-glow {
+  background: radial-gradient(
+    ellipse at 85% 15%,
+    rgba(74, 123, 247, 0.06) 0%,
+    rgba(0, 180, 216, 0.03) 40%,
+    transparent 70%
   );
-  animation: matrix-scan 8s linear infinite;
 }
 
-@keyframes matrix-scan {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 100px; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scientific UI — Text & Glow Effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.text-shadow-accent {
+  text-shadow:
+    0 0 10px rgba(74, 123, 247, 0.3),
+    0 0 20px rgba(74, 123, 247, 0.2),
+    0 0 40px rgba(74, 123, 247, 0.1);
 }
 
-/* Indeterminate progress bar — slides left to right */
+.text-shadow-accent-strong {
+  text-shadow:
+    0 0 15px rgba(74, 123, 247, 0.6),
+    0 0 30px rgba(74, 123, 247, 0.4),
+    0 0 60px rgba(74, 123, 247, 0.2);
+}
+
+.glow-border-accent {
+  box-shadow:
+    0 0 20px rgba(74, 123, 247, 0.2),
+    inset 0 0 20px rgba(74, 123, 247, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scientific UI — Animations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
 }
 
-/* Text shadows for Matrix glow */
-.text-shadow-matrix {
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.3),
-    0 0 20px rgba(0, 255, 65, 0.2),
-    0 0 40px rgba(0, 255, 65, 0.1);
-}
-
-.text-shadow-matrix-green {
-  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6),
-    0 0 30px rgba(0, 255, 65, 0.4),
-    0 0 60px rgba(0, 255, 65, 0.2);
-}
-
-/* Scan line overlay */
-.scan-lines::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.1) 2px,
-    rgba(0, 0, 0, 0.1) 4px
-  );
-  pointer-events: none;
-}
-
-/* Glow border */
-.glow-border {
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2),
-    inset 0 0 20px rgba(0, 255, 65, 0.05);
-}
-
-/* Number inputs without spin buttons — type directly */
-input[type="number"].no-spinner::-webkit-outer-spin-button,
-input[type="number"].no-spinner::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"].no-spinner {
-  -moz-appearance: textfield;
-}
-
-/* ── Scientific UI — Card & Progress Animations ── */
-
-/* Results fade-in entrance */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in-up {
   animation: fadeInUp 0.4s ease-out both;
 }
 
-/* Staggered card entrance (use with style={{ animationDelay }}) */
 .animate-stagger {
   animation: fadeInUp 0.35s ease-out both;
 }
 
-/* Determinate progress bar fill */
 @keyframes progressFill {
   from { width: 0%; }
 }
@@ -227,7 +249,6 @@ input[type="number"].no-spinner {
   animation: progressFill 0.6s ease-out;
 }
 
-/* Subtle glow pulse for active status dot */
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 4px currentColor; }
   50% { box-shadow: 0 0 12px currentColor; }
@@ -236,11 +257,23 @@ input[type="number"].no-spinner {
   animation: glowPulse 2s ease-in-out infinite;
 }
 
-/* Result card hover lift */
 .result-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .result-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scientific UI — Form Elements
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+input[type="number"].no-spinner::-webkit-outer-spin-button,
+input[type="number"].no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"].no-spinner {
+  -moz-appearance: textfield;
 }

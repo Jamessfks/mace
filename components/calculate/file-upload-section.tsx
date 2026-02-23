@@ -68,8 +68,8 @@ export function FileUploadSection({
   return (
     <div className="space-y-6">
       {/* ── Option A: Upload your own file ── */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           OPTION A — UPLOAD YOUR FILE
         </h2>
 
@@ -77,7 +77,7 @@ export function FileUploadSection({
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="group relative cursor-pointer rounded-lg border-2 border-dashed border-matrix-green/30 bg-matrix-green/5 p-12 text-center transition-colors hover:border-matrix-green/50 hover:bg-matrix-green/10"
+          className="group relative cursor-pointer rounded-lg border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-accent-primary)]/10 p-12 text-center transition-colors hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/15"
         >
           <input
             type="file"
@@ -85,7 +85,7 @@ export function FileUploadSection({
             onChange={handleFileInput}
             className="absolute inset-0 cursor-pointer opacity-0"
           />
-          <Upload className="mx-auto mb-3 h-12 w-12 text-matrix-green/60" />
+          <Upload className="mx-auto mb-3 h-12 w-12 text-[var(--color-accent-primary)]/70" />
           <p className="mb-1 font-mono text-sm text-zinc-300">
             Drag & drop a structure file here
           </p>
@@ -100,14 +100,14 @@ export function FileUploadSection({
 
       {/* ── "OR" divider ── */}
       <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-matrix-green/20" />
+        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
         <span className="font-mono text-xs text-zinc-500">OR</span>
-        <div className="h-px flex-1 bg-matrix-green/20" />
+        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
       </div>
 
       {/* ── Option B: Browse ml-peg benchmark structures ── */}
-      <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           OPTION B — BROWSE ML-PEG STRUCTURES
         </h2>
         <p className="mb-3 font-mono text-xs text-zinc-500">
@@ -116,7 +116,7 @@ export function FileUploadSection({
             href="https://github.com/ddmms/ml-peg"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-matrix-green/70 underline hover:text-matrix-green"
+            className="text-[var(--color-accent-primary)]/70 underline hover:text-[var(--color-accent-primary)]"
           >
             ml-peg
           </a>{" "}
@@ -129,15 +129,15 @@ export function FileUploadSection({
 
       {/* ── Selected file + info + preview (shown after upload or catalog selection) ── */}
       {files.length > 0 && (
-        <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-6">
-          <h2 className="mb-4 font-mono text-sm font-bold text-matrix-green">
+        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+          <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
             SELECTED STRUCTURE
           </h2>
 
           {/* File card */}
-          <div className="flex items-center justify-between rounded border border-matrix-green/20 bg-black/50 p-3">
+          <div className="flex items-center justify-between rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] p-3">
             <div className="flex items-center gap-3">
-              <File className="h-4 w-4 text-matrix-green/80" />
+              <File className="h-4 w-4 text-[var(--color-accent-primary)]/70" />
               <div>
                 <p className="font-mono text-xs text-zinc-300">
                   {files[0].name}

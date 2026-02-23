@@ -48,6 +48,10 @@ export interface ParsedStructure {
   frameCount: number;
   /** Original filename */
   filename: string;
+  /** Reference energy extracted from extxyz comment line (eV). */
+  referenceEnergy?: number;
+  /** Reference forces extracted from extxyz per-atom properties (eV/A). */
+  referenceForces?: number[][];
 }
 
 // ---------------------------------------------------------------------------
@@ -66,8 +70,16 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
   let positions: number[][];
   let frameCount = 1;
 
+  let referenceEnergy: number | undefined;
+  let referenceForces: number[][] | undefined;
+
   if (ext === "xyz" || ext === "extxyz") {
-    ({ symbols, positions, frameCount } = parseXYZ(text));
+    const xyzResult = parseXYZ(text);
+    symbols = xyzResult.symbols;
+    positions = xyzResult.positions;
+    frameCount = xyzResult.frameCount;
+    referenceEnergy = xyzResult.referenceEnergy;
+    referenceForces = xyzResult.referenceForces;
   } else if (ext === "cif") {
     ({ symbols, positions } = parseCIF(text));
   } else if (ext === "pdb") {
@@ -98,6 +110,8 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
     isPlanar,
     frameCount,
     filename: file.name,
+    referenceEnergy,
+    referenceForces,
   };
 }
 
@@ -113,18 +127,50 @@ function parseXYZ(text: string): {
   symbols: string[];
   positions: number[][];
   frameCount: number;
+  referenceEnergy?: number;
+  referenceForces?: number[][];
 } {
   const lines = text.split("\n").map((l) => l.trim());
   const symbols: string[] = [];
   const positions: number[][] = [];
 
-  // First line must be the atom count
   const atomCount = parseInt(lines[0], 10);
   if (isNaN(atomCount) || atomCount <= 0) {
     throw new Error("Invalid XYZ file: first line must be the atom count.");
   }
 
-  // Parse atom lines (skip line 0 = count, line 1 = comment)
+  // Extract reference energy from comment line (line 1).
+  // Supports: energy=X, REF_energy=X, Energy=X
+  let referenceEnergy: number | undefined;
+  const commentLine = lines[1] ?? "";
+  const energyMatch = commentLine.match(
+    /(?:REF_energy|energy)\s*=\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)/i
+  );
+  if (energyMatch) {
+    const val = parseFloat(energyMatch[1]);
+    if (!isNaN(val)) referenceEnergy = val;
+  }
+
+  // Detect if the comment line defines per-atom property columns
+  // (extended XYZ format: Properties=species:S:1:pos:R:3:forces:R:3 ...)
+  let forceColStart = -1;
+  const propsMatch = commentLine.match(/Properties\s*=\s*(\S+)/i);
+  if (propsMatch) {
+    const propDef = propsMatch[1];
+    const fields = propDef.split(":");
+    let colIdx = 0;
+    for (let f = 0; f < fields.length; f += 3) {
+      const name = fields[f]?.toLowerCase();
+      const count = parseInt(fields[f + 2], 10) || 1;
+      if (name === "forces" || name === "ref_forces") {
+        forceColStart = colIdx;
+      }
+      colIdx += count;
+    }
+  }
+
+  const referenceForces: number[][] = [];
+
   for (let i = 2; i < 2 + atomCount && i < lines.length; i++) {
     const parts = lines[i].split(/\s+/);
     if (parts.length < 4) continue;
@@ -133,19 +179,33 @@ function parseXYZ(text: string): {
     const x = parseFloat(parts[1]);
     const y = parseFloat(parts[2]);
     const z = parseFloat(parts[3]);
-
     if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
 
     symbols.push(sym);
     positions.push([x, y, z]);
+
+    // Extract reference forces if column position is known
+    if (forceColStart >= 0 && parts.length > forceColStart + 2) {
+      const fx = parseFloat(parts[forceColStart]);
+      const fy = parseFloat(parts[forceColStart + 1]);
+      const fz = parseFloat(parts[forceColStart + 2]);
+      if (!isNaN(fx) && !isNaN(fy) && !isNaN(fz)) {
+        referenceForces.push([fx, fy, fz]);
+      }
+    }
   }
 
-  // Estimate frame count: each frame = atomCount + 2 lines
   const linesPerFrame = atomCount + 2;
   const nonEmptyLines = lines.filter((l) => l.length > 0).length;
   const frameCount = Math.max(1, Math.floor(nonEmptyLines / linesPerFrame));
 
-  return { symbols, positions, frameCount };
+  return {
+    symbols,
+    positions,
+    frameCount,
+    referenceEnergy,
+    referenceForces: referenceForces.length > 0 ? referenceForces : undefined,
+  };
 }
 
 /**

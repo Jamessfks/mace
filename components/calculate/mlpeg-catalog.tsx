@@ -101,19 +101,19 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 rounded border border-matrix-green/40 bg-matrix-green/5 px-4 py-2 font-mono text-xs text-matrix-green transition-colors hover:bg-matrix-green/15 hover:border-matrix-green/60"
+          className="flex items-center gap-2 rounded border border-[var(--color-border-emphasis)] bg-[var(--color-accent-primary)]/10 px-4 py-2 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 hover:border-[var(--color-accent-primary)]"
         >
           <BookOpen className="h-4 w-4" />
           Browse ml-peg structures ({totalStructures})
         </button>
       ) : (
         /* ── Catalog panel ── */
-        <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-4">
+        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
           {/* Header */}
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-matrix-green" />
-              <h3 className="font-mono text-sm font-bold text-matrix-green">
+              <BookOpen className="h-4 w-4 text-[var(--color-accent-primary)]" />
+              <h3 className="font-sans text-sm font-bold text-[var(--color-accent-primary)]">
                 ML-PEG BENCHMARK STRUCTURES
               </h3>
             </div>
@@ -133,7 +133,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
               href="https://github.com/ddmms/ml-peg"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-matrix-green/70 underline hover:text-matrix-green"
+              className="text-[var(--color-accent-primary)]/70 underline hover:text-[var(--color-accent-primary)]"
             >
               ml-peg
             </a>{" "}
@@ -189,15 +189,15 @@ function CategorySection({
   onSelect: (entry: CatalogEntry) => void;
 }) {
   return (
-    <div className="rounded border border-matrix-green/10 bg-black/40">
+    <div className="rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)]">
       {/* Category header (click to expand) */}
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 font-mono text-xs transition-colors hover:bg-matrix-green/5"
+        className="flex w-full items-center gap-2 px-3 py-2 font-mono text-xs transition-colors hover:bg-[var(--color-accent-primary)]/15"
       >
         {isExpanded ? (
-          <ChevronDown className="h-3 w-3 text-matrix-green" />
+          <ChevronDown className="h-3 w-3 text-[var(--color-accent-primary)]" />
         ) : (
           <ChevronRight className="h-3 w-3 text-zinc-500" />
         )}
@@ -209,7 +209,7 @@ function CategorySection({
 
       {/* Expanded: show entries */}
       {isExpanded && (
-        <div className="border-t border-matrix-green/10 px-2 py-1">
+        <div className="border-t border-[var(--color-border-subtle)] px-2 py-1">
           {category.entries.map((entry) => (
             <EntryRow
               key={entry.id}
@@ -238,13 +238,13 @@ function EntryRow({
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-full items-center gap-3 rounded px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-matrix-green/10"
+      className="flex w-full items-center gap-3 rounded px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-[var(--color-accent-primary)]/15"
     >
-      <Atom className="h-3.5 w-3.5 shrink-0 text-matrix-green/60" />
+      <Atom className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]/70" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="font-bold text-zinc-200">{entry.name}</span>
-          <span className="rounded bg-matrix-green/10 px-1.5 py-0.5 text-[10px] text-matrix-green/70">
+          <span className="rounded bg-[var(--color-accent-primary)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
             {entry.formula}
           </span>
           <span className="text-zinc-600">
@@ -253,7 +253,7 @@ function EntryRow({
         </div>
         <p className="mt-0.5 truncate text-zinc-500">{entry.description}</p>
       </div>
-      <span className="shrink-0 rounded border border-matrix-green/30 px-1.5 py-0.5 text-[10px] text-matrix-green/60">
+      <span className="shrink-0 rounded border border-[var(--color-border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
         {entry.recommendedModel === "MACE-MP-0" ? "MP" : "OFF"}
       </span>
     </button>

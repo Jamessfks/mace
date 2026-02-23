@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     borderBottomWidth: 2,
-    borderBottomColor: "#00ff41",
+    borderBottomColor: "#4A7BF7",
     paddingBottom: 8,
   },
   section: {
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     marginBottom: 8,
-    color: "#00ff41",
+    color: "#4A7BF7",
   },
   row: {
     flexDirection: "row",
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 2,
-    borderBottomColor: "#00ff41",
+    borderBottomColor: "#4A7BF7",
     paddingBottom: 6,
     marginBottom: 4,
     fontWeight: "bold",
@@ -177,7 +177,7 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
         )}
 
         <Text style={styles.footer}>
-          MACE Web Calculator • CS2535 Team 3 • Generated from mace-lake.vercel.app
+          MACE Calculator • Generated from mace-lake.vercel.app
         </Text>
       </Page>
     </Document>
@@ -210,7 +210,7 @@ export function PDFReportButton({ result }: PDFReportButtonProps) {
     <button
       onClick={handleDownload}
       disabled={loading}
-      className="flex items-center gap-2 rounded border border-matrix-green/50 bg-matrix-green/10 px-3 py-1.5 font-mono text-xs text-matrix-green transition-colors hover:bg-matrix-green/20 disabled:opacity-50"
+      className="flex items-center gap-2 rounded border border-[var(--color-accent-primary)]/50 bg-[var(--color-accent-primary)]/10 px-3 py-1.5 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 disabled:opacity-50"
     >
       <FileText className="h-3 w-3" />
       {loading ? "Generating..." : "Download PDF Report"}

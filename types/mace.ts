@@ -1,42 +1,48 @@
 /**
- * Type definitions for MACE calculations
+ * Type definitions for MACE calculations.
+ *
+ * Supports both built-in foundation models (MACE-MP-0, MACE-OFF) and
+ * user-uploaded custom models (fine-tuned .model files).
  */
 
-export type ModelSize = "small" | "medium" | "large" | "custom";
-export type ModelType = "MACE-MP-0" | "MACE-OFF";
+export type ModelSize = "small" | "medium" | "large";
+export type ModelType = "MACE-MP-0" | "MACE-OFF" | "custom";
 export type Precision = "float32" | "float64";
 export type Device = "cpu" | "cuda";
 export type CalculationType =
   | "single-point"
   | "geometry-opt"
   | "molecular-dynamics"
-  | "phonon"
-  | "custom";
+  | "phonon";
 
 export interface CalculationParams {
-  // Model Selection
+  // Model selection
   modelSize: ModelSize;
   modelType: ModelType;
   precision: Precision;
   device: Device;
 
-  // Calculation Type
+  // Calculation type
   calculationType: CalculationType;
 
-  // Physical Parameters
+  // Physical parameters
   dispersion: boolean;
   temperature?: number;
   pressure?: number;
   timeStep?: number;
-  friction?: number; // Langevin thermostat (ASE default ~5e-3)
-  mdSteps?: number; // Number of MD steps
+  friction?: number;
+  mdSteps?: number;
   mdEnsemble?: "NVE" | "NVT" | "NPT";
-  forceThreshold?: number; // fmax for geometry optimization (eV/Å)
+  forceThreshold?: number;
   energyThreshold?: number;
 
-  // Advanced Options (optional)
+  // Advanced options
   cutoffRadius?: number;
   maxOptSteps?: number;
+
+  // Custom model support — user-uploaded .model files
+  customModelName?: string;
+  customModelDescription?: string;
 }
 
 export interface CalculationResult {
@@ -57,10 +63,12 @@ export interface CalculationResult {
     pressure?: number;
   };
   message?: string;
-  /** Physical parameters used for this calculation (set by frontend) */
   params?: Partial<CalculationParams>;
-  /** Time taken for calculation in seconds (set by frontend) */
   timeTaken?: number;
+
+  /** Reference data extracted from input file (for accuracy metrics) */
+  referenceEnergy?: number;
+  referenceForces?: number[][];
 }
 
 export interface UploadedStructure {

@@ -36,11 +36,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const modelFile = formData.get("model") as File | null;
+
     // ── Remote backend (Railway / any hosted MACE API) ──
     if (MACE_API_URL) {
       const maceFormData = new FormData();
       files.forEach((file) => maceFormData.append("files", file));
       maceFormData.append("params", paramsStr);
+      if (modelFile) {
+        maceFormData.append("model", modelFile);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
@@ -82,25 +87,69 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     await writeFile(tmpPath, fileBuffer);
 
+    // Handle custom model file if provided
+    let modelPath: string | undefined;
+    if (modelFile) {
+      modelPath = join(tmpDir, modelFile.name);
+      const modelBuffer = Buffer.from(await modelFile.arrayBuffer());
+      await writeFile(modelPath, modelBuffer);
+    }
+
     // Path to the local Python calculation script
     const scriptPath = join(process.cwd(), "mace-api", "calculate_local.py");
 
     try {
-      const { stdout, stderr } = await execFileAsync(
-        "python3",
-        [scriptPath, tmpPath, paramsStr],
-        {
-          timeout: 60 * 60 * 1000, // 1 hour
-          maxBuffer: 50 * 1024 * 1024, // 50 MB stdout buffer
-          env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      const args = [scriptPath, tmpPath, paramsStr];
+      if (modelPath) {
+        args.push("--model-path", modelPath);
+      }
+
+      let stdout: string;
+      let stderr: string;
+      try {
+        const result = await execFileAsync(
+          "python3",
+          args,
+          {
+            timeout: 60 * 60 * 1000,
+            maxBuffer: 50 * 1024 * 1024,
+            env: { ...process.env, PYTHONUNBUFFERED: "1" },
+          }
+        );
+        stdout = result.stdout;
+        stderr = result.stderr;
+      } catch (execErr: any) {
+        // execFile throws on non-zero exit; the Python script may have
+        // printed a JSON error object to stdout before exiting
+        stdout = execErr.stdout ?? "";
+        stderr = execErr.stderr ?? "";
+
+        const jsonStart = stdout.indexOf("{");
+        if (jsonStart !== -1) {
+          try {
+            const errData = JSON.parse(stdout.slice(jsonStart));
+            if (errData.message || errData.error) {
+              throw new Error(errData.message || errData.error);
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) {
+              // not valid JSON — fall through
+            } else {
+              throw parseErr;
+            }
+          }
         }
-      );
+
+        // Extract a human-readable message from stderr
+        const stderrTail = stderr.trim().split("\n").pop() ?? "";
+        const msg = stderrTail || stdout.trim().slice(0, 300) || "MACE calculation failed";
+        throw new Error(msg);
+      }
 
       if (stderr) {
         console.warn("[MACE local stderr]", stderr.slice(0, 500));
       }
 
-      // MACE/PyTorch may print warnings before JSON; find the JSON object
       const jsonStart = stdout.indexOf("{");
       if (jsonStart === -1) {
         throw new Error(stdout || "No JSON output from MACE");
@@ -111,6 +160,9 @@ export async function POST(request: NextRequest) {
       // Cleanup temp files
       try {
         await unlink(tmpPath);
+        if (modelPath) {
+          try { await unlink(modelPath); } catch {}
+        }
         await rmdir(tmpDir);
       } catch {
         // ignore cleanup errors

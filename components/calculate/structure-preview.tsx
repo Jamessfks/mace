@@ -186,7 +186,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
         <button
           type="button"
           onClick={handlePreview}
-          className="flex items-center gap-2 rounded border border-matrix-green/40 bg-matrix-green/10 px-4 py-2 font-mono text-xs text-matrix-green transition-colors hover:bg-matrix-green/20 hover:border-matrix-green/60"
+          className="flex items-center gap-2 rounded border border-[var(--color-border-emphasis)] bg-[var(--color-accent-primary)]/10 px-4 py-2 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 hover:border-[var(--color-accent-primary)]"
         >
           <Eye className="h-4 w-4" />
           Preview Structure
@@ -195,24 +195,24 @@ export function StructurePreview({ files }: StructurePreviewProps) {
 
       {/* ── Preview panel (shown after click) ── */}
       {isOpen && (
-        <div className="rounded-lg border border-matrix-green/20 bg-black/80 p-4">
+        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
           {/* Header with engine toggle and close button */}
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="font-mono text-sm font-bold text-matrix-green">
+              <h3 className="font-sans text-sm font-bold text-[var(--color-accent-primary)]">
                 STRUCTURE PREVIEW
               </h3>
               {/* Engine toggle (only visible when structure is loaded) */}
               {parsed && (
-                <div className="flex rounded border border-matrix-green/40 bg-black/60">
+                <div className="flex rounded border border-[var(--color-border-emphasis)] bg-[var(--color-bg-secondary)]">
                   <button
                     type="button"
                     onClick={() => setEngine("weas")}
                     title="WEAS viewer (ml-peg compatible)"
                     className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
                       engine === "weas"
-                        ? "bg-matrix-green/20 text-matrix-green"
-                        : "text-zinc-400 hover:text-matrix-green"
+                        ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     WEAS
@@ -223,8 +223,8 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                     title="3Dmol.js viewer"
                     className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
                       engine === "3dmol"
-                        ? "bg-matrix-green/20 text-matrix-green"
-                        : "text-zinc-400 hover:text-matrix-green"
+                        ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     3Dmol
@@ -245,7 +245,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
           {/* Loading spinner */}
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-matrix-green/30 border-t-matrix-green" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border-subtle)] border-t-[var(--color-accent-primary)]" />
             </div>
           )}
 
@@ -323,7 +323,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
               )}
 
               {/* ── Viewer (WEAS or 3Dmol based on engine toggle) ── */}
-              <div className="relative overflow-hidden rounded-lg border border-matrix-green/20 bg-black shadow-inner">
+              <div className="relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] shadow-inner">
                 {/* WEAS viewer (default — ml-peg compatible) */}
                 {engine === "weas" && rawXYZ && (
                   <WeasViewer structureData={rawXYZ} format="xyz" height={500} />

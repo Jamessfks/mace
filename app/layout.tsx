@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MACE Force Fields | CS2535 Team 3 — Liquid Water",
+  title: "MACE Force Fields | Machine Learning Interatomic Potentials",
   description:
-    "MACE machine learning for predicting many-body atomic interactions and generating force fields. Liquid water training results. Team 3: Arya Baviskar, Isaac Sohn, Harshitha Somasundaram, Kartik Patri, Zicheng Zhao.",
+    "MACE (Many-body Atomic Cluster Expansion) — equivariant message-passing neural networks for fast, accurate interatomic potentials. Web-based calculator with 3D visualization, model benchmarking, and scientific analysis.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-black font-sans antialiased text-zinc-100`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[var(--color-bg-primary)] font-sans antialiased text-[var(--color-text-primary)]`}
       >
         {children}
         <Analytics />
