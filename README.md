@@ -15,7 +15,7 @@
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
 </p>
 
-Built by a team of CS first-year students at **Northeastern University Oakland Campus**
+Contact: zhao.zic@northeasten or zezepy070413@gmail.com
 
 [Why This Exists](#why-this-exists) · [Core Features](#core-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
@@ -332,7 +332,6 @@ The ml-peg benchmark structures are sourced from established computational mater
 
 <div align="center">
 
-**Built at Northeastern University** · Khoury College of Computer Sciences
 
 Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
