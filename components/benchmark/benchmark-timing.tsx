@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * BenchmarkTiming — Computation time comparison between models.
+ *
+ * Horizontal grouped bar chart: one bar per model per structure.
+ * Summary cards show total and average time per model.
+ * Speedup ratio: "Model A is X.X× faster than Model B".
+ *
+ * Timing measures Python-side calculation time (excludes process spawn
+ * overhead), reported by calculate_local.py via the timeTaken field.
+ */
+
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
@@ -41,6 +52,14 @@ export function BenchmarkTiming({ result }: TimingProps) {
       return { label, total, avg, color: MODEL_COLORS[mi] };
     });
   }, [result, modelLabels]);
+
+  if (stats.length === 0) {
+    return (
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6 text-center">
+        <p className="text-sm text-[var(--color-text-muted)]">No timing data available.</p>
+      </div>
+    );
+  }
 
   const fastest = stats.reduce((a, b) => (a.total < b.total ? a : b), stats[0]);
   const speedups = stats

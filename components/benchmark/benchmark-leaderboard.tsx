@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * BenchmarkLeaderboard — Sortable table comparing model results.
+ *
+ * Rows = structures, columns = models (energy/atom). Sortable by any
+ * column. Cells are color-coded: green for lowest energy per row,
+ * yellow/red for high ΔE_max (>5 / >10 meV). Rows expand to show
+ * per-atom force magnitudes.
+ *
+ * Aggregate footer shows average energy/atom and total time per model.
+ */
+
 import { useState, useMemo, Fragment } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, ChevronRight } from "lucide-react";
 import { DATA_COLORS } from "@/components/calculate/charts/chart-config";
@@ -329,6 +340,7 @@ function formatCategoryName(id: string): string {
     molecular: "Molecule",
     "non-covalent": "Non-Cov.",
     surfaces: "Surface",
+    uploaded: "Uploaded",
   };
   return MAP[id] ?? id;
 }

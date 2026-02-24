@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * BenchmarkDashboard — Tabbed results container for benchmark output.
+ *
+ * Five sub-tabs: Leaderboard, Forces, Timing, Energy Landscape, Agreement.
+ * Detects cross-family comparisons (MP-0 vs OFF) and warns that absolute
+ * energy differences are not physically meaningful due to different
+ * training DFT functionals (PBE vs ωB97M-D3BJ).
+ */
+
 import { useState, useMemo } from "react";
 import {
   Trophy,

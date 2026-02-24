@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * BenchmarkHeatmap — Pairwise model agreement visualization.
+ *
+ * Plotly heatmap where each cell is |ΔE| in meV/atom between a pair of
+ * models for a given structure. Dark cells = agreement, bright = contention.
+ * For N models, shows N*(N-1)/2 pairwise rows (e.g. 3 rows for 3 models).
+ */
+
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { BASE_LAYOUT, BASE_CONFIG } from "@/components/calculate/charts/chart-config";

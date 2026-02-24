@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Play, AlertTriangle, Info, Upload, X } from "lucide-react";
+/**
+ * BenchmarkConfig — Model and structure selection panel.
+ *
+ * Lets users pick 2–3 MACE models (MP-0 or OFF, each in small/medium/large)
+ * and any combination of ml-peg catalog structures or user-uploaded files.
+ *
+ * Element compatibility: MACE-OFF only supports H, C, N, O, F, P, S, Cl,
+ * Br, I (organic elements). When any OFF model is selected, structures
+ * containing unsupported elements (Si, Cu, Fe, Na, etc.) are automatically
+ * excluded and grayed out. This prevents runtime crashes in the backend.
+ */
+
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { Play, AlertTriangle, Info, Upload, X, File as FileIcon } from "lucide-react";
 import { MLPEG_CATALOG, type CatalogCategory, type CatalogEntry } from "@/lib/mlpeg-catalog";
 import type { ModelType, ModelSize } from "@/types/mace";
 
@@ -12,9 +24,16 @@ export interface SelectedModel {
 }
 
 interface BenchmarkConfigProps {
-  onRun: (models: SelectedModel[], structureIds: string[]) => void;
+  onRun: (
+    models: SelectedModel[],
+    structureIds: string[],
+    customModelFile?: File,
+    userStructureFiles?: File[]
+  ) => void;
   isRunning: boolean;
 }
+
+const ACCEPTED_STRUCTURE_FORMATS = [".xyz", ".cif", ".poscar", ".contcar", ".pdb"];
 
 interface ModelOption {
   type: ModelType;
@@ -52,6 +71,35 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
     new Set(MLPEG_CATALOG.flatMap((c) => c.entries.map((e) => e.id)))
   );
   const [customModel, setCustomModel] = useState<File | null>(null);
+  const [userStructures, setUserStructures] = useState<File[]>([]);
+
+  const handleStructureDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
+      ACCEPTED_STRUCTURE_FORMATS.some((ext) => f.name.toLowerCase().endsWith(ext))
+    );
+    if (dropped.length > 0) {
+      setUserStructures((prev) => {
+        const existing = new Set(prev.map((f) => f.name));
+        return [...prev, ...dropped.filter((f) => !existing.has(f.name))];
+      });
+    }
+  }, []);
+
+  const handleStructureFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setUserStructures((prev) => {
+        const existing = new Set(prev.map((f) => f.name));
+        return [...prev, ...files.filter((f) => !existing.has(f.name))];
+      });
+    }
+    e.target.value = "";
+  }, []);
+
+  const removeUserStructure = (name: string) => {
+    setUserStructures((prev) => prev.filter((f) => f.name !== name));
+  };
 
   const toggleModel = (key: string) => {
     setSelectedModels((prev) => {
@@ -137,8 +185,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
     return Array.from(elems).sort();
   }, [incompatibleIds]);
 
-  // If MACE-OFF is selected, auto-deselect incompatible structures
-  useMemo(() => {
+  useEffect(() => {
     if (incompatibleIds.size === 0) return;
     setSelectedStructures((prev) => {
       let changed = false;
@@ -167,20 +214,33 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
   const clearAll = () => setSelectedStructures(new Set());
 
-  const totalModels = selectedModels.size;
-  const totalStructures = selectedStructures.size;
+  const totalModels = selectedModels.size + (customModel ? 1 : 0);
+  const totalStructures = selectedStructures.size + userStructures.length;
   const totalCalcs = totalModels * totalStructures;
   const canRun = totalModels >= 2 && totalModels <= 3 && totalStructures >= 1;
 
   const resolvedModels = useMemo(() => {
-    return MODEL_OPTIONS
+    const models: SelectedModel[] = MODEL_OPTIONS
       .filter((m) => selectedModels.has(modelKey(m)))
       .map((m) => ({ type: m.type, size: m.size, label: m.label }));
-  }, [selectedModels]);
+    if (customModel) {
+      models.push({
+        type: "custom" as ModelType,
+        size: "medium" as ModelSize,
+        label: `Custom (${customModel.name})`,
+      });
+    }
+    return models;
+  }, [selectedModels, customModel]);
 
   const handleRun = () => {
     if (!canRun) return;
-    onRun(resolvedModels, Array.from(selectedStructures));
+    onRun(
+      resolvedModels,
+      Array.from(selectedStructures),
+      customModel ?? undefined,
+      userStructures.length > 0 ? userStructures : undefined
+    );
   };
 
   return (
@@ -257,18 +317,12 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
           <div className="mb-3">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
               Custom Model
-              <span className="ml-1.5 rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 text-[9px] normal-case tracking-normal text-[var(--color-text-muted)]">
-                coming soon
-              </span>
             </p>
             {customModel ? (
               <div className="flex items-center gap-2 rounded-lg border border-[var(--color-accent-secondary)]/50 bg-[var(--color-accent-secondary)]/10 px-3 py-1.5">
                 <Upload className="h-3 w-3 text-[var(--color-accent-secondary)]" />
                 <span className="font-mono text-xs text-[var(--color-accent-secondary)]">
                   {customModel.name}
-                </span>
-                <span className="ml-1 rounded bg-[var(--color-warning)]/10 px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-warning)]">
-                  not yet supported in batch benchmark
                 </span>
                 <button onClick={() => setCustomModel(null)} className="ml-auto" aria-label="Remove custom model">
                   <X className="h-3 w-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" />
@@ -326,7 +380,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
             <h3 className="font-sans text-sm font-bold text-[var(--color-text-primary)]">
               Structures
               <span className="ml-2 font-mono text-xs font-normal text-[var(--color-text-muted)]">
-                ({totalStructures} selected)
+                ({totalStructures} total{userStructures.length > 0 ? ` · ${userStructures.length} uploaded` : ""})
               </span>
             </h3>
             <div className="flex gap-2">
@@ -379,7 +433,9 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                       {cat.name}
                     </span>
                     <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
-                      ({cat.entries.length})
+                      ({incompatibleIds.size > 0
+                        ? `${compatibleEntries.length}/${cat.entries.length}`
+                        : cat.entries.length})
                     </span>
                   </button>
 
@@ -423,6 +479,59 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 </div>
               );
             })}
+          </div>
+
+          {/* User-uploaded structures */}
+          <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
+            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              Your Structures
+            </p>
+
+            {userStructures.length > 0 && (
+              <div className="mb-2 space-y-1">
+                {userStructures.map((f) => (
+                  <div
+                    key={f.name}
+                    className="flex items-center gap-2 rounded border border-[var(--color-accent-secondary)]/30 bg-[var(--color-accent-secondary)]/5 px-2 py-1"
+                  >
+                    <FileIcon className="h-3 w-3 flex-shrink-0 text-[var(--color-accent-secondary)]" />
+                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-accent-secondary)]">
+                      {f.name}
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      {(f.size / 1024).toFixed(1)} KB
+                    </span>
+                    <button
+                      onClick={() => removeUserStructure(f.name)}
+                      aria-label={`Remove ${f.name}`}
+                      className="flex-shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div
+              onDrop={handleStructureDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="relative rounded-lg border border-dashed border-[var(--color-border-subtle)] px-3 py-2.5 text-center transition-colors hover:border-[var(--color-accent-primary)]/50 hover:bg-[var(--color-accent-primary)]/5"
+            >
+              <input
+                type="file"
+                multiple
+                accept={ACCEPTED_STRUCTURE_FORMATS.join(",")}
+                onChange={handleStructureFileInput}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+              <div className="flex items-center justify-center gap-2">
+                <Upload className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
+                <span className="font-mono text-xs text-[var(--color-text-muted)]">
+                  Drop or browse .xyz, .cif, .poscar, .pdb
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

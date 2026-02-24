@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * BenchmarkForceBars — Grouped bar chart and table for force comparison.
+ *
+ * Top: Plotly grouped bar chart (structures × models for RMS force).
+ * Bottom: per-atom force magnitude table with element labels and spread
+ * column (max - min force across models for that atom).
+ */
+
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
@@ -18,6 +26,14 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
     if (result.results.length === 0) return [];
     return result.results[0].models.map((m) => m.modelLabel);
   }, [result]);
+
+  if (result.results.length === 0) {
+    return (
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6 text-center">
+        <p className="text-sm text-[var(--color-text-muted)]">No force data available.</p>
+      </div>
+    );
+  }
 
   const structureNames = result.results.map((r) => r.structureName);
 

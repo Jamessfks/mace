@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * BenchmarkExport — CSV, JSON, and PDF export for benchmark results.
+ *
+ * CSV: one row per structure, columns for each model's energy/force/time.
+ * JSON: raw BenchmarkResult object.
+ * PDF: @react-pdf/renderer document with leaderboard table, timing
+ *   summary, and key findings (largest model disagreement).
+ *
+ * CSV values are escaped to handle commas/quotes in structure names.
+ */
+
 import { useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";

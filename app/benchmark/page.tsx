@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * BenchmarkPage — Multi-model comparison against ml-peg structures.
+ *
+ * Three-phase UI: configuration → running → results.
+ * The calculation is a single batch POST to /api/benchmark — the server
+ * runs all (model × structure) pairs and returns everything at once.
+ * Progress is shown as an indeterminate shimmer because individual
+ * calculation status is not streamed.
+ */
+
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical } from "lucide-react";
@@ -28,23 +38,51 @@ export default function BenchmarkPage() {
   const startTimeRef = useRef(Date.now());
 
   const handleRun = useCallback(
-    async (selectedModels: SelectedModel[], selectedIds: string[]) => {
+    async (
+      selectedModels: SelectedModel[],
+      selectedIds: string[],
+      customModelFile?: File,
+      userStructureFiles?: File[]
+    ) => {
       setModels(selectedModels);
       setStructureIds(selectedIds);
-      setTotal(selectedModels.length * selectedIds.length);
+      const structureCount = selectedIds.length + (userStructureFiles?.length ?? 0);
+      setTotal(selectedModels.length * structureCount);
       setPhase("running");
       startTimeRef.current = Date.now();
 
       try {
-        const response = await fetch("/api/benchmark", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            models: selectedModels.map((m) => ({ type: m.type, size: m.size })),
-            structureIds: selectedIds,
-            calculationType: "single-point",
-          }),
-        });
+        const payload = {
+          models: selectedModels.map((m) => ({ type: m.type, size: m.size })),
+          structureIds: selectedIds,
+          calculationType: "single-point",
+        };
+
+        const hasFiles = !!customModelFile || (userStructureFiles && userStructureFiles.length > 0);
+
+        let response: Response;
+        if (hasFiles) {
+          const formData = new FormData();
+          formData.append("json", JSON.stringify(payload));
+          if (customModelFile) {
+            formData.append("model", customModelFile);
+          }
+          if (userStructureFiles) {
+            for (const f of userStructureFiles) {
+              formData.append("structures", f);
+            }
+          }
+          response = await fetch("/api/benchmark", {
+            method: "POST",
+            body: formData,
+          });
+        } else {
+          response = await fetch("/api/benchmark", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
 
         if (!response.ok) {
           const err = await response.json();

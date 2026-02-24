@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * BenchmarkEnergyLandscape — Multi-trace energy-per-atom chart.
+ *
+ * Scatter+line plot: x-axis = structures, y-axis = energy/atom.
+ * One trace per model with distinct colors, markers, and dash styles.
+ * Overlapping points indicate model agreement; divergence reveals
+ * structures where models disagree.
+ */
+
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";

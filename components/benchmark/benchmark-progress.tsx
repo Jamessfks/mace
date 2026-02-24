@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * BenchmarkProgress — Indeterminate progress display during benchmark.
+ *
+ * Shows a shimmer progress bar (not percentage-based) because the API
+ * processes all calculations in a single batch — individual completion
+ * events are not streamed. Displays elapsed time and a grid of
+ * structure cards with pulsing status dots.
+ */
+
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { SelectedModel } from "./benchmark-config";

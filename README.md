@@ -35,20 +35,11 @@ Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
 
 Running MACE calculations today requires writing Python scripts, managing ASE atom objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists.  But it locks out students who try to learn materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
 
-The best thing about this web is, Multi-Model Benchmark!
-
-Avoid the tedious work of picking your own evaluation matrix to compare two or more models. This web will do it, and better!
-
 This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard in your browser. No terminal, no scripts, no environment setup.
 
-It also solves a problem that even experienced MACE users face: **model comparison**. When you train a custom MACE model, how does it stack up against the foundation model on the same structure? This interface lets you run both side-by-side and see a radar chart comparing Energy MAE, Force MAE, R², RMSE, and Max Force Error — instantly.
+It also solves a problem that even experienced MACE users face: **model comparison**. When you train a custom MACE model, how does it stack up against the foundation model on the same structure? The single-structure calculator lets you run both side-by-side with a radar chart comparing Energy MAE, Force MAE, R², RMSE, and Max Force Error — instantly.
 
-## Usage
-1. Quick Live Demo
-2. Educational Platform
-3. Model Comparison
-4. Output Visualization
-5. Pharmacy Drug Discovery
+For systematic evaluation, the **Multi-Model Benchmark Suite** (`/benchmark`) goes further: select 2–3 MACE models, pick any combination of the 14 built-in ml-peg structures or upload your own, and run every (model × structure) pair in a single batch. The results dashboard includes a sortable leaderboard, force comparison charts, timing analysis with speedup ratios, energy landscape plots, and a model agreement heatmap — all exportable as CSV, JSON, or PDF.
 
 ---
 
@@ -87,6 +78,35 @@ When you run a calculation with a custom model, a **"Compare with Foundation Mod
 
 The comparison card uses a blue-to-purple gradient border to visually distinguish it from standard results.
 
+### Multi-Model Benchmark Suite
+
+The `/benchmark` page provides industry-grade, batch model evaluation inspired by [ml-peg](https://ml-peg.stfc.ac.uk) and the [STFC MLIP Testing Framework](https://mlip-testing.stfc.ac.uk:8050).
+
+**Configuration:**
+
+- Select 2–3 MACE models to compare (MACE-MP-0 and/or MACE-OFF, each in small/medium/large, plus an optional custom `.model` file)
+- Pick structures from the built-in ml-peg catalog (14 structures across 4 categories) and/or upload your own `.xyz`/`.cif`/`.poscar`/`.pdb` files
+- All calculations run at float64 precision on CPU for fair comparison
+- Element compatibility: when MACE-OFF is selected, structures with unsupported elements (Si, Cu, Fe, Na, etc.) are automatically grayed out with a warning
+
+**Results Dashboard (5 tabs):**
+
+| Tab | What It Shows |
+|---|---|
+| **Leaderboard** | Sortable table with energy/atom per model, color-coded cells (green = lowest energy), ΔE_max column, expandable per-atom force details, and aggregate footer with averages and total time. |
+| **Forces** | Grouped bar chart of RMS force by structure, plus a per-atom force magnitude table with element labels and cross-model spread. |
+| **Timing** | Horizontal bar chart of computation time by structure. Summary cards with total/average time per model and speedup ratios (e.g. "small is 2.3× faster than large"). |
+| **Energy Landscape** | Scatter+line chart plotting energy/atom across all structures for each model. Overlapping points = agreement; divergence = contention. |
+| **Agreement** | Heatmap of pairwise |ΔE| (meV/atom) for every (model-pair × structure) combination. Dark = consensus, bright = disagreement. |
+
+**Scientific safeguards:**
+
+- Cross-family comparison warning: when MACE-MP-0 (PBE) and MACE-OFF (ωB97M-D3BJ) are benchmarked together, a banner warns that absolute energy differences are not physically meaningful due to different training DFT functionals
+- Per-calculation error resilience: if one (model, structure) pair fails, the error is recorded without aborting the batch
+- Timing uses Python-side measurement (excludes process spawn overhead) for accurate model-to-model comparison
+
+**Export:** Full results available as CSV (with proper escaping), JSON, or a formatted PDF report with leaderboard, timing summary, and key findings.
+
 ### Export & Reporting
 
 | Format | Contents |
@@ -98,14 +118,14 @@ The comparison card uses a blue-to-purple gradient border to visually distinguis
 
 ### Benchmark Library
 
-The built-in **ml-peg catalog** provides curated benchmark structures across four categories:
+The built-in **ml-peg catalog** provides 14 curated benchmark structures across four categories:
 
-- **Bulk Crystals** — Silicon, GaAs, LiF, NaCl, diamond, BCC iron
-- **Molecular Systems** — Water, ethanol, aspirin, benzene
-- **Non-Covalent** — Water dimer, benzene dimer, stacked DNA bases
-- **Surfaces** — Cu(111), TiO₂ anatase, Pt(111)
+- **Bulk Crystals (5)** — Silicon (diamond), Copper (FCC), NaCl (rocksalt), Iron (BCC), Diamond (carbon)
+- **Molecular Systems (5)** — Water, ethanol, methane, benzene, aspirin
+- **Non-Covalent (2)** — Water dimer, methane dimer
+- **Surfaces (2)** — Cu(111), Si(111)
 
-Each entry includes the chemical formula, atom count, recommended model (MACE-MP-0 vs. MACE-OFF), and a description. Click any structure to load it directly into the calculator.
+Each entry includes the chemical formula, atom count, recommended model (MACE-MP-0 vs. MACE-OFF), and a description. Click any structure to load it directly into the calculator, or select multiple for batch benchmarking at `/benchmark`.
 
 ### Quick Demo Mode
 
@@ -158,7 +178,7 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 
 > **Note:** First calculation may take ~30s while the MACE model downloads. Subsequent runs are fast.
 
-### Try It
+### Try It — Calculator
 
 1. Go to `/calculate` (or click **Launch Calculator** on the landing page)
 2. Upload a `.xyz` file — or browse the **ml-peg catalog** for benchmark structures
@@ -167,6 +187,15 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 5. Click **RUN MACE CALCULATION**
 6. Explore the tabbed dashboard: metrics, 3D viewer, charts, trajectory animation
 7. Export results as PDF, CSV, or JSON
+
+### Try It — Benchmark
+
+1. Go to `/benchmark` (or click **Model Benchmark** on the landing page)
+2. Select 2–3 models (e.g. MACE-MP-0 small + medium + large)
+3. Check the structures you want to test, or upload your own
+4. Click **Run Benchmark** and wait for the batch to complete
+5. Browse the five result tabs: Leaderboard, Forces, Timing, Energy Landscape, Agreement
+6. Export the full comparison as CSV, JSON, or PDF
 
 ---
 
@@ -177,9 +206,11 @@ Browser (localhost:3000)
     │
     ├── /                          Landing page + animated water MD background
     │
-    └── /calculate                 Two-panel calculator UI
+    ├── /calculate                 Two-panel calculator UI (single structure)
+    │
+    └── /benchmark                 Multi-model benchmark suite (batch)
          │
-         │  Upload files + params (multipart/form-data)
+         │  Models + structures + optional files (JSON or multipart/form-data)
          │
          ▼
     Next.js API Routes
@@ -187,17 +218,18 @@ Browser (localhost:3000)
          ├── /api/calculate        ── Python subprocess ──▶ calculate_local.py
          │                            (or remote MACE API via MACE_API_URL)
          │
+         ├── /api/benchmark        ── Batch: loops (model × structure) pairs
+         │                            via calculate_local.py or remote API
+         │
          └── /api/generate-surface ── Python subprocess ──▶ generate_surface.py
                                                               (ASE slab builder)
          │
          ▼
     Results rendered in browser:
-      ├── Metrics dashboard (5 tabs)
-      ├── 3D structure viewer (3Dmol.js / WEAS)
-      ├── Plotly charts (parity, histogram, convergence, radar)
-      ├── MD trajectory animation
-      ├── Model comparison (custom vs. foundation)
-      └── Export (PDF / CSV / JSON)
+      ├── Calculator: Metrics dashboard (5 tabs), 3D viewer, charts, trajectory
+      ├── Benchmark:  Leaderboard, forces, timing, energy landscape, heatmap
+      ├── Model comparison (custom vs. foundation, per-calculator)
+      └── Export (PDF / CSV / JSON — both calculator and benchmark)
 ```
 
 The interface runs in two modes:
@@ -265,9 +297,13 @@ All foundation models download automatically on first use and are cached locally
 mace/
   app/
     api/
-      calculate/route.ts              # Calculation API — local Python or remote backend
+      calculate/route.ts              # Single-structure calculation API
+      benchmark/route.ts              # Batch benchmark API (model × structure)
       generate-surface/route.ts       # Surface slab generation via ASE
     calculate/page.tsx                # Two-panel calculator page
+    benchmark/
+      page.tsx                        # Multi-model benchmark page
+      loading.tsx                     # Loading spinner
     globals.css                       # Design system (CSS custom properties)
     layout.tsx                        # Root layout + metadata
     page.tsx                          # Landing page with animated hero
@@ -293,12 +329,22 @@ mace/
       structure-info.tsx              # Auto-parsed structure summary + warnings
       structure-preview.tsx           # Click-to-display 3D preview
       weas-viewer.tsx                 # WEAS iframe viewer
+    benchmark/
+      benchmark-config.tsx            # Model + structure selection panel
+      benchmark-progress.tsx          # Indeterminate progress display
+      benchmark-dashboard.tsx         # Tabbed results container (5 tabs)
+      benchmark-leaderboard.tsx       # Sortable energy/atom comparison table
+      benchmark-force-bars.tsx        # RMS force bar chart + per-atom table
+      benchmark-timing.tsx            # Timing bar chart + speedup ratios
+      benchmark-energy-landscape.tsx  # Energy/atom scatter+line plot
+      benchmark-heatmap.tsx           # Pairwise model agreement heatmap
+      benchmark-export.tsx            # CSV / JSON / PDF export
     ui/                               # shadcn/ui primitives
     Footer.tsx
     intro-section.tsx                 # Landing page hero + features grid
     water-md-canvas.tsx               # Animated Three.js water background
   lib/
-    mlpeg-catalog.ts                  # ml-peg structure definitions
+    mlpeg-catalog.ts                  # ml-peg structure definitions (14 structures)
     parse-structure.ts                # Multi-format structure parser
     utils.ts
   mace-api/
@@ -329,6 +375,9 @@ mace/
 | `npm run dev` fails | Run `npm install` first. Requires Node.js 18+. |
 | CUDA out of memory | Switch to CPU in the parameter panel, or use a smaller model size. |
 | Custom model errors | Ensure the `.model` file is a valid MACE PyTorch checkpoint from `mace_run_train`. |
+| Benchmark errors on some structures | MACE-OFF only supports 10 organic elements (H, C, N, O, F, P, S, Cl, Br, I). Structures with other elements (Si, Cu, Fe, etc.) will fail with MACE-OFF — the UI grays them out automatically. |
+| Benchmark timing looks wrong | First-ever calculation includes model download time. Re-run the benchmark for accurate timing. |
+| Cross-family energy comparison | Comparing MACE-MP-0 (PBE) vs MACE-OFF (ωB97M-D3BJ) energies is not meaningful — they use different DFT references. Compare forces or relative energies within the same family. |
 
 ---
 

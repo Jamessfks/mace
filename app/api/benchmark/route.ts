@@ -1,3 +1,17 @@
+/**
+ * Benchmark API — Batch MACE calculation endpoint.
+ *
+ * Accepts 2–3 models and a set of structure IDs (from ml-peg catalog)
+ * plus optional user-uploaded structure files. Runs every (model, structure)
+ * pair sequentially and returns a unified BenchmarkResult.
+ *
+ * Dual-mode: forwards to MACE_API_URL when set (Railway), otherwise
+ * spawns local Python subprocesses via calculate_local.py.
+ *
+ * Error resilience: individual calculation failures are caught and
+ * recorded as status:"error" without aborting the batch.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getEntriesByIds } from "@/lib/mlpeg-catalog";
 import type {
@@ -54,10 +68,11 @@ function computeMaxForce(forces: number[][] | undefined): number {
 }
 
 async function runCalculationLocal(
-  xyzData: string,
-  structureId: string,
+  structureData: string,
+  structureFilename: string,
   model: BenchmarkRequestModel,
-  calculationType: string
+  calculationType: string,
+  customModelPath?: string
 ): Promise<CalculationResult> {
   const { writeFile, mkdtemp, unlink, rmdir } = await import("node:fs/promises");
   const { join } = await import("node:path");
@@ -67,8 +82,8 @@ async function runCalculationLocal(
   const execFileAsync = promisify(execFile);
 
   const tmpDir = await mkdtemp(join(os.tmpdir(), "mace-bench-"));
-  const tmpPath = join(tmpDir, `${structureId}.xyz`);
-  await writeFile(tmpPath, xyzData);
+  const tmpPath = join(tmpDir, structureFilename);
+  await writeFile(tmpPath, structureData);
 
   const params = JSON.stringify({
     modelType: model.type,
@@ -82,9 +97,14 @@ async function runCalculationLocal(
   const scriptPath = join(process.cwd(), "mace-api", "calculate_local.py");
 
   try {
+    const args = [scriptPath, tmpPath, params];
+    if (model.type === "custom" && customModelPath) {
+      args.push("--model-path", customModelPath);
+    }
+
     const { stdout, stderr } = await execFileAsync(
       "python3",
-      [scriptPath, tmpPath, params],
+      args,
       {
         timeout: 10 * 60 * 1000,
         maxBuffer: 50 * 1024 * 1024,
@@ -105,13 +125,13 @@ async function runCalculationLocal(
 }
 
 async function runCalculationRemote(
-  xyzData: string,
-  structureId: string,
+  structureData: string,
+  structureFilename: string,
   model: BenchmarkRequestModel,
   calculationType: string
 ): Promise<CalculationResult> {
-  const blob = new Blob([xyzData], { type: "chemical/x-xyz" });
-  const file = new File([blob], `${structureId}.xyz`, { type: "chemical/x-xyz" });
+  const blob = new Blob([structureData], { type: "chemical/x-xyz" });
+  const file = new File([blob], structureFilename, { type: "chemical/x-xyz" });
 
   const formData = new FormData();
   formData.append("files", file);
@@ -156,8 +176,24 @@ async function runCalculationRemote(
  * collecting energy, forces, and timing for each (model, structure) pair.
  */
 export async function POST(request: NextRequest) {
+  let customModelPath: string | undefined;
+
   try {
-    const body: BenchmarkRequestBody = await request.json();
+    let body: BenchmarkRequestBody;
+    let modelFile: File | null = null;
+    let structureFiles: File[] = [];
+
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const jsonStr = formData.get("json") as string;
+      body = JSON.parse(jsonStr);
+      modelFile = formData.get("model") as File | null;
+      structureFiles = formData.getAll("structures") as File[];
+    } else {
+      body = await request.json();
+    }
+
     const { models, structureIds, calculationType = "single-point" } = body;
 
     if (!models || models.length < 2 || models.length > 3) {
@@ -167,17 +203,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!structureIds || structureIds.length === 0) {
+    const hasStructureIds = structureIds && structureIds.length > 0;
+    const hasStructureFiles = structureFiles.length > 0;
+
+    if (!hasStructureIds && !hasStructureFiles) {
       return NextResponse.json(
-        { error: "Provide at least one structure ID" },
+        { error: "Provide at least one structure (catalog selection or file upload)" },
         { status: 400 }
       );
     }
 
-    const entries = getEntriesByIds(structureIds);
-    if (entries.length === 0) {
+    // Write custom model file to disk if provided
+    if (modelFile) {
+      const { writeFile, mkdtemp } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const os = await import("node:os");
+      const tmpDir = await mkdtemp(join(os.tmpdir(), "mace-model-"));
+      customModelPath = join(tmpDir, modelFile.name);
+      const modelBuffer = Buffer.from(await modelFile.arrayBuffer());
+      await writeFile(customModelPath, modelBuffer);
+    }
+
+    // Read user-uploaded structure files into memory
+    const userStructures: { id: string; name: string; filename: string; data: string; atomCount: number }[] = [];
+    for (const sf of structureFiles) {
+      const text = await sf.text();
+      const lines = text.trim().split("\n");
+      let atomCount = 0;
+      try { atomCount = parseInt(lines[0], 10) || lines.length - 2; } catch { atomCount = 0; }
+      const baseName = sf.name.replace(/\.[^.]+$/, "");
+      userStructures.push({
+        id: `user-${baseName}`,
+        name: sf.name,
+        filename: sf.name,
+        data: text,
+        atomCount: Math.max(atomCount, 1),
+      });
+    }
+
+    // Build the catalog entries list
+    const catalogEntries = hasStructureIds ? getEntriesByIds(structureIds) : [];
+    const totalEntryCount = catalogEntries.length + userStructures.length;
+
+    if (totalEntryCount === 0) {
       return NextResponse.json(
-        { error: "No valid structure IDs found" },
+        { error: "No valid structures found" },
         { status: 400 }
       );
     }
@@ -187,15 +257,16 @@ export async function POST(request: NextRequest) {
     let errorCount = 0;
     const batchStart = Date.now();
 
-    for (const entry of entries) {
+    // --- Run catalog structures ---
+    for (const entry of catalogEntries) {
       const modelResults: BenchmarkModelResult[] = [];
 
       for (const model of models) {
         const calcStart = Date.now();
         try {
           const calcResult = MACE_API_URL
-            ? await runCalculationRemote(entry.xyzData, entry.id, model, calculationType)
-            : await runCalculationLocal(entry.xyzData, entry.id, model, calculationType);
+            ? await runCalculationRemote(entry.xyzData, `${entry.id}.xyz`, model, calculationType)
+            : await runCalculationLocal(entry.xyzData, `${entry.id}.xyz`, model, calculationType, customModelPath);
 
           if (calcResult.status === "error") {
             errorCount++;
@@ -259,8 +330,81 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // --- Run user-uploaded structures ---
+    for (const us of userStructures) {
+      const modelResults: BenchmarkModelResult[] = [];
+
+      for (const model of models) {
+        const calcStart = Date.now();
+        try {
+          const calcResult = MACE_API_URL
+            ? await runCalculationRemote(us.data, us.filename, model, calculationType)
+            : await runCalculationLocal(us.data, us.filename, model, calculationType, customModelPath);
+
+          if (calcResult.status === "error") {
+            errorCount++;
+            modelResults.push({
+              modelLabel: modelLabel(model),
+              modelType: model.type,
+              modelSize: model.size,
+              status: "error",
+              error: calcResult.message || "Calculation returned error",
+              timeTaken: (Date.now() - calcStart) / 1000,
+            });
+            continue;
+          }
+
+          const atomCount = calcResult.symbols?.length ?? us.atomCount;
+          const ePerAtom =
+            calcResult.energy != null && atomCount > 0
+              ? calcResult.energy / atomCount
+              : undefined;
+
+          successCount++;
+          modelResults.push({
+            modelLabel: modelLabel(model),
+            modelType: model.type,
+            modelSize: model.size,
+            status: "success",
+            energy: calcResult.energy,
+            energyPerAtom: ePerAtom,
+            forces: calcResult.forces,
+            symbols: calcResult.symbols,
+            rmsForce: computeRmsForce(calcResult.forces),
+            maxForce: computeMaxForce(calcResult.forces),
+            timeTaken: calcResult.timeTaken ?? (Date.now() - calcStart) / 1000,
+          });
+        } catch (err) {
+          errorCount++;
+          let errMsg = err instanceof Error ? err.message : "Unknown error";
+          if (/element|not supported|species|atomic number/i.test(errMsg)) {
+            errMsg +=
+              " (This model may not support the elements in this structure." +
+              " MACE-OFF only supports H, C, N, O, F, P, S, Cl, Br, I.)";
+          }
+          modelResults.push({
+            modelLabel: modelLabel(model),
+            modelType: model.type,
+            modelSize: model.size,
+            status: "error",
+            error: errMsg,
+            timeTaken: (Date.now() - calcStart) / 1000,
+          });
+        }
+      }
+
+      results.push({
+        structureId: us.id,
+        structureName: us.name,
+        category: "uploaded",
+        formula: us.name,
+        atomCount: us.atomCount,
+        models: modelResults,
+      });
+    }
+
     const totalTime = (Date.now() - batchStart) / 1000;
-    const totalCalculations = models.length * entries.length;
+    const totalCalculations = models.length * totalEntryCount;
 
     const benchmarkResult: BenchmarkResult = {
       status:
@@ -271,7 +415,7 @@ export async function POST(request: NextRequest) {
             : "partial",
       results,
       summary: {
-        totalStructures: entries.length,
+        totalStructures: totalEntryCount,
         totalModels: models.length,
         totalCalculations,
         successCount,
@@ -287,5 +431,15 @@ export async function POST(request: NextRequest) {
       { error: error instanceof Error ? error.message : "Benchmark failed" },
       { status: 500 }
     );
+  } finally {
+    if (customModelPath) {
+      try {
+        const { unlink } = await import("node:fs/promises");
+        const { dirname } = await import("node:path");
+        const { rmdir } = await import("node:fs/promises");
+        await unlink(customModelPath);
+        await rmdir(dirname(customModelPath));
+      } catch {}
+    }
   }
 }
