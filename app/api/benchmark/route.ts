@@ -225,18 +225,25 @@ export async function POST(request: NextRequest) {
             energy: calcResult.energy,
             energyPerAtom: ePerAtom,
             forces: calcResult.forces,
+            symbols: calcResult.symbols,
             rmsForce: computeRmsForce(calcResult.forces),
             maxForce: computeMaxForce(calcResult.forces),
             timeTaken: calcResult.timeTaken ?? (Date.now() - calcStart) / 1000,
           });
         } catch (err) {
           errorCount++;
+          let errMsg = err instanceof Error ? err.message : "Unknown error";
+          if (/element|not supported|species|atomic number/i.test(errMsg)) {
+            errMsg +=
+              " (This model may not support the elements in this structure." +
+              " MACE-OFF only supports H, C, N, O, F, P, S, Cl, Br, I.)";
+          }
           modelResults.push({
             modelLabel: modelLabel(model),
             modelType: model.type,
             modelSize: model.size,
             status: "error",
-            error: err instanceof Error ? err.message : "Unknown error",
+            error: errMsg,
             timeTaken: (Date.now() - calcStart) / 1000,
           });
         }

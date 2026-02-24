@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Trophy,
   ArrowRightLeft,
   Timer,
   TrendingUp,
   Grid3X3,
+  AlertTriangle,
 } from "lucide-react";
 import { BenchmarkLeaderboard } from "./benchmark-leaderboard";
 import { BenchmarkForceBars } from "./benchmark-force-bars";
@@ -39,6 +40,18 @@ interface DashboardProps {
 export function BenchmarkDashboard({ result }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<TabId>("leaderboard");
 
+  const modelLabels = useMemo(() => {
+    if (result.results.length === 0) return [];
+    return result.results[0].models.map((m) => m.modelLabel);
+  }, [result]);
+
+  const isCrossFamily = useMemo(() => {
+    const families = new Set(
+      result.results[0]?.models.map((m) => m.modelType) ?? []
+    );
+    return families.has("MACE-MP-0") && families.has("MACE-OFF");
+  }, [result]);
+
   return (
     <div className="space-y-5">
       {/* Status Banner */}
@@ -49,7 +62,7 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
             Benchmark Complete
           </span>
           <span className="font-mono text-xs text-[var(--color-text-muted)]">
-            {result.summary.totalCalculations} calculations in{" "}
+            {modelLabels.join(" vs ")} — {result.summary.totalCalculations} calculations in{" "}
             {result.summary.totalTime.toFixed(1)}s
           </span>
           {result.summary.errorCount > 0 && (
@@ -60,6 +73,21 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
         </div>
         <BenchmarkExport result={result} />
       </div>
+
+      {/* Cross-family warning */}
+      {isCrossFamily && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5 px-5 py-3.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-warning)]" />
+          <div className="font-mono text-xs text-[var(--color-warning)]">
+            <p className="font-semibold">Cross-family comparison</p>
+            <p className="mt-0.5 text-[var(--color-warning)]/80">
+              MACE-MP-0 and MACE-OFF are trained on different levels of theory (PBE vs
+              ωB97M-D3BJ). Absolute energy differences between them are not physically meaningful.
+              Compare forces and relative energies within each family instead.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tab Bar */}
       <div className="flex overflow-x-auto border-b border-[var(--color-border-subtle)]">

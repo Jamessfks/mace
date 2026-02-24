@@ -4,12 +4,13 @@ import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult } from "@/types/mace";
-import type { Dash } from "plotly.js";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 const MODEL_COLORS = [DATA_COLORS.blue, DATA_COLORS.red, DATA_COLORS.green];
 const MARKERS = ["circle", "diamond", "square"] as const;
+
+type Dash = "solid" | "dot" | "dashdot" | "dash" | "longdash";
 
 interface EnergyLandscapeProps {
   result: BenchmarkResult;
@@ -25,7 +26,7 @@ export function BenchmarkEnergyLandscape({ result }: EnergyLandscapeProps) {
 
   const traces = modelLabels.map((label, mi) => ({
     name: label,
-    type: "scattergl" as const,
+    type: "scatter" as const,
     mode: "lines+markers" as const,
     x: structureNames,
     y: result.results.map((r) => r.models[mi]?.energyPerAtom ?? null),

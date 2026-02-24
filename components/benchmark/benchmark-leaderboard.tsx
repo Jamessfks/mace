@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, ChevronRight } from "lucide-react";
 import { DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult, BenchmarkStructureResult } from "@/types/mace";
@@ -156,9 +156,8 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
             const isExpanded = expandedRow === row.structureId;
 
             return (
-              <>
+              <Fragment key={row.structureId}>
                 <tr
-                  key={row.structureId}
                   className={`cursor-pointer border-t border-[var(--color-border-subtle)]/60 transition-colors hover:bg-[var(--color-bg-elevated)] ${
                     highDisagreement ? "bg-[var(--color-error)]/3" : ""
                   }`}
@@ -212,7 +211,7 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                   </td>
                 </tr>
                 {isExpanded && (
-                  <tr key={`${row.structureId}-expanded`}>
+                  <tr>
                     <td
                       colSpan={4 + modelLabels.length + 1}
                       className="border-t border-[var(--color-border-subtle)]/30 bg-[var(--color-bg-primary)] px-4 py-3"
@@ -221,7 +220,7 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
@@ -283,6 +282,7 @@ function ExpandedForceDetails({
           <thead className="sticky top-0 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
             <tr>
               <th className="px-2 py-1 text-left">#</th>
+              <th className="px-2 py-1 text-left">Elem</th>
               {row.models.map((m, i) => (
                 <th key={i} className="px-2 py-1 text-right" style={{ color: modelColors[i] }}>
                   |F| {m.modelLabel.split(" ")[0]}
@@ -291,9 +291,12 @@ function ExpandedForceDetails({
             </tr>
           </thead>
           <tbody className="text-[var(--color-text-secondary)]">
-            {Array.from({ length: maxAtoms }).map((_, ai) => (
+            {Array.from({ length: maxAtoms }).map((_, ai) => {
+              const sym = row.models.find((m) => m.symbols?.[ai])?.symbols?.[ai] ?? "—";
+              return (
               <tr key={ai} className="border-t border-[var(--color-border-subtle)]/40">
                 <td className="px-2 py-0.5 text-[var(--color-text-muted)]">{ai + 1}</td>
+                <td className="px-2 py-0.5 font-semibold">{sym}</td>
                 {row.models.map((m, mi) => {
                   const f = m.forces?.[ai];
                   const mag = f
@@ -306,7 +309,8 @@ function ExpandedForceDetails({
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

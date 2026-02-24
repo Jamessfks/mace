@@ -97,6 +97,7 @@ export interface BenchmarkModelResult {
   energy?: number;
   energyPerAtom?: number;
   forces?: number[][];
+  symbols?: string[];
   rmsForce?: number;
   maxForce?: number;
   timeTaken?: number;

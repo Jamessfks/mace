@@ -104,6 +104,7 @@ def extract_reference_data(atoms) -> dict:
 
 
 def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict:
+    import time
     from ase.io import read
 
     fmt = detect_format(filepath)
@@ -123,6 +124,8 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
     else:
         calc = get_mace_calculator(model_type, model_size, device, dispersion)
     atoms.calc = calc
+
+    calc_start = time.time()
 
     if calc_type == "geometry-opt":
         fmax = float(params.get("forceThreshold", 0.05))
@@ -180,6 +183,7 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
             "trajectory": {"energies": traj_energies, "positions": traj_positions, "step": traj_steps},
             "properties": {"volume": float(atoms.get_volume()) if atoms.pbc.any() else None},
             "message": f"MD ({ensemble}) completed for {filename} ({md_steps} steps)",
+            "timeTaken": round(time.time() - calc_start, 3),
         }
         result.update(ref_data)
         return result
@@ -202,6 +206,7 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
         "lattice": lattice,
         "properties": {"volume": float(atoms.get_volume()) if atoms.pbc.any() else None},
         "message": msg,
+        "timeTaken": round(time.time() - calc_start, 3),
     }
     result.update(ref_data)
     return result

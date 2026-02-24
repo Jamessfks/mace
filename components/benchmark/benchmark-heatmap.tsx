@@ -47,7 +47,7 @@ export function BenchmarkHeatmap({ result }: HeatmapProps) {
       })
     );
 
-    const anns: Plotly.Annotations[] = [];
+    const anns: any[] = [];
     for (let pi = 0; pi < pairs.length; pi++) {
       for (let si = 0; si < result.results.length; si++) {
         const val = z[pi][si];

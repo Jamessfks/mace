@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Play, AlertTriangle, Upload, X } from "lucide-react";
-import { MLPEG_CATALOG, type CatalogCategory } from "@/lib/mlpeg-catalog";
+import { Play, AlertTriangle, Info, Upload, X } from "lucide-react";
+import { MLPEG_CATALOG, type CatalogCategory, type CatalogEntry } from "@/lib/mlpeg-catalog";
 import type { ModelType, ModelSize } from "@/types/mace";
 
 export interface SelectedModel {
@@ -32,8 +32,16 @@ const MODEL_OPTIONS: ModelOption[] = [
   { type: "MACE-OFF", size: "large", label: "MACE-OFF (large)", family: "MACE-OFF" },
 ];
 
+const MACE_OFF_ELEMENTS = new Set([
+  "H", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I",
+]);
+
 function modelKey(m: ModelOption | SelectedModel): string {
   return `${m.type}-${m.size}`;
+}
+
+function isStructureCompatibleWithOFF(entry: CatalogEntry): boolean {
+  return entry.elements.every((el) => MACE_OFF_ELEMENTS.has(el));
 }
 
 export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
@@ -69,7 +77,9 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
   const toggleCategory = (cat: CatalogCategory) => {
     setSelectedStructures((prev) => {
       const next = new Set(prev);
-      const catIds = cat.entries.map((e) => e.id);
+      const catIds = cat.entries
+        .filter((e) => !incompatibleIds.has(e.id))
+        .map((e) => e.id);
       const allSelected = catIds.every((id) => next.has(id));
       if (allSelected) {
         catIds.forEach((id) => next.delete(id));
@@ -80,24 +90,92 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
     });
   };
 
+  const hasAnyOFF = useMemo(() => {
+    return MODEL_OPTIONS.some(
+      (m) => m.family === "MACE-OFF" && selectedModels.has(modelKey(m))
+    );
+  }, [selectedModels]);
+
+  const hasAnyMP0 = useMemo(() => {
+    return MODEL_OPTIONS.some(
+      (m) => m.family === "MACE-MP-0" && selectedModels.has(modelKey(m))
+    );
+  }, [selectedModels]);
+
+  const onlyOFF = hasAnyOFF && !hasAnyMP0;
+
+  const incompatibleIds = useMemo(() => {
+    if (!hasAnyOFF) return new Set<string>();
+    const ids = new Set<string>();
+    for (const cat of MLPEG_CATALOG) {
+      for (const e of cat.entries) {
+        if (!isStructureCompatibleWithOFF(e)) {
+          ids.add(e.id);
+        }
+      }
+    }
+    return ids;
+  }, [hasAnyOFF]);
+
+  const incompatibleNames = useMemo(() => {
+    if (incompatibleIds.size === 0) return [];
+    const all = MLPEG_CATALOG.flatMap((c) => c.entries);
+    return all.filter((e) => incompatibleIds.has(e.id)).map((e) => e.name);
+  }, [incompatibleIds]);
+
+  const unsupportedElements = useMemo(() => {
+    if (incompatibleIds.size === 0) return [];
+    const elems = new Set<string>();
+    const all = MLPEG_CATALOG.flatMap((c) => c.entries);
+    for (const e of all) {
+      if (incompatibleIds.has(e.id)) {
+        for (const el of e.elements) {
+          if (!MACE_OFF_ELEMENTS.has(el)) elems.add(el);
+        }
+      }
+    }
+    return Array.from(elems).sort();
+  }, [incompatibleIds]);
+
+  // If MACE-OFF is selected, auto-deselect incompatible structures
+  useMemo(() => {
+    if (incompatibleIds.size === 0) return;
+    setSelectedStructures((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of incompatibleIds) {
+        if (next.has(id)) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [incompatibleIds]);
+
   const selectAll = () => {
     setSelectedStructures(
-      new Set(MLPEG_CATALOG.flatMap((c) => c.entries.map((e) => e.id)))
+      new Set(
+        MLPEG_CATALOG.flatMap((c) =>
+          c.entries
+            .filter((e) => !incompatibleIds.has(e.id))
+            .map((e) => e.id)
+        )
+      )
     );
   };
 
   const clearAll = () => setSelectedStructures(new Set());
 
-  const totalModels = selectedModels.size + (customModel ? 1 : 0);
+  const totalModels = selectedModels.size;
   const totalStructures = selectedStructures.size;
   const totalCalcs = totalModels * totalStructures;
   const canRun = totalModels >= 2 && totalModels <= 3 && totalStructures >= 1;
 
   const resolvedModels = useMemo(() => {
-    const models: SelectedModel[] = MODEL_OPTIONS
+    return MODEL_OPTIONS
       .filter((m) => selectedModels.has(modelKey(m)))
       .map((m) => ({ type: m.type, size: m.size, label: m.label }));
-    return models;
   }, [selectedModels]);
 
   const handleRun = () => {
@@ -120,7 +198,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
           {/* MACE-MP-0 */}
           <div className="mb-3">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
-              MACE-MP-0 — Materials
+              MACE-MP-0 — Materials (89 elements)
             </p>
             <div className="flex flex-wrap gap-2">
               {MODEL_OPTIONS.filter((m) => m.family === "MACE-MP-0").map((m) => {
@@ -129,6 +207,9 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 return (
                   <button
                     key={key}
+                    role="checkbox"
+                    aria-checked={checked}
+                    aria-label={`Select ${m.label}`}
                     onClick={() => toggleModel(key)}
                     className={`rounded-lg border px-3 py-1.5 font-mono text-xs transition-all ${
                       checked
@@ -146,7 +227,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
           {/* MACE-OFF */}
           <div className="mb-3">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
-              MACE-OFF — Organic
+              MACE-OFF — Organic (H, C, N, O, F, P, S, Cl, Br, I)
             </p>
             <div className="flex flex-wrap gap-2">
               {MODEL_OPTIONS.filter((m) => m.family === "MACE-OFF").map((m) => {
@@ -155,6 +236,9 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 return (
                   <button
                     key={key}
+                    role="checkbox"
+                    aria-checked={checked}
+                    aria-label={`Select ${m.label}`}
                     onClick={() => toggleModel(key)}
                     className={`rounded-lg border px-3 py-1.5 font-mono text-xs transition-all ${
                       checked
@@ -170,9 +254,12 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
           </div>
 
           {/* Custom model upload */}
-          <div>
+          <div className="mb-3">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
               Custom Model
+              <span className="ml-1.5 rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 text-[9px] normal-case tracking-normal text-[var(--color-text-muted)]">
+                coming soon
+              </span>
             </p>
             {customModel ? (
               <div className="flex items-center gap-2 rounded-lg border border-[var(--color-accent-secondary)]/50 bg-[var(--color-accent-secondary)]/10 px-3 py-1.5">
@@ -180,7 +267,10 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 <span className="font-mono text-xs text-[var(--color-accent-secondary)]">
                   {customModel.name}
                 </span>
-                <button onClick={() => setCustomModel(null)} className="ml-auto">
+                <span className="ml-1 rounded bg-[var(--color-warning)]/10 px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-warning)]">
+                  not yet supported in batch benchmark
+                </span>
+                <button onClick={() => setCustomModel(null)} className="ml-auto" aria-label="Remove custom model">
                   <X className="h-3 w-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" />
                 </button>
               </div>
@@ -204,6 +294,30 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
               Max 3 models. Deselect one to proceed.
             </div>
           )}
+
+          {/* MACE-OFF incompatibility warning */}
+          {hasAnyOFF && incompatibleNames.length > 0 && (
+            <div className="mt-3 rounded border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5 px-3 py-2">
+              <div className="flex items-start gap-2 font-mono text-xs text-[var(--color-warning)]">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                <div>
+                  <p>
+                    MACE-OFF does not support {unsupportedElements.join(", ")}.
+                    {onlyOFF ? " These structures are excluded:" : " These structures will only run on MACE-MP-0:"}
+                  </p>
+                  <p className="mt-1 text-[var(--color-warning)]/70">
+                    {incompatibleNames.join(", ")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Precision note */}
+          <div className="mt-3 flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+            <Info className="h-3 w-3 flex-shrink-0" />
+            All calculations run at float64 precision on CPU for fair comparison.
+          </div>
         </div>
 
         {/* Structure Selection */}
@@ -233,15 +347,22 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
           <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
             {MLPEG_CATALOG.map((cat) => {
-              const catIds = cat.entries.map((e) => e.id);
-              const allChecked = catIds.every((id) => selectedStructures.has(id));
+              const compatibleEntries = cat.entries.filter(
+                (e) => !incompatibleIds.has(e.id)
+              );
+              const catIds = compatibleEntries.map((e) => e.id);
+              const allChecked = catIds.length > 0 && catIds.every((id) => selectedStructures.has(id));
               const someChecked = catIds.some((id) => selectedStructures.has(id));
 
               return (
                 <div key={cat.id}>
                   <button
+                    role="checkbox"
+                    aria-checked={allChecked ? true : someChecked ? "mixed" : false}
+                    aria-label={`Select all ${cat.name}`}
                     onClick={() => toggleCategory(cat)}
-                    className="mb-1 flex w-full items-center gap-2 text-left"
+                    disabled={catIds.length === 0}
+                    className="mb-1 flex w-full items-center gap-2 text-left disabled:opacity-40"
                   >
                     <span
                       className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
@@ -264,12 +385,21 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
                   <div className="ml-6 space-y-0.5">
                     {cat.entries.map((entry) => {
+                      const isDisabled = incompatibleIds.has(entry.id);
                       const checked = selectedStructures.has(entry.id);
                       return (
                         <button
                           key={entry.id}
-                          onClick={() => toggleStructure(entry.id)}
-                          className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-[var(--color-bg-elevated)]"
+                          role="checkbox"
+                          aria-checked={checked}
+                          aria-label={`Select ${entry.name}`}
+                          onClick={() => !isDisabled && toggleStructure(entry.id)}
+                          disabled={isDisabled}
+                          className={`flex w-full items-center gap-2 rounded px-1 py-0.5 text-left transition-colors ${
+                            isDisabled
+                              ? "opacity-35 cursor-not-allowed"
+                              : "hover:bg-[var(--color-bg-elevated)]"
+                          }`}
                         >
                           <span
                             className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border text-[9px] ${

@@ -70,7 +70,7 @@ export function BenchmarkTiming({ result }: TimingProps) {
               ...BASE_LAYOUT.yaxis,
               autorange: "reversed" as const,
             },
-            height: Math.max(300, result.results.length * 50 + 80),
+            height: Math.max(350, result.results.length * 60 + 100),
             margin: { l: 140, r: 20, t: 30, b: 60 },
           }}
           config={BASE_CONFIG}

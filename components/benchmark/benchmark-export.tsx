@@ -199,8 +199,8 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
           : 0;
 
       return [
-        r.structureName,
-        r.category,
+        csvEscape(r.structureName),
+        csvEscape(r.category),
         r.atomCount,
         ...r.models.flatMap((m) => [
           m.energyPerAtom?.toFixed(6) ?? "error",
@@ -262,6 +262,13 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
       </button>
     </div>
   );
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
 function downloadBlob(content: string, filename: string, type: string) {

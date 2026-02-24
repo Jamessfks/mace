@@ -24,32 +24,16 @@ export default function BenchmarkPage() {
 
   const [models, setModels] = useState<SelectedModel[]>([]);
   const [structureIds, setStructureIds] = useState<string[]>([]);
-  const [completed, setCompleted] = useState(0);
   const [total, setTotal] = useState(0);
-  const [currentStructure, setCurrentStructure] = useState<string>();
-  const [currentModel, setCurrentModel] = useState<string>();
-  const [errors, setErrors] = useState<Set<string>>(new Set());
   const startTimeRef = useRef(Date.now());
 
   const handleRun = useCallback(
     async (selectedModels: SelectedModel[], selectedIds: string[]) => {
       setModels(selectedModels);
       setStructureIds(selectedIds);
-      setCompleted(0);
       setTotal(selectedModels.length * selectedIds.length);
-      setErrors(new Set());
       setPhase("running");
       startTimeRef.current = Date.now();
-
-      let calcIndex = 0;
-      for (const sid of selectedIds) {
-        for (const model of selectedModels) {
-          setCurrentStructure(sid);
-          setCurrentModel(model.label);
-          calcIndex++;
-          setCompleted(calcIndex - 1);
-        }
-      }
 
       try {
         const response = await fetch("/api/benchmark", {
@@ -68,7 +52,6 @@ export default function BenchmarkPage() {
         }
 
         const data: BenchmarkResult = await response.json();
-        setCompleted(selectedModels.length * selectedIds.length);
         setResult(data);
         setPhase("results");
       } catch (err) {
@@ -158,11 +141,7 @@ export default function BenchmarkPage() {
               models={models}
               structureIds={structureIds}
               structureNames={structureNameMap}
-              completed={completed}
               total={total}
-              currentStructure={currentStructure}
-              currentModel={currentModel}
-              errors={errors}
               startTime={startTimeRef.current}
             />
           )}

@@ -53,10 +53,11 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
         const spread = valid.length >= 2
           ? Math.max(...valid) - Math.min(...valid)
           : 0;
+        const sym = r.models.find((m) => m.symbols?.[ai])?.symbols?.[ai] ?? "—";
         rows.push({
           structureName: r.structureName,
           atomIndex: ai + 1,
-          element: "—",
+          element: sym,
           forces: mags,
           spread,
         });
@@ -108,6 +109,7 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
               <tr>
                 <th className="px-3 py-2 text-left">Structure</th>
                 <th className="px-3 py-2 text-right">Atom#</th>
+                <th className="px-3 py-2 text-left">Elem</th>
                 {modelLabels.map((l, i) => (
                   <th key={i} className="px-3 py-2 text-right" style={{ color: MODEL_COLORS[i] }}>
                     |F| {l.split(" (")[0]}
@@ -124,6 +126,7 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
                 >
                   <td className="px-3 py-1.5">{row.structureName}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{row.atomIndex}</td>
+                  <td className="px-3 py-1.5 font-semibold">{row.element}</td>
                   {row.forces.map((f, fi) => (
                     <td key={fi} className="px-3 py-1.5 text-right tabular-nums">
                       {f != null ? f.toFixed(4) : "—"}
