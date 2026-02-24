@@ -40,7 +40,8 @@
  */
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, ChevronRight, X, Atom } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, ChevronDown, ChevronRight, X, Atom, FlaskConical } from "lucide-react";
 import {
   getCategories,
   catalogEntryToFile,
@@ -154,19 +155,28 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
           </div>
 
           {/* Footer */}
-          <p className="mt-4 font-mono text-[10px] text-zinc-600">
-            Structures from{" "}
-            <a
-              href="https://github.com/ddmms/ml-peg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
+          <div className="mt-4 flex items-center justify-between">
+            <p className="font-mono text-[10px] text-zinc-600">
+              Structures from{" "}
+              <a
+                href="https://github.com/ddmms/ml-peg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                ml-peg v0.2.2
+              </a>
+              {" · "}
+              {totalStructures} structures · GPL-3.0 license
+            </p>
+            <Link
+              href="/benchmark"
+              className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-accent-secondary)] transition-colors hover:text-[var(--color-accent-primary)]"
             >
-              ml-peg v0.2.2
-            </a>
-            {" · "}
-            {totalStructures} structures · GPL-3.0 license
-          </p>
+              <FlaskConical className="h-3 w-3" />
+              Run full benchmark →
+            </Link>
+          </div>
         </div>
       )}
     </div>

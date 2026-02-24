@@ -34,6 +34,11 @@ Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
 ## Why This Exists
 
 Running MACE calculations today requires writing Python scripts, managing ASE atom objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists.  But it locks out students who try to learn materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
+
+The best thing about this web is, Multi-Model Benchmark!
+
+Avoid the tedious work of picking your own evaluation matrix to compare two or more models. This web will do it, and better!
+
 This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard in your browser. No terminal, no scripts, no environment setup.
 
 It also solves a problem that even experienced MACE users face: **model comparison**. When you train a custom MACE model, how does it stack up against the foundation model on the same structure? This interface lets you run both side-by-side and see a radar chart comparing Energy MAE, Force MAE, R², RMSE, and Max Force Error — instantly.

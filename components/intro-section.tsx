@@ -124,6 +124,14 @@ export function IntroSection() {
             variant="outline"
             className="border-[var(--color-border-emphasis)] bg-transparent px-8 font-sans text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-white transition-all"
           >
+            <Link href="/benchmark">Model Benchmark</Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="border-[var(--color-border-emphasis)] bg-transparent px-8 font-sans text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-white transition-all"
+          >
             <Link href="/calculate?demo=true">Quick Demo</Link>
           </Button>
         </div>

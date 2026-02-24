@@ -78,3 +78,49 @@ export interface UploadedStructure {
   elements: string[];
   preview?: string;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Benchmark Suite Types
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface BenchmarkModelConfig {
+  type: ModelType;
+  size: ModelSize;
+  label: string;
+}
+
+export interface BenchmarkModelResult {
+  modelLabel: string;
+  modelType: ModelType;
+  modelSize: ModelSize;
+  status: "success" | "error";
+  energy?: number;
+  energyPerAtom?: number;
+  forces?: number[][];
+  rmsForce?: number;
+  maxForce?: number;
+  timeTaken?: number;
+  error?: string;
+}
+
+export interface BenchmarkStructureResult {
+  structureId: string;
+  structureName: string;
+  category: string;
+  formula: string;
+  atomCount: number;
+  models: BenchmarkModelResult[];
+}
+
+export interface BenchmarkResult {
+  status: "success" | "partial" | "error";
+  results: BenchmarkStructureResult[];
+  summary: {
+    totalStructures: number;
+    totalModels: number;
+    totalCalculations: number;
+    successCount: number;
+    errorCount: number;
+    totalTime: number;
+  };
+}

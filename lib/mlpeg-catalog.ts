@@ -437,3 +437,20 @@ export function catalogEntryToFile(entry: CatalogEntry): File {
   const blob = new Blob([entry.xyzData], { type: "chemical/x-xyz" });
   return new File([blob], `${entry.id}.xyz`, { type: "chemical/x-xyz" });
 }
+
+/** Find multiple entries by their IDs. Returns found entries in input order. */
+export function getEntriesByIds(ids: string[]): (CatalogEntry & { category: string })[] {
+  const all = MLPEG_CATALOG.flatMap((cat) =>
+    cat.entries.map((e) => ({ ...e, category: cat.id }))
+  );
+  const map = new Map(all.map((e) => [e.id, e]));
+  return ids.flatMap((id) => {
+    const entry = map.get(id);
+    return entry ? [entry] : [];
+  });
+}
+
+/** Get the category name for a given category id. */
+export function getCategoryName(categoryId: string): string {
+  return MLPEG_CATALOG.find((c) => c.id === categoryId)?.name ?? categoryId;
+}
