@@ -111,6 +111,11 @@ export interface BenchmarkStructureResult {
   formula: string;
   atomCount: number;
   models: BenchmarkModelResult[];
+  /** Experimental reference values for context (not for automated scoring). */
+  reference?: {
+    cohesiveEnergy?: { value: number; source: string };
+    latticeConstant?: { value: number; source: string };
+  };
 }
 
 export interface BenchmarkResult {

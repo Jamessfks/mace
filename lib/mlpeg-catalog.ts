@@ -67,6 +67,25 @@ export interface CatalogEntry {
   recommendedModel: "MACE-MP-0" | "MACE-OFF";
   /** XYZ-formatted string of the structure */
   xyzData: string;
+  /**
+   * Known experimental/DFT reference values for validation context.
+   *
+   * IMPORTANT: These are EXPERIMENTAL cohesive energies — not DFT total
+   * energies. MACE-MP-0 is trained on PBE DFT, which systematically
+   * overbinds vs experiment (typical error 0.1–0.5 eV/atom). These
+   * values provide CONTEXT for researchers, not a scoring target.
+   * Direct comparison of MACE total energy/atom to experimental
+   * cohesive energy is scientifically invalid without accounting for
+   * the isolated atom reference and the DFT functional's known biases.
+   *
+   * Sources: Kittel "Introduction to Solid State Physics" 8th ed.,
+   * CRC Handbook of Chemistry and Physics, Farid & Godby PRB 43 14248.
+   * See also: Miret et al. arXiv:2502.03660 on MLIP evaluation.
+   */
+  reference?: {
+    cohesiveEnergy?: { value: number; source: string };
+    latticeConstant?: { value: number; source: string };
+  };
 }
 
 /** A category of structures (e.g. "Bulk Crystals"). */
@@ -113,6 +132,10 @@ export const MLPEG_CATALOG: CatalogCategory[] = [
         atomCount: 2,
         elements: ["Si"],
         recommendedModel: "MACE-MP-0",
+        reference: {
+          cohesiveEnergy: { value: -4.63, source: "Exp (Kittel, 8th ed.; Farid & Godby PRB 43 14248: 4.62±0.08)" },
+          latticeConstant: { value: 5.431, source: "Exp (Kittel, 8th ed.)" },
+        },
         xyzData: `2
 Lattice="5.43 0.0 0.0 0.0 5.43 0.0 0.0 0.0 5.43" Properties=species:S:1:pos:R:3 pbc="T T T"
 Si 0.000000 0.000000 0.000000
@@ -127,6 +150,10 @@ Si 1.357500 1.357500 1.357500`,
         atomCount: 4,
         elements: ["Cu"],
         recommendedModel: "MACE-MP-0",
+        reference: {
+          cohesiveEnergy: { value: -3.49, source: "Exp (Kittel, 8th ed.)" },
+          latticeConstant: { value: 3.615, source: "Exp (Kittel, 8th ed.)" },
+        },
         xyzData: `4
 Lattice="3.615 0.0 0.0 0.0 3.615 0.0 0.0 0.0 3.615" Properties=species:S:1:pos:R:3 pbc="T T T"
 Cu 0.000000 0.000000 0.000000
@@ -143,6 +170,10 @@ Cu 1.807500 1.807500 0.000000`,
         atomCount: 8,
         elements: ["Na", "Cl"],
         recommendedModel: "MACE-MP-0",
+        reference: {
+          cohesiveEnergy: { value: -3.34, source: "Exp (CRC Handbook; -6.68 eV/formula unit ÷ 2 atoms)" },
+          latticeConstant: { value: 5.640, source: "Exp (CRC Handbook)" },
+        },
         xyzData: `8
 Lattice="5.64 0.0 0.0 0.0 5.64 0.0 0.0 0.0 5.64" Properties=species:S:1:pos:R:3 pbc="T T T"
 Na 0.000000 0.000000 0.000000
@@ -163,6 +194,10 @@ Cl 2.820000 2.820000 2.820000`,
         atomCount: 2,
         elements: ["Fe"],
         recommendedModel: "MACE-MP-0",
+        reference: {
+          cohesiveEnergy: { value: -4.28, source: "Exp (Kittel, 8th ed.)" },
+          latticeConstant: { value: 2.870, source: "Exp (Kittel, 8th ed.)" },
+        },
         xyzData: `2
 Lattice="2.87 0.0 0.0 0.0 2.87 0.0 0.0 0.0 2.87" Properties=species:S:1:pos:R:3 pbc="T T T"
 Fe 0.000000 0.000000 0.000000
@@ -177,6 +212,10 @@ Fe 1.435000 1.435000 1.435000`,
         atomCount: 2,
         elements: ["C"],
         recommendedModel: "MACE-MP-0",
+        reference: {
+          cohesiveEnergy: { value: -7.37, source: "Exp (Kittel, 8th ed.)" },
+          latticeConstant: { value: 3.567, source: "Exp (Kittel, 8th ed.)" },
+        },
         xyzData: `2
 Lattice="3.567 0.0 0.0 0.0 3.567 0.0 0.0 0.0 3.567" Properties=species:S:1:pos:R:3 pbc="T T T"
 C 0.000000 0.000000 0.000000

@@ -140,6 +140,9 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
             >
               Atoms <SortIcon k="atoms" />
             </th>
+            <th className="px-3 py-2.5 text-right" style={{ color: DATA_COLORS.yellow }}>
+              Ref (eV/atom)
+            </th>
             {modelLabels.map((label, i) => (
               <th
                 key={label}
@@ -188,6 +191,15 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                     {formatCategoryName(row.category)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{row.atomCount}</td>
+                  <td
+                    className="px-3 py-2 text-right tabular-nums"
+                    style={{ color: DATA_COLORS.yellow }}
+                    title={row.reference?.cohesiveEnergy?.source ?? "No reference data"}
+                  >
+                    {row.reference?.cohesiveEnergy
+                      ? `${row.reference.cohesiveEnergy.value.toFixed(2)}`
+                      : "—"}
+                  </td>
                   {row.models.map((m, mi) => {
                     if (m.status === "error") {
                       return (
@@ -224,9 +236,19 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                 {isExpanded && (
                   <tr>
                     <td
-                      colSpan={4 + modelLabels.length + 1}
+                      colSpan={5 + modelLabels.length + 1}
                       className="border-t border-[var(--color-border-subtle)]/30 bg-[var(--color-bg-primary)] px-4 py-3"
                     >
+                      {row.reference?.cohesiveEnergy && (
+                        <p className="mb-2 font-mono text-[10px] text-[var(--color-data-yellow)]">
+                          Ref. cohesive energy: {row.reference.cohesiveEnergy.value.toFixed(2)} eV/atom
+                          ({row.reference.cohesiveEnergy.source})
+                          {row.reference.latticeConstant && (
+                            <> · Lattice: {row.reference.latticeConstant.value.toFixed(3)} Å
+                            ({row.reference.latticeConstant.source})</>
+                          )}
+                        </p>
+                      )}
                       <ExpandedForceDetails row={row} modelColors={MODEL_COLORS} />
                     </td>
                   </tr>
@@ -243,6 +265,7 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
             <td className="px-3 py-2.5 font-sans text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
               Aggregate
             </td>
+            <td />
             <td />
             <td />
             {aggregates.map((agg, i) => (

@@ -326,6 +326,7 @@ export async function POST(request: NextRequest) {
         category: entry.category,
         formula: entry.formula,
         atomCount: entry.atomCount,
+        reference: entry.reference,
         models: modelResults,
       });
     }

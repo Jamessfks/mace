@@ -114,6 +114,7 @@ function BenchmarkPDF({ result }: { result: BenchmarkResult }) {
           <Text style={pdfStyles.sectionTitle}>Energy per Atom Leaderboard (eV)</Text>
           <View style={pdfStyles.tableHeader}>
             <Text style={pdfStyles.colLeft}>Structure</Text>
+            <Text style={pdfStyles.col}>Ref.</Text>
             {modelLabels.map((l) => (
               <Text key={l} style={pdfStyles.col}>
                 {l.replace("MACE-", "")}
@@ -132,6 +133,11 @@ function BenchmarkPDF({ result }: { result: BenchmarkResult }) {
             return (
               <View key={r.structureId} style={pdfStyles.tableRow}>
                 <Text style={pdfStyles.colLeft}>{r.structureName}</Text>
+                <Text style={pdfStyles.col}>
+                  {r.reference?.cohesiveEnergy
+                    ? r.reference.cohesiveEnergy.value.toFixed(2)
+                    : "—"}
+                </Text>
                 {r.models.map((m, i) => (
                   <Text key={i} style={pdfStyles.col}>
                     {m.status === "success" && m.energyPerAtom != null
@@ -171,6 +177,17 @@ function BenchmarkPDF({ result }: { result: BenchmarkResult }) {
           </View>
         )}
 
+        <View style={pdfStyles.section}>
+          <Text style={{ fontSize: 7, color: "#999", lineHeight: 1.4 }}>
+            Reference values are experimental cohesive energies (Kittel 8th ed., CRC Handbook).
+            MACE is trained on PBE DFT, which differs from experiment by 0.1–0.5 eV/atom.
+            Direct comparison of model total energy to experimental cohesive energy is not valid
+            without accounting for isolated atom references and DFT functional biases.
+            See Miret et al. (arXiv:2502.03660) for discussion of MLIP evaluation beyond
+            energy/force regression.
+          </Text>
+        </View>
+
         <Text style={pdfStyles.footer}>
           MACE Benchmark Suite — Generated from mace-lake.vercel.app
         </Text>
@@ -192,6 +209,8 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
       "Structure",
       "Category",
       "Atoms",
+      "Ref_Cohesive_Energy (eV/atom)",
+      "Ref_Source",
       ...modelLabels.flatMap((l) => [
         `${l} Energy (eV/atom)`,
         `${l} RMS Force (eV/A)`,
@@ -213,6 +232,8 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
         csvEscape(r.structureName),
         csvEscape(r.category),
         r.atomCount,
+        r.reference?.cohesiveEnergy?.value?.toFixed(3) ?? "",
+        csvEscape(r.reference?.cohesiveEnergy?.source ?? ""),
         ...r.models.flatMap((m) => [
           m.energyPerAtom?.toFixed(6) ?? "error",
           m.rmsForce?.toFixed(6) ?? "error",
