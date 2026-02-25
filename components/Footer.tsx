@@ -4,6 +4,16 @@ export function Footer() {
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-muted-foreground text-sm">
         <p className="font-mono">CS2535 · MACE Liquid Water</p>
         <p>
+          Built by{" "}
+          <a
+            href="https://github.com/Jamessfks/mace"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--color-accent-primary)] hover:underline"
+          >
+            Zicheng Zhao
+          </a>
+          {" · "}
           Dataset:{" "}
           <a
             href="https://github.com/BingqingCheng/ab-initio-thermodynamics-of-water"

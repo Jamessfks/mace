@@ -54,7 +54,13 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
       forces: (number | null)[];
       spread: number;
     }[] = [];
-
+    
+    //***
+    // the range of force magnitudes across models for that specific atom.
+    //  A large spread means models disagree on how much force that atom experiences; 
+    // a small spread means consensus
+    //  */
+    
     for (const r of result.results) {
       const maxAtoms = Math.min(
         5,

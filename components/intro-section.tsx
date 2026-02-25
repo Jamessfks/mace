@@ -69,6 +69,20 @@ export function IntroSection() {
       </div>
 
       <div className="relative z-10 flex max-w-5xl flex-col items-center gap-10 text-center">
+        {/* ── University affiliation banner ── */}
+        <a
+          href="https://www.northeastern.edu"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group"
+        >
+          <img
+            src="/NEU_name.png"
+            alt="Northeastern University"
+            className="h-16 sm:h-20 w-auto transition-opacity opacity-90 group-hover:opacity-100"
+          />
+        </a>
+
         {/* ── Badge ── */}
         <Badge
           variant="outline"
@@ -179,6 +193,27 @@ export function IntroSection() {
             Batatia et al., &quot;MACE: Higher Order Equivariant Message
             Passing Neural Networks for Fast and Accurate Force
             Fields,&quot; NeurIPS 2022.
+          </p>
+        </div>
+
+        {/* ── Builder credit ── */}
+        <div className="mt-2 flex items-center justify-center gap-2.5">
+          <img
+            src="/NEU_logo.png"
+            alt="Northeastern University"
+            className="h-14 w-14 opacity-80"
+          />
+          <p className="font-mono text-xs text-[var(--color-text-muted)]">
+            Built by{" "}
+            <a
+              href="https://github.com/Jamessfks/mace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--color-text-secondary)] hover:text-white hover:underline transition-colors"
+            >
+              Zicheng Zhao
+            </a>{" "}
+            · Northeastern University
           </p>
         </div>
       </div>
