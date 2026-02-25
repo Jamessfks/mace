@@ -33,6 +33,8 @@ Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
 
 ## Why This Exists
 
+MACE (Message Passing Atomic Cluster Expansion) is a machine learning software framework used to predict many-body atomic interactions and generate force fields for molecular dynamics simulations.
+
 Running MACE calculations today requires writing Python scripts, managing ASE atom objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists.  But it locks out students who try to learn materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
 
 This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard in your browser. No terminal, no scripts, no environment setup.
