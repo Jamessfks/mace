@@ -5,6 +5,14 @@
 **A research-grade web platform for machine learning interatomic potentials.**
 **No coding required. Upload a structure, pick parameters, get publication-ready results.**
 
+<h3>
+  <a href="https://mace-lake.vercel.app"> Live Demo → mace-lake.vercel.app</a>
+</h3>
+
+<p>
+  <a href="https://mace-lake.vercel.app"><img src="https://img.shields.io/badge/live-mace--lake.vercel.app-00C853?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"/></a>
+</p>
+
 <p>
   <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version"/></a>
   <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
@@ -15,7 +23,9 @@
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
 </p>
 
-Contact: zhao.zic@northeasten.edu or zezepy070413@gmail.com
+Built by **Zicheng Zhao** · Northeastern University
+
+Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 [Why This Exists](#why-this-exists) · [Core Features](#core-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
