@@ -249,7 +249,7 @@ function CalculatePageInner() {
     if (!result || result.status !== "success") return;
     setIsSharing(true);
     try {
-      const { url } = await saveResult(result, params, uploadedFiles[0]?.name);
+      const { url } = await saveResult(result, params, uploadedFiles[0]?.name, sketchMeta);
       setShareUrl(url);
     } catch {
       setError("Failed to share result. Please try again.");

@@ -25,6 +25,7 @@
 import { nanoid } from "nanoid";
 import { supabase } from "@/lib/supabase";
 import type { CalculationResult, CalculationParams, SharedResult } from "@/types/mace";
+import type { SketchMetadata } from "@/components/calculate/molecule-sketcher";
 
 const BASE_URL = "https://mace-lake.vercel.app";
 
@@ -32,14 +33,15 @@ const BASE_URL = "https://mace-lake.vercel.app";
 export async function saveResult(
   result: CalculationResult,
   params: Partial<CalculationParams>,
-  filename?: string
+  filename?: string,
+  sketchMeta?: SketchMetadata | null
 ): Promise<{ id: string; url: string }> {
   const id = nanoid(8);
 
   const { error } = await supabase.from("shared_results").insert({
     id,
     result,
-    params,
+    params: sketchMeta ? { ...params, _sketchMeta: sketchMeta } : params,
     filename: filename ?? null,
   });
 
