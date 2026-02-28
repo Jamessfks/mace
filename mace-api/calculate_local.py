@@ -48,16 +48,15 @@ def detect_format(filename: str) -> str:
     return "xyz"
 
 
-def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool):
+def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool, precision: str = "float32"):
     model_size = model_size or "medium"
 
     if model_type in ("MACE-OFF", "MACE-OFF23"):
         from mace.calculators import mace_off
-        return mace_off(model=model_size, device=device)
+        return mace_off(model=model_size, device=device, default_dtype=precision)
 
-    # MACE-MP: materials (bulk crystals, 89 elements) — default
     from mace.calculators import mace_mp
-    return mace_mp(model=model_size, device=device, dispersion=dispersion)
+    return mace_mp(model=model_size, device=device, dispersion=dispersion, default_dtype=precision)
 
 
 def resolve_device(requested: str) -> str:
@@ -129,11 +128,12 @@ def run_calculation(filepath: str, params: dict, model_path: str = None) -> dict
     device = resolve_device(params.get("device", "cpu"))
     dispersion = params.get("dispersion", False)
     calc_type = params.get("calculationType", "single-point")
+    precision = params.get("precision", "float32")
 
     if model_path:
         calc = get_custom_calculator(model_path, device)
     else:
-        calc = get_mace_calculator(model_type, model_size, device, dispersion)
+        calc = get_mace_calculator(model_type, model_size, device, dispersion, precision)
     atoms.calc = calc
 
     calc_start = time.time()

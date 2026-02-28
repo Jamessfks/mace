@@ -351,6 +351,18 @@ function SummaryTab({
         )}
       </div>
 
+      {/* Energy context note */}
+      <div className="rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 px-4 py-3">
+        <p className="font-mono text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+          <span className="font-bold text-[var(--color-text-secondary)]">Note:</span>{" "}
+          Energy shown is the <span className="text-[var(--color-text-secondary)]">total electronic energy</span> (including all-electron atomic contributions)
+          from the MACE model. For solids, cohesive energy = E(bulk)/N &minus; E(isolated atom);
+          subtract isolated atom energies for your elements. For molecules, relative energies
+          between conformers are physically meaningful; absolute values depend on the DFT reference
+          (ωB97M-D3BJ for MACE-OFF, PBE for MACE-MP-0).
+        </p>
+      </div>
+
       {/* Accuracy metrics (when reference data is present) */}
       {hasRef && (
         <div className="rounded-lg border border-[var(--color-border-subtle)] border-l-4 border-l-[var(--color-accent-primary)] bg-[var(--color-bg-secondary)] p-5">
@@ -427,6 +439,35 @@ function SummaryTab({
           </div>
         </div>
       )}
+
+      {/* Limitations & uncertainty */}
+      <div className="rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/50 px-4 py-3">
+        <h4 className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+          Limitations &amp; Uncertainty
+        </h4>
+        <ul className="space-y-1 font-mono text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+          <li>
+            <span className="text-[var(--color-text-secondary)]">ML potential, not QM:</span>{" "}
+            MACE is a machine-learned surrogate for DFT, not a first-principles calculation.
+            Accuracy depends on the training data distribution.
+          </li>
+          <li>
+            <span className="text-[var(--color-text-secondary)]">Out-of-distribution risk:</span>{" "}
+            Structures or chemistries far from the training set (exotic bonding, extreme pressures,
+            charged species) may produce unreliable results with no built-in warning.
+          </li>
+          <li>
+            <span className="text-[var(--color-text-secondary)]">No uncertainty estimates:</span>{" "}
+            These models do not provide prediction confidence intervals. Consider running
+            multiple model sizes (small/medium/large) and comparing results to gauge robustness.
+          </li>
+          <li>
+            <span className="text-[var(--color-text-secondary)]">MACE-OFF scope:</span>{" "}
+            Trained on neutral, closed-shell organic molecules only (H, C, N, O, F, P, S, Cl, Br, I).
+            Not suitable for metals, radicals, ions, or extended solid-state systems.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

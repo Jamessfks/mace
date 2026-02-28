@@ -59,23 +59,21 @@ def detect_format(filename: str) -> str:
     return "xyz"
 
 
-def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool):
+def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool, precision: str = "float32"):
     """
     Return ASE calculator for MACE.
     Uses foundation models (MACE-MP, MACE-OFF) for materials and molecules.
     """
     model_size = model_size or "medium"
 
-    # MACE-OFF: organic molecules (ethanol, H2O, etc.) — H, C, N, O, P, S, F, Cl, Br, I
     if model_type in ("MACE-OFF", "MACE-OFF23"):
         from mace.calculators import mace_off
 
-        return mace_off(model=model_size, device=device)
+        return mace_off(model=model_size, device=device, default_dtype=precision)
 
-    # MACE-MP: materials (bulk crystals, 89 elements) — default
     from mace.calculators import mace_mp
 
-    return mace_mp(model=model_size, device=device, dispersion=dispersion)
+    return mace_mp(model=model_size, device=device, dispersion=dispersion, default_dtype=precision)
 
 
 @app.post("/calculate")
@@ -117,9 +115,10 @@ async def calculate(
         device = params_obj.get("device", "cpu")
         dispersion = params_obj.get("dispersion", False)
         calc_type = params_obj.get("calculationType", "single-point")
+        precision = params_obj.get("precision", "float32")
 
         try:
-            calc = get_mace_calculator(model_type, model_size, device, dispersion)
+            calc = get_mace_calculator(model_type, model_size, device, dispersion, precision)
             atoms.calc = calc
         except ImportError as e:
             raise HTTPException(
