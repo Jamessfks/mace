@@ -58,6 +58,10 @@
   --color-card: var(--card);
 }
 
+html {
+  font-size: 17px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MACE Scientific Palette — Runtime CSS Custom Properties
    These are plain CSS vars that var() can resolve in any context.
