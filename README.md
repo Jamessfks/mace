@@ -27,9 +27,59 @@ Built by **Zicheng Zhao** · Northeastern University
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
+
+---
+
+## See It in Action
+
+<div align="center">
+
+<table>
+<tr>
+<td width="50%" align="center">
+
+**Draw a Molecule**
+
+<img src="public/Demo1.png" alt="Sketch-a-Molecule: draw bonds and atoms in the browser, get real-time SMILES, formula, and molecular weight" width="100%"/>
+
+<sub>Draw any organic molecule with the built-in sketcher. Real-time validation, SMILES generation, and molecular descriptors — all in the browser.</sub>
+
+</td>
+<td width="50%" align="center">
+
+**Share Results Instantly**
+
+<img src="public/Demo2.png" alt="MACE Link: permanent shareable URL with full calculation results, 3D viewer, and export options" width="100%"/>
+
+<sub>Every calculation becomes a permanent, shareable link. The full dashboard — energy, forces, 3D viewer, exports — available to anyone.</sub>
+
+</td>
+</tr>
+</table>
+
+</div>
+
+<details>
+<summary><strong>Watch the full walkthrough</strong></summary>
+
+<div align="center">
+<br/>
+
+<video src="https://raw.githubusercontent.com/Jamessfks/mace/main/public/demo-video.mp4" width="100%" controls>
+  Your browser does not support the video tag. <a href="public/demo-video.mp4">Download the video</a>.
+</video>
+
+*Draw a molecule → generate 3D coordinates → run MACE-OFF → explore results → share as a permanent link.*
+
+<br/>
+</div>
+
+> **Tip:** If the video doesn't render on GitHub, download [`public/demo-video.mp4`](public/demo-video.mp4) to view locally.
+
+</details>
 
 ---
 
