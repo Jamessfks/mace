@@ -45,8 +45,16 @@ function extractElementsFromFormula(formula: string): Set<string> {
   return elements;
 }
 
+export interface SketchMetadata {
+  smiles: string;
+  formula: string;
+  mw: number;
+  numAtoms: number;
+  svgHtml: string;
+}
+
 interface MoleculeSketcherProps {
-  onFileGenerated: (file: File) => void;
+  onFileGenerated: (file: File, metadata: SketchMetadata) => void;
 }
 
 export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
@@ -185,7 +193,13 @@ export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
         "sketched-molecule.xyz",
         { type: "text/plain" }
       );
-      onFileGenerated(file);
+      onFileGenerated(file, {
+        smiles: data.smiles || smiles.trim(),
+        formula: data.formula || descriptors?.formula || "",
+        mw: data.molecularWeight || descriptors?.mw || 0,
+        numAtoms: data.atomCount || descriptors?.numAtoms || 0,
+        svgHtml: svgPreview || "",
+      });
     } catch (err) {
       setGenerationError(
         err instanceof Error ? err.message : "Network error during 3D generation"
