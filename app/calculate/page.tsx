@@ -11,6 +11,9 @@ import {
   AlertCircle,
   Zap,
   X,
+  Share2,
+  Copy,
+  Check,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
@@ -18,6 +21,7 @@ import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { ModelComparison } from "@/components/calculate/model-comparison";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
+import { saveResult } from "@/lib/share";
 
 const MoleculeSketcher = dynamic(
   () =>
@@ -119,6 +123,9 @@ function CalculatePageInner() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"upload" | "draw">("upload");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Demo mode — guided overlay steps
   const [demoStep, setDemoStep] = useState<number | null>(null);
@@ -197,6 +204,7 @@ function CalculatePageInner() {
     setIsCalculating(true);
     setError(null);
     setResult(null);
+    setShareUrl(null);
 
     const startTime = Date.now();
 
@@ -232,6 +240,26 @@ function CalculatePageInner() {
     setUploadedFiles([file]);
     setParams((prev) => ({ ...prev, modelType: "MACE-OFF" }));
   }, []);
+
+  const handleShare = async () => {
+    if (!result || result.status !== "success") return;
+    setIsSharing(true);
+    try {
+      const { url } = await saveResult(result, params, uploadedFiles[0]?.name);
+      setShareUrl(url);
+    } catch {
+      setError("Failed to share result. Please try again.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyShareUrl = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
 
   const phases =
     PHASE_MAP[params.calculationType] || PHASE_MAP["single-point"];
@@ -439,6 +467,38 @@ function CalculatePageInner() {
             {/* Results — tabbed scientific dashboard */}
             {result && !isCalculating && (
               <div className="animate-fade-in-up space-y-6">
+                {/* Share Result bar */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {!shareUrl ? (
+                    <button
+                      onClick={handleShare}
+                      disabled={isSharing}
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)] hover:text-white disabled:opacity-50"
+                    >
+                      {isSharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+                      {isSharing ? "Sharing..." : "Share Result"}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-primary)]/5 px-3 py-1.5">
+                      <Share2 className="h-3.5 w-3.5 text-[var(--color-accent-primary)]" />
+                      <a
+                        href={shareUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs text-[var(--color-accent-primary)] hover:underline"
+                      >
+                        {shareUrl}
+                      </a>
+                      <button
+                        onClick={handleCopyShareUrl}
+                        className="ml-1 rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-white"
+                      >
+                        {shareCopied ? <Check className="h-3.5 w-3.5 text-[var(--color-success)]" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <MetricsDashboard result={result} filename={uploadedFiles[0]?.name} />
 
                 {isCustomModel && (

@@ -23,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
+    "nanoid": "^5.1.6",
     "next": "16.1.6",
     "plotly.js-dist-min": "^3.4.0",
     "react": "19.2.3",

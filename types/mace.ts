@@ -80,6 +80,18 @@ export interface UploadedStructure {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Shared Result (MACE Link)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface SharedResult {
+  id: string;
+  result: CalculationResult;
+  params: Partial<CalculationParams>;
+  filename?: string;
+  created_at: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Benchmark Suite Types
 // ═══════════════════════════════════════════════════════════════════════════
 
