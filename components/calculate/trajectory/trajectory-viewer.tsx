@@ -47,6 +47,8 @@ import {
   SkipBack,
   RotateCcw,
   Gauge,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import type { CalculationResult } from "@/types/mace";
 import { EnergyChart } from "@/components/calculate/trajectory/energy-chart";
@@ -117,8 +119,10 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
   const [playing, setPlaying] = useState(false);
   const [speedIdx, setSpeedIdx] = useState(1); // index into SPEEDS (default 1×)
   const [viewerReady, setViewerReady] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   // ── Refs ──
+  const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const viewerInstance = useRef<any>(null);
   const modelRef = useRef<any>(null);
@@ -243,18 +247,51 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
     setSpeedIdx((i) => (i + 1) % SPEEDS.length);
   }, []);
 
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (fullscreen) {
+      document.exitFullscreen?.();
+    } else {
+      containerRef.current.requestFullscreen?.();
+    }
+  }, [fullscreen]);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const isFs = !!document.fullscreenElement;
+      setFullscreen(isFs);
+      setTimeout(() => {
+        viewerInstance.current?.resize?.();
+        viewerInstance.current?.render?.();
+      }, 100);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
   // ── Derived display values ──
   const currentEnergy = traj.energies[currentFrame];
   const speed = SPEEDS[speedIdx];
 
   return (
-    <div className="space-y-4">
+    <div
+      ref={containerRef}
+      className={`${fullscreen ? "flex h-screen w-screen flex-col bg-[#0B0E17]" : "space-y-4"}`}
+    >
       {/* ── 3D Viewer ── */}
-      <div className="relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] shadow-inner">
+      <div
+        className={`relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] shadow-inner ${
+          fullscreen ? "flex-1 rounded-none border-0" : ""
+        }`}
+      >
         <div
           ref={viewerRef}
           className="w-full"
-          style={{ position: "relative", height: 380, minHeight: 380 }}
+          style={{
+            position: "relative",
+            height: fullscreen ? "100%" : 380,
+            minHeight: fullscreen ? "100%" : 380,
+          }}
         />
         {/* Loading overlay */}
         {!viewerReady && (
@@ -262,95 +299,156 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border-subtle)] border-t-[var(--color-accent-primary)]" />
           </div>
         )}
-        {/* Frame badge overlay (top-right) */}
+
+        {/* Top-right overlay: frame badge + fullscreen toggle */}
         {viewerReady && (
-          <div className="absolute right-3 top-3 rounded bg-[var(--color-bg-primary)]/70 px-2 py-1 font-mono text-[10px] text-[var(--color-accent-primary)] backdrop-blur-sm">
-            Frame {currentFrame + 1}/{totalFrames}
+          <div className="absolute right-3 top-3 flex items-center gap-2">
+            <div className="rounded bg-[var(--color-bg-primary)]/70 px-2 py-1 font-mono text-[10px] text-[var(--color-accent-primary)] backdrop-blur-sm">
+              Frame {currentFrame + 1}/{totalFrames}
+            </div>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              className="flex h-7 w-7 items-center justify-center rounded bg-[var(--color-bg-primary)]/70 text-zinc-400 backdrop-blur-sm transition-colors hover:text-[var(--color-accent-primary)]"
+            >
+              {fullscreen ? (
+                <Minimize className="h-3.5 w-3.5" />
+              ) : (
+                <Maximize className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Fullscreen: bottom transport bar overlay */}
+        {fullscreen && viewerReady && (
+          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent px-4 pb-4 pt-10">
+            <div className="flex items-center gap-1">
+              <ControlButton onClick={reset} title="Reset to first frame">
+                <RotateCcw className="h-3.5 w-3.5" />
+              </ControlButton>
+              <ControlButton onClick={stepBackward} title="Previous frame">
+                <SkipBack className="h-3.5 w-3.5" />
+              </ControlButton>
+              <button
+                onClick={togglePlay}
+                title={playing ? "Pause" : "Play"}
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
+                  playing
+                    ? "border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                    : "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/20"
+                }`}
+              >
+                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+              </button>
+              <ControlButton onClick={stepForward} title="Next frame">
+                <SkipForward className="h-3.5 w-3.5" />
+              </ControlButton>
+              <ControlButton onClick={cycleSpeed} title={`Speed: ${speed}×`}>
+                <Gauge className="h-3.5 w-3.5" />
+              </ControlButton>
+            </div>
+            <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+              {speed}×
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={totalFrames - 1}
+              value={currentFrame}
+              onChange={(e) => {
+                setPlaying(false);
+                setCurrentFrame(Number(e.target.value));
+              }}
+              className="flex-1 accent-[#4A7BF7]"
+              title={`Frame ${currentFrame + 1}`}
+            />
+            <div className="shrink-0 text-right font-mono text-xs">
+              <span className="text-zinc-500">E = </span>
+              <span className="text-white">{currentEnergy?.toFixed(4)}</span>
+              <span className="text-zinc-500"> eV</span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Transport Controls ── */}
-      <div className="flex items-center gap-3">
-        {/* Playback buttons */}
-        <div className="flex items-center gap-1">
-          <ControlButton onClick={reset} title="Reset to first frame">
-            <RotateCcw className="h-3.5 w-3.5" />
-          </ControlButton>
-          <ControlButton onClick={stepBackward} title="Previous frame">
-            <SkipBack className="h-3.5 w-3.5" />
-          </ControlButton>
-          <button
-            onClick={togglePlay}
-            title={playing ? "Pause" : "Play"}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
-              playing
-                ? "border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                : "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/20"
-            }`}
-          >
-            {playing ? (
-              <Pause className="h-4 w-4" />
-            ) : (
-              <Play className="h-4 w-4 ml-0.5" />
-            )}
-          </button>
-          <ControlButton onClick={stepForward} title="Next frame">
-            <SkipForward className="h-3.5 w-3.5" />
-          </ControlButton>
-          <ControlButton onClick={cycleSpeed} title={`Speed: ${speed}×`}>
-            <Gauge className="h-3.5 w-3.5" />
-          </ControlButton>
+      {/* ── Normal mode: Transport Controls ── */}
+      {!fullscreen && (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <ControlButton onClick={reset} title="Reset to first frame">
+              <RotateCcw className="h-3.5 w-3.5" />
+            </ControlButton>
+            <ControlButton onClick={stepBackward} title="Previous frame">
+              <SkipBack className="h-3.5 w-3.5" />
+            </ControlButton>
+            <button
+              onClick={togglePlay}
+              title={playing ? "Pause" : "Play"}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
+                playing
+                  ? "border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                  : "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/20"
+              }`}
+            >
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+            </button>
+            <ControlButton onClick={stepForward} title="Next frame">
+              <SkipForward className="h-3.5 w-3.5" />
+            </ControlButton>
+            <ControlButton onClick={cycleSpeed} title={`Speed: ${speed}×`}>
+              <Gauge className="h-3.5 w-3.5" />
+            </ControlButton>
+          </div>
+          <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+            {speed}×
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={totalFrames - 1}
+            value={currentFrame}
+            onChange={(e) => {
+              setPlaying(false);
+              setCurrentFrame(Number(e.target.value));
+            }}
+            className="flex-1 accent-[#4A7BF7]"
+            title={`Frame ${currentFrame + 1}`}
+          />
+          <div className="shrink-0 text-right font-mono text-xs">
+            <span className="text-zinc-500">E = </span>
+            <span className="text-white">{currentEnergy?.toFixed(4)}</span>
+            <span className="text-zinc-500"> eV</span>
+          </div>
         </div>
+      )}
 
-        {/* Speed badge */}
-        <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-          {speed}×
-        </span>
-
-        {/* Frame slider */}
-        <input
-          type="range"
-          min={0}
-          max={totalFrames - 1}
-          value={currentFrame}
-          onChange={(e) => {
-            setPlaying(false);
-            setCurrentFrame(Number(e.target.value));
-          }}
-          className="flex-1 accent-[#4A7BF7]"
-          title={`Frame ${currentFrame + 1}`}
-        />
-
-        {/* Current energy readout */}
-        <div className="shrink-0 text-right font-mono text-xs">
-          <span className="text-zinc-500">E = </span>
-          <span className="text-white">{currentEnergy?.toFixed(4)}</span>
-          <span className="text-zinc-500"> eV</span>
+      {/* ── Energy vs Step Chart (hidden in fullscreen) ── */}
+      {!fullscreen && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+          <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
+            Energy vs. MD Step
+          </h4>
+          <EnergyChart
+            energies={traj.energies}
+            steps={traj.step.length > 0 ? traj.step : traj.energies.map((_, i) => i)}
+            currentFrame={currentFrame}
+            onFrameSelect={(i) => {
+              setPlaying(false);
+              setCurrentFrame(i);
+            }}
+          />
         </div>
-      </div>
+      )}
 
-      {/* ── Energy vs Step Chart ── */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-        <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
-          Energy vs. MD Step
-        </h4>
-        <EnergyChart
-          energies={traj.energies}
-          steps={traj.step.length > 0 ? traj.step : traj.energies.map((_, i) => i)}
-          currentFrame={currentFrame}
-          onFrameSelect={(i) => {
-            setPlaying(false);
-            setCurrentFrame(i);
-          }}
-        />
-      </div>
-
-      {/* ── Footer ── */}
-      <p className="font-mono text-[10px] text-zinc-600">
-        Drag to rotate · Scroll to zoom · Click chart to jump to frame ·
-        Keyboard: Space = play/pause
-      </p>
+      {/* ── Footer (hidden in fullscreen) ── */}
+      {!fullscreen && (
+        <p className="font-mono text-[10px] text-zinc-600">
+          Drag to rotate · Scroll to zoom · Click chart to jump to frame ·
+          Keyboard: Space = play/pause
+        </p>
+      )}
     </div>
   );
 }
