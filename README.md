@@ -3,7 +3,7 @@
 # MACE Force Fields — Web Interface
 
 **A research-grade web platform for machine learning interatomic potentials.**
-**No coding required. Upload a structure, pick parameters, get publication-ready results.**
+**Draw a molecule, upload a structure, or browse benchmarks — get publication-ready results in your browser.**
 
 <h3>
   <a href="https://mace-lake.vercel.app"> Live Demo → mace-lake.vercel.app</a>
@@ -14,7 +14,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version"/></a>
   <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
@@ -27,7 +27,7 @@ Built by **Zicheng Zhao** · Northeastern University
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[Why This Exists](#why-this-exists) · [Core Features](#core-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[Sketch-a-Molecule](#sketch-a-molecule) · [Core Features](#core-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
 
@@ -41,17 +41,36 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ---
 
-## Why This Exists
+## Sketch-a-Molecule
 
-MACE (Message Passing Atomic Cluster Expansion) is a machine learning software framework used to predict many-body atomic interactions and generate force fields for molecular dynamics simulations.
+**Draw any organic molecule in the browser and run DFT-accuracy simulations instantly — no files, no coding, no setup.**
 
-Running MACE calculations today requires writing Python scripts, managing ASE atom objects, and building custom analysis pipelines. That workflow is fine for experienced computational chemists.  But it locks out students who try to learn materials science, experimentalists who need quick predictions, and researchers who want to compare models without writing boilerplate code.
+Click **Draw Molecule** on the calculator page to open a full-featured molecule sketcher (JSME). Draw bonds and atoms, and the interface gives you real-time 2D validation, molecular descriptors, and a one-click path to MACE-OFF calculations.
 
-This interface eliminates that barrier entirely. You upload a structure file, choose your model and parameters from a visual panel, and get back a full scientific analysis dashboard in your browser. No terminal, no scripts, no environment setup.
+### How a 2D sketch becomes a real 3D structure
 
-It also solves a problem that even experienced MACE users face: **model comparison**. When you train a custom MACE model, how does it stack up against the foundation model on the same structure? The single-structure calculator lets you run both side-by-side with a radar chart comparing Energy MAE, Force MAE, R², RMSE, and Max Force Error — instantly.
+A sketch encodes molecular *topology* (atoms, bonds, stereochemistry) but has no 3D coordinates. We reconstruct physically accurate geometry through a physics pipeline:
 
-For systematic evaluation, the **Multi-Model Benchmark Suite** (`/benchmark`) goes further: select 2–3 MACE models, pick any combination of the 14 built-in ml-peg structures or upload your own, and run every (model × structure) pair in a single batch. The results dashboard includes a sortable leaderboard, force comparison charts, timing analysis with speedup ratios, energy landscape plots, and a model agreement heatmap — all exportable as CSV, JSON, or PDF.
+1. **Distance bounds** — Min/max distance constraints between all atom pairs derived from bond lengths, angles, torsions, and van der Waals radii.
+2. **ETKDGv3 distance geometry** — Random distance matrices are embedded in 3D, then refined with experimental torsion preferences from the Cambridge Structural Database.
+3. **Multi-conformer sampling** — Up to 50 independent conformers are generated (scaled by molecule size) to explore conformational space.
+4. **MMFF94 optimization** — Each conformer is minimized with the Merck Molecular Force Field (1.30 kcal/mol mean error vs. coupled-cluster references).
+5. **Energy-ranked selection** — The lowest-energy conformer is selected as the best starting geometry for MACE-OFF.
+
+### Pipeline
+
+```
+JSME editor → SMILES → RDKit.js validation + 2D SVG preview (browser)
+  → POST /api/smiles-to-xyz → RDKit Python (ETKDGv3 + MMFF94) → XYZ
+  → Auto-select MACE-OFF → RUN MACE CALCULATION → Results dashboard
+```
+
+| Component | Technology |
+|-----------|------------|
+| Sketcher | [JSME](https://jsme-editor.github.io/) via `@loschmidt/jsme-react` |
+| Client-side validation | [RDKit.js](https://www.rdkitjs.com/) (WASM, ~7 MB) |
+| 3D coordinate generation | Python [RDKit](https://www.rdkit.org/) (`EmbedMultipleConfs` + `MMFFOptimizeMoleculeConfs`) |
+| Force field | [MACE-OFF](https://arxiv.org/abs/2312.15211) — wB97M-D3BJ accuracy, 10 elements (H, C, N, O, F, P, S, Cl, Br, I) |
 
 ---
 
@@ -61,153 +80,46 @@ For systematic evaluation, the **Multi-Model Benchmark Suite** (`/benchmark`) go
 
 | Capability | Details |
 |---|---|
-| **Structure Input** | Drag-and-drop upload for `.xyz`, `.cif`, `.poscar`, `.contcar`, `.pdb` files. Auto-parses atom count, elements, bounding box, and warns about large systems or overlapping atoms. |
-| **Foundation Models** | MACE-MP-0 (89 elements, bulk crystals, materials) and MACE-OFF (organic molecules, drug-like compounds). Small, medium, and large variants for each. |
-| **Custom Models** | Upload your own `.model` file (any MACE-compatible PyTorch checkpoint from `mace_run_train`) and run it alongside foundation models. |
-| **Calculation Types** | Single-point energy & forces, BFGS geometry optimization, molecular dynamics (NVE/NVT/NPT ensembles). |
-| **Full Parameter Control** | Temperature, pressure, time step, Langevin friction, MD steps, force threshold, cutoff radius, D3 dispersion correction, precision (float32/float64), device (CPU/CUDA). |
+| **Structure Input** | Drag-and-drop upload (`.xyz`, `.cif`, `.poscar`, `.pdb`), ml-peg catalog (14 structures), or **draw a molecule** with the built-in sketcher. |
+| **Foundation Models** | MACE-MP-0 (89 elements, materials) and MACE-OFF (organic molecules). Small, medium, and large variants. |
+| **Custom Models** | Upload your own `.model` file and compare against foundation models. |
+| **Calculation Types** | Single-point energy & forces, geometry optimization (BFGS), molecular dynamics (NVE/NVT/NPT). |
+| **Full Parameter Control** | Temperature, pressure, time step, friction, MD steps, force threshold, cutoff radius, D3 dispersion, precision, device. |
 
 ### Visualization & Analysis
 
-| Feature | What It Does |
+| Feature | Details |
 |---|---|
-| **Metrics Dashboard** | Tabbed interface (Summary, Forces, Energy, Structure, Raw Data) showing key metrics cards, accuracy analysis, and trajectory summaries. |
-| **3D Structure Viewer** | Dual-engine viewer (3Dmol.js + WEAS) with ball-and-stick/stick/spacefill representations, force vector overlays, auto-rotation, and fullscreen mode. |
-| **Force Parity Plots** | Predicted vs. reference force components with R², MAE, and RMSE annotations. Requires reference data in extended XYZ format. |
-| **Error Histograms** | Force error distributions with mean/standard deviation markers. |
-| **Energy Convergence** | Energy vs. optimization/MD step charts for tracking convergence behavior. |
-| **MD Trajectory Player** | Frame-by-frame animation with play/pause, speed control (0.5×–4×), frame scrubbing, and an energy chart synced to the current frame. |
-| **Radar Chart Comparison** | Spider chart comparing two models across five accuracy axes (Energy MAE, Force MAE, 1−R², Force RMSE, Max Force Error). |
-
-### Model Comparison
-
-When you run a calculation with a custom model, a **"Compare with Foundation Model"** button appears. One click re-runs the identical structure through the corresponding MACE foundation model and displays:
-
-- Side-by-side energy and RMS force metrics
-- Delta energy (ΔE) between the two models
-- A multi-metric radar chart (when reference data is available)
-- Per-model accuracy breakdown (MAE, RMSE, R²)
-
-The comparison card uses a blue-to-purple gradient border to visually distinguish it from standard results.
+| **3D Viewer** | Dual-engine (3Dmol.js + WEAS), force vector overlays, ball-and-stick/stick/spacefill, fullscreen. |
+| **Metrics Dashboard** | 5-tab interface: Summary, Forces, Energy, Structure, Raw Data. |
+| **MD Trajectory Player** | Frame-by-frame animation with play/pause, speed control, energy chart synced to current frame. |
+| **Model Comparison** | Side-by-side custom vs. foundation model with radar chart (MAE, RMSE, R²). |
+| **Export** | PDF report, CSV forces, JSON results, PNG/SVG charts. |
 
 ### Multi-Model Benchmark Suite
 
-The `/benchmark` page provides industry-grade, batch model evaluation inspired by [ml-peg](https://ml-peg.stfc.ac.uk) and the [STFC MLIP Testing Framework](https://mlip-testing.stfc.ac.uk:8050).
-
-**Configuration:**
-
-- Select 2–3 MACE models to compare (MACE-MP-0 and/or MACE-OFF, each in small/medium/large, plus an optional custom `.model` file)
-- Pick structures from the built-in ml-peg catalog (14 structures across 4 categories) and/or upload your own `.xyz`/`.cif`/`.poscar`/`.pdb` files
-- All calculations run at float64 precision on CPU for fair comparison
-- Element compatibility: when MACE-OFF is selected, structures with unsupported elements (Si, Cu, Fe, Na, etc.) are automatically grayed out with a warning
-
-**Results Dashboard (5 tabs):**
-
-| Tab | What It Shows |
-|---|---|
-| **Leaderboard** | Sortable table with energy/atom per model, color-coded cells (green = lowest energy), ΔE_max column, expandable per-atom force details, and aggregate footer with averages and total time. |
-| **Forces** | Grouped bar chart of RMS force by structure, plus a per-atom force magnitude table with element labels and cross-model spread. |
-| **Timing** | Horizontal bar chart of computation time by structure. Summary cards with total/average time per model and speedup ratios (e.g. "small is 2.3× faster than large"). |
-| **Energy Landscape** | Scatter+line chart plotting energy/atom across all structures for each model. Overlapping points = agreement; divergence = contention. |
-| **Agreement** | Heatmap of pairwise |ΔE| (meV/atom) for every (model-pair × structure) combination. Dark = consensus, bright = disagreement. |
-
-**Scientific safeguards:**
-
-- Cross-family comparison warning: when MACE-MP-0 (PBE) and MACE-OFF (ωB97M-D3BJ) are benchmarked together, a banner warns that absolute energy differences are not physically meaningful due to different training DFT functionals
-- Per-calculation error resilience: if one (model, structure) pair fails, the error is recorded without aborting the batch
-- Timing uses Python-side measurement (excludes process spawn overhead) for accurate model-to-model comparison
-
-**Export:** Full results available as CSV (with proper escaping), JSON, or a formatted PDF report with leaderboard, timing summary, and key findings.
-
-### Export & Reporting
-
-| Format | Contents |
-|---|---|
-| **PDF Report** | Formatted document with MACE branding, key metrics summary, physical parameters, and atomic forces table (up to 50 atoms). |
-| **CSV** | Per-atom forces table with element, Fx, Fy, Fz, and magnitude columns. |
-| **JSON** | Complete calculation result including energy, forces, positions, trajectory, and metadata. |
-| **Chart Images** | Every Plotly chart has a toolbar for PNG/SVG export. |
-
-### Benchmark Library
-
-The built-in **ml-peg catalog** provides 14 curated benchmark structures across four categories:
-
-- **Bulk Crystals (5)** — Silicon (diamond), Copper (FCC), NaCl (rocksalt), Iron (BCC), Diamond (carbon)
-- **Molecular Systems (5)** — Water, ethanol, methane, benzene, aspirin
-- **Non-Covalent (2)** — Water dimer, methane dimer
-- **Surfaces (2)** — Cu(111), Si(111)
-
-Each entry includes the chemical formula, atom count, recommended model (MACE-MP-0 vs. MACE-OFF), and a description. Click any structure to load it directly into the calculator, or select multiple for batch benchmarking at `/benchmark`.
-
-### Quick Demo Mode
-
-Visit `/calculate?demo=true` to launch a guided walkthrough. The interface auto-loads an ethanol molecule and walks you through the three-step flow with dismissible tooltips:
-
-1. **Structure loaded** — see the uploaded file, or swap in your own
-2. **Configure** — choose model type and calculation parameters
-3. **Run** — click the button and watch the progress tracker
-
-### Reference Data & Accuracy Metrics
-
-Upload an extended XYZ file containing `REF_energy` and `REF_forces` properties, and the dashboard automatically computes:
-
-- **Force MAE** and **Force RMSE** (meV/Å)
-- **Energy MAE** (meV/atom)
-- **Energy R²**
-- Parity plots and error distributions
-
-A "Reference data detected" badge appears in the status bar, and the Summary tab expands to show a dedicated Model Accuracy section.
+Batch-evaluate 2-3 models across multiple structures at `/benchmark`. Results include a sortable leaderboard, force comparison charts, timing analysis, energy landscape plots, and a model agreement heatmap — all exportable as CSV, JSON, or PDF.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | v18+ | [nodejs.org](https://nodejs.org) |
-| Python | 3.10+ | [python.org](https://www.python.org/downloads) |
-
-### Setup
-
 ```bash
-# 1. Clone
-git clone https://github.com/Jamessfks/mace.git
-cd mace
-
-# 2. Install frontend
-npm install
-
-# 3. Install backend
-pip install mace-torch ase
-
-# 4. Run
-npm run dev
+git clone https://github.com/Jamessfks/mace.git && cd mace
+npm install                    # frontend
+pip install mace-torch ase     # backend
+npm run dev                    # → http://localhost:3000
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud, no sign-ups.
+> First calculation takes ~30s (model download). Subsequent runs are fast.
 
-> **Note:** First calculation may take ~30s while the MACE model downloads. Subsequent runs are fast.
+### Try the Sketcher
 
-### Try It — Calculator
-
-1. Go to `/calculate` (or click **Launch Calculator** on the landing page)
-2. Upload a `.xyz` file — or browse the **ml-peg catalog** for benchmark structures
-3. Pick a model (MACE-MP-0 for materials, MACE-OFF for organic molecules)
-4. Choose your calculation type and parameters
-5. Click **RUN MACE CALCULATION**
-6. Explore the tabbed dashboard: metrics, 3D viewer, charts, trajectory animation
-7. Export results as PDF, CSV, or JSON
-
-### Try It — Benchmark
-
-1. Go to `/benchmark` (or click **Model Benchmark** on the landing page)
-2. Select 2–3 models (e.g. MACE-MP-0 small + medium + large)
-3. Check the structures you want to test, or upload your own
-4. Click **Run Benchmark** and wait for the batch to complete
-5. Browse the five result tabs: Leaderboard, Forces, Timing, Energy Landscape, Agreement
-6. Export the full comparison as CSV, JSON, or PDF
+1. Go to `/calculate` → click **Draw Molecule**
+2. Draw a molecule (e.g. aspirin, caffeine, ibuprofen)
+3. Click **Generate 3D & Load Structure**
+4. Click **RUN MACE CALCULATION**
+5. Explore the results dashboard
 
 ---
 
@@ -216,87 +128,47 @@ Open **[http://localhost:3000](http://localhost:3000)** — that's it. No cloud,
 ```
 Browser (localhost:3000)
     │
-    ├── /                          Landing page + animated water MD background
+    ├── /calculate                 Calculator with [Upload File | Draw Molecule] toggle
+    │       │
+    │       ├── Draw mode ──▶ JSME editor → SMILES → /api/smiles-to-xyz
+    │       │                   → RDKit 3D coords → auto-load as .xyz
+    │       │
+    │       └── Upload mode ──▶ Drag-and-drop / ml-peg catalog
     │
-    ├── /calculate                 Two-panel calculator UI (single structure)
+    ├── /benchmark                 Multi-model benchmark suite
     │
-    └── /benchmark                 Multi-model benchmark suite (batch)
-         │
-         │  Models + structures + optional files (JSON or multipart/form-data)
-         │
-         ▼
+    ▼
     Next.js API Routes
-         │
-         ├── /api/calculate        ── Python subprocess ──▶ calculate_local.py
-         │                            (or remote MACE API via MACE_API_URL)
-         │
-         ├── /api/benchmark        ── Batch: loops (model × structure) pairs
-         │                            via calculate_local.py or remote API
-         │
-         └── /api/generate-surface ── Python subprocess ──▶ generate_surface.py
-                                                              (ASE slab builder)
-         │
-         ▼
-    Results rendered in browser:
-      ├── Calculator: Metrics dashboard (5 tabs), 3D viewer, charts, trajectory
-      ├── Benchmark:  Leaderboard, forces, timing, energy landscape, heatmap
-      ├── Model comparison (custom vs. foundation, per-calculator)
-      └── Export (PDF / CSV / JSON — both calculator and benchmark)
+         ├── /api/smiles-to-xyz    ── python3 smiles_to_xyz.py (RDKit)
+         ├── /api/calculate        ── python3 calculate_local.py (MACE + ASE)
+         ├── /api/benchmark        ── Batch (model × structure) pairs
+         └── /api/generate-surface ── python3 generate_surface.py (ASE)
 ```
 
-The interface runs in two modes:
-
-| Mode | When | How It Works |
-|------|------|-------------|
-| **Local** | `MACE_API_URL` not set | Spawns a Python subprocess on the same machine. Requires `mace-torch` and `ase` installed locally. |
-| **Remote** | `MACE_API_URL` set | Forwards the request to a hosted MACE API (e.g. Railway). No local Python needed. |
+| Mode | When | How |
+|------|------|-----|
+| **Local** | `MACE_API_URL` not set | Python subprocess on same machine |
+| **Remote** | `MACE_API_URL` set | Forward to hosted API (e.g. Railway) |
 
 ---
 
 ## Deploy Online
 
-<table>
-<tr>
-<td width="50%">
-
-### Frontend — Vercel
-
-1. Push to GitHub
-2. Import repo at [vercel.com](https://vercel.com)
-3. Set `MACE_API_URL` environment variable
-4. Deploy
-
-</td>
-<td width="50%">
-
-### Backend — Railway
-
-1. Create project at [railway.app](https://railway.app)
-2. Deploy from `mace-api/` folder
-3. Copy the deployment URL
-4. Set it as `MACE_API_URL` in Vercel
-
-</td>
-</tr>
-</table>
-
-| Variable | Value | Required |
-|----------|-------|----------|
-| `MACE_API_URL` | Your Railway backend URL (e.g. `https://mace-api.up.railway.app`) | Yes, for cloud deployment |
-
-> **Note:** After adding environment variables in Vercel, you must **redeploy** for them to take effect.
+| Step | Frontend (Vercel) | Backend (Railway) |
+|------|-------------------|-------------------|
+| 1 | Push to GitHub | Create project at railway.app |
+| 2 | Import repo at vercel.com | Deploy from `mace-api/` folder |
+| 3 | Set `MACE_API_URL` env var | Copy the deployment URL |
 
 ---
 
 ## Models
 
-| Model | Best For | Elements | Source |
-|-------|----------|----------|--------|
-| **MACE-MP-0** | Materials, crystals, bulk solids, surfaces | 89 elements across the periodic table | [ACEsuit/mace](https://github.com/ACEsuit/mace) |
-| **MACE-OFF** | Organic molecules, drug-like compounds, molecular crystals | H, C, N, O, P, S, F, Cl, Br, I | [ASL License](https://github.com/gabor1/ASL) |
-| **Custom** | Your fine-tuned MACE model for domain-specific accuracy | Depends on training data | Upload `.model` file |
-
-All foundation models download automatically on first use and are cached locally. Custom models are uploaded per-session and not stored on the server.
+| Model | Best For | Elements |
+|-------|----------|----------|
+| **MACE-MP-0** | Materials, crystals, surfaces | 89 elements |
+| **MACE-OFF** | Organic molecules, drug-like compounds | H, C, N, O, F, P, S, Cl, Br, I |
+| **Custom** | Domain-specific accuracy | Upload `.model` file |
 
 ---
 
@@ -311,8 +183,9 @@ mace/
     api/
       calculate/route.ts              # Single-structure calculation API
       benchmark/route.ts              # Batch benchmark API (model × structure)
+      smiles-to-xyz/route.ts          # SMILES → 3D XYZ conversion API
       generate-surface/route.ts       # Surface slab generation via ASE
-    calculate/page.tsx                # Two-panel calculator page
+    calculate/page.tsx                # Calculator page with [Upload | Draw] toggle
     benchmark/
       page.tsx                        # Multi-model benchmark page
       loading.tsx                     # Loading spinner
@@ -321,6 +194,7 @@ mace/
     page.tsx                          # Landing page with animated hero
   components/
     calculate/
+      molecule-sketcher.tsx           # Sketch-a-Molecule: JSME + RDKit.js validation
       charts/
         chart-config.ts               # Shared Plotly config + color palette
         parity-plot.tsx               # Predicted vs. reference scatter plot
@@ -337,13 +211,11 @@ mace/
       molecule-viewer-3d.tsx          # 3Dmol.js + WEAS dual-engine viewer
       parameter-panel.tsx             # Model selection + calculation params
       pdf-report.tsx                  # PDF report generator
-      results-display.tsx             # Legacy results display (fallback)
       structure-info.tsx              # Auto-parsed structure summary + warnings
       structure-preview.tsx           # Click-to-display 3D preview
       weas-viewer.tsx                 # WEAS iframe viewer
     benchmark/
       benchmark-config.tsx            # Model + structure selection panel
-      benchmark-progress.tsx          # Indeterminate progress display
       benchmark-dashboard.tsx         # Tabbed results container (5 tabs)
       benchmark-leaderboard.tsx       # Sortable energy/atom comparison table
       benchmark-force-bars.tsx        # RMS force bar chart + per-atom table
@@ -352,7 +224,6 @@ mace/
       benchmark-heatmap.tsx           # Pairwise model agreement heatmap
       benchmark-export.tsx            # CSV / JSON / PDF export
     ui/                               # shadcn/ui primitives
-    Footer.tsx
     intro-section.tsx                 # Landing page hero + features grid
     water-md-canvas.tsx               # Animated Three.js water background
   lib/
@@ -360,6 +231,7 @@ mace/
     parse-structure.ts                # Multi-format structure parser
     utils.ts
   mace-api/
+    smiles_to_xyz.py                  # SMILES → 3D XYZ (RDKit multi-conformer + MMFF94)
     calculate_local.py                # Standalone MACE calculation script
     generate_surface.py               # ASE surface slab generator
     main.py                           # FastAPI server for cloud deployment
@@ -367,6 +239,8 @@ mace/
   types/
     mace.ts                           # TypeScript type definitions
   public/
+    RDKit_minimal.js                  # RDKit WASM loader (static asset)
+    RDKit_minimal.wasm                # RDKit WASM binary (static asset)
     demo/                             # Demo structures (ethanol.xyz, water.xyz)
 ```
 
@@ -378,39 +252,24 @@ mace/
 
 | Problem | Solution |
 |---------|----------|
-| `node: command not found` | Install Node.js from [nodejs.org](https://nodejs.org) |
-| `python3: command not found` | Install Python from [python.org](https://python.org). On Windows, try `python` instead. |
-| `pip: command not found` | Try `pip3` or `python3 -m pip install ...` |
-| `mace-torch` install fails | Ensure Python 3.10+. Install PyTorch first: `pip install torch` |
-| First calculation is slow (~30s) | Normal — the MACE model downloads on first use and is cached afterward. |
-| Calculation fails | Check terminal for Python errors. Verify `mace-torch` and `ase` are installed. |
-| `npm run dev` fails | Run `npm install` first. Requires Node.js 18+. |
-| CUDA out of memory | Switch to CPU in the parameter panel, or use a smaller model size. |
-| Custom model errors | Ensure the `.model` file is a valid MACE PyTorch checkpoint from `mace_run_train`. |
-| Benchmark errors on some structures | MACE-OFF only supports 10 organic elements (H, C, N, O, F, P, S, Cl, Br, I). Structures with other elements (Si, Cu, Fe, etc.) will fail with MACE-OFF — the UI grays them out automatically. |
-| Benchmark timing looks wrong | First-ever calculation includes model download time. Re-run the benchmark for accurate timing. |
-| Cross-family energy comparison | Comparing MACE-MP-0 (PBE) vs MACE-OFF (ωB97M-D3BJ) energies is not meaningful — they use different DFT references. Compare forces or relative energies within the same family. |
+| First calculation slow (~30s) | Normal — model downloads on first use, cached afterward. |
+| `mace-torch` install fails | Install PyTorch first: `pip install torch`. Requires Python 3.10+. |
+| CUDA out of memory | Switch to CPU in the parameter panel, or use a smaller model. |
+| Sketch-a-Molecule blank editor | JSME needs pixel dimensions. Resize the browser window to trigger re-measurement. |
+| RDKit WASM fails to load | Verify `public/RDKit_minimal.js` and `public/RDKit_minimal.wasm` exist. |
+| `torch.load` / `weights_only` error | PyTorch 2.6+ issue — already patched in `calculate_local.py`. Run `pip install --upgrade mace-torch`. |
+| MACE-OFF element error | MACE-OFF only supports 10 organic elements. Use MACE-MP-0 for metals/inorganics. |
 
 ---
 
 ## Acknowledgments
 
-This project is built on top of the [MACE framework](https://github.com/ACEsuit/mace), published at NeurIPS 2022. We are grateful to the MACE team for making state-of-the-art machine learning interatomic potentials accessible to the research community.
-
-The ml-peg benchmark structures are sourced from established computational materials science datasets. The Paul Tol colorblind-safe palette is used throughout the visualization system.
+Built on the [MACE framework](https://github.com/ACEsuit/mace) (NeurIPS 2022). Sketch-a-Molecule uses [RDKit](https://www.rdkit.org/) for 3D coordinate generation and [JSME](https://jsme-editor.github.io/) for molecule sketching. The ml-peg benchmark structures are sourced from established computational materials science datasets.
 
 ---
 
 <div align="center">
 
-
 Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
 </div>
-
- SMILES string (from the 2D sketch) encodes topology — which atoms connect to which, bond orders, and stereochemistry — but contains zero spatial information. The 3D reconstruction is a physics-based pipeline:
-Distance bounds — From the bond graph, compute min/max distance constraints between every atom pair: bond lengths (1.0-1.5 A), 1-3 angles, 1-4 torsions, and van der Waals radii for non-bonded pairs.
-ETKDGv3 distance geometry — Sample a random distance matrix within those bounds, embed it in 3D via eigenvalue decomposition, then refine using experimental torsion angle preferences from the Cambridge Structural Database and chemical rules (aromatic rings planar, sp carbons linear).
-Multi-conformer sampling (the fix) — Generate 50 conformers (scaled down for large molecules), each starting from a different random seed. Each conformer is a different physically valid arrangement of the same molecule.
-MMFF94 optimization of each conformer — Minimize the energy of every conformer with the Merck Molecular Force Field, a classical force field parameterized against high-level quantum chemistry.
-Energy-ranked selection — Pick the conformer with the lowest MMFF94 energy. This is the best classical approximation to the global minimum geometry.
