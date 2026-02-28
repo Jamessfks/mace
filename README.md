@@ -33,7 +33,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ---
 
-> *"In the science community, you rarely see a disabled scientist." — Professor Cabrera*
+> *"In the science community, you rarely see a disabled scientist."*
 >
 > *How many talented scientists are we losing because of inaccessible tools? We want to be the pioneers of creating an accessible scientific web interface, encouraging the science community to respect people with needs.*
 
