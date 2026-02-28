@@ -5,17 +5,21 @@
  * Accepts JSON: { smiles: string }
  * Returns JSON: { status, xyz, atomCount, formula, smiles, molecularWeight, warning? }
  *
- * Converts a SMILES string to 3D XYZ coordinates via Python RDKit,
- * producing a structure file ready for the existing MACE calculation
- * pipeline. Follows the same subprocess pattern as /api/calculate.
- *
- * DATA FLOW:
- *   Browser → POST { smiles } → this route → python3 smiles_to_xyz.py <SMILES>
- *   → stdout JSON → NextResponse.json(data) → Browser creates File object
- *   → feeds into existing handleCalculate() / POST /api/calculate
+ * Mode selection (same pattern as /api/calculate):
+ *   1. MACE_API_URL set → forward to remote backend (e.g. Railway)
+ *   2. MACE_API_URL not set → run locally via Python subprocess
  */
 
 import { NextRequest, NextResponse } from "next/server";
+
+const MACE_API_URL = (() => {
+  const url = process.env.MACE_API_URL?.trim();
+  if (!url) return undefined;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return `https://${url}`;
+  }
+  return url;
+})();
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +33,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Remote backend (Railway / any hosted MACE API) ──
+    if (MACE_API_URL) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+      try {
+        const response = await fetch(`${MACE_API_URL}/smiles-to-xyz`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ smiles: smiles.trim() }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const err = await response.text();
+          let message = "SMILES conversion failed on remote backend";
+          try {
+            const parsed = JSON.parse(err);
+            message = parsed.detail || parsed.message || message;
+          } catch {
+            if (err) message = err.slice(0, 300);
+          }
+          return NextResponse.json(
+            { status: "error", message },
+            { status: response.status >= 400 && response.status < 500 ? 422 : 500 }
+          );
+        }
+
+        const data = await response.json();
+        if (data.status === "error") {
+          return NextResponse.json(data, { status: 422 });
+        }
+        return NextResponse.json(data);
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        const message = fetchErr instanceof Error ? fetchErr.message : "Remote SMILES conversion failed";
+        return NextResponse.json(
+          { status: "error", message },
+          { status: 500 }
+        );
+      }
+    }
+
+    // ── Local mode: run via Python subprocess ──
     const { join } = await import("node:path");
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
