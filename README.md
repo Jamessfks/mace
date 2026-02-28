@@ -40,22 +40,42 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 <table>
 <tr>
 <td width="50%" align="center">
-
-**Draw a Molecule**
-
-<img src="public/Demo1.png" alt="Sketch-a-Molecule: draw bonds and atoms in the browser, get real-time SMILES, formula, and molecular weight" width="100%"/>
-
-<sub>Draw any organic molecule with the built-in sketcher. Real-time validation, SMILES generation, and molecular descriptors — all in the browser.</sub>
-
+<br/>
+<strong>Web Calculator</strong>
+<br/><br/>
+<a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo4.png" alt="MACE Web Calculator: 3D molecular viewer, MD trajectory animation, energy charts, and full parameter control" width="560"/></a>
+<br/>
+<sub>Upload a structure or draw a molecule, configure the model and parameters,<br/>then explore results with a 3D viewer, trajectory animation, and energy charts.</sub>
+<br/><br/>
 </td>
 <td width="50%" align="center">
-
-**Share Results Instantly**
-
-<img src="public/Demo2.png" alt="MACE Link: permanent shareable URL with full calculation results, 3D viewer, and export options" width="100%"/>
-
-<sub>Every calculation becomes a permanent, shareable link. The full dashboard — energy, forces, 3D viewer, exports — available to anyone.</sub>
-
+<br/>
+<strong>Multi-Model Benchmark</strong>
+<br/><br/>
+<a href="https://mace-lake.vercel.app/benchmark"><img src="public/Demo3.png" alt="Multi-Model Benchmark: compare MACE models across structures with force charts, leaderboard, and timing analysis" width="560"/></a>
+<br/>
+<sub>Batch-evaluate models across multiple structures. Sortable leaderboard,<br/>force comparison charts, timing analysis — all exportable as PDF, CSV, or JSON.</sub>
+<br/><br/>
+</td>
+</tr>
+<tr>
+<td width="50%" align="center">
+<br/>
+<strong>Sketch-a-Molecule</strong>
+<br/><br/>
+<a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo1.png" alt="Sketch-a-Molecule: draw bonds and atoms in the browser, get real-time SMILES, formula, and molecular weight" width="560"/></a>
+<br/>
+<sub>Draw any organic molecule with the built-in sketcher. Real-time validation,<br/>SMILES, and molecular descriptors — no files or coding required.</sub>
+<br/><br/>
+</td>
+<td width="50%" align="center">
+<br/>
+<strong>MACE Link — Share Results</strong>
+<br/><br/>
+<a href="https://mace-lake.vercel.app/r/gK7tabOE"><img src="public/Demo2.png" alt="MACE Link: permanent shareable URL with full calculation results, 3D viewer, and export options" width="560"/></a>
+<br/>
+<sub>Every calculation becomes a permanent, shareable link. The full dashboard —<br/>energy, forces, 3D viewer, exports — available to anyone without login.</sub>
+<br/><br/>
 </td>
 </tr>
 </table>
@@ -63,7 +83,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 </div>
 
 <details>
-<summary><strong>Watch the full walkthrough</strong></summary>
+<summary align="center"><strong>Watch the full walkthrough</strong></summary>
 
 <div align="center">
 <br/>
