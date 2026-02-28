@@ -7,6 +7,16 @@ import os
 import tempfile
 from pathlib import Path
 
+# PyTorch 2.6+ defaults torch.load to weights_only=True, but MACE checkpoints
+# contain custom model classes (ScaleShiftMACE etc.) that require full unpickling.
+import torch
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if "weights_only" not in kwargs:
+        kwargs["weights_only"] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel

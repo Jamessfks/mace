@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@loschmidt/jsme-react": "^1.0.2",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@rdkit/rdkit": "^2025.3.4-1.0.0",
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.95.3",
     "@types/three": "^0.183.1",

@@ -12,11 +12,29 @@ import {
   Zap,
   X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { ModelComparison } from "@/components/calculate/model-comparison";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
+
+const MoleculeSketcher = dynamic(
+  () =>
+    import("@/components/calculate/molecule-sketcher").then((m) => ({
+      default: m.MoleculeSketcher,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-64 items-center justify-center rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
+        <p className="font-mono text-xs text-[var(--color-text-muted)]">
+          Loading molecule editor...
+        </p>
+      </div>
+    ),
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Progress phase definitions per calculation type
@@ -100,6 +118,7 @@ function CalculatePageInner() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<"upload" | "draw">("upload");
 
   // Demo mode — guided overlay steps
   const [demoStep, setDemoStep] = useState<number | null>(null);
@@ -209,6 +228,11 @@ function CalculatePageInner() {
     }
   };
 
+  const handleSketchedMolecule = useCallback((file: File) => {
+    setUploadedFiles([file]);
+    setParams((prev) => ({ ...prev, modelType: "MACE-OFF" }));
+  }, []);
+
   const phases =
     PHASE_MAP[params.calculationType] || PHASE_MAP["single-point"];
   const estimatedTotal = getEstimatedTime(
@@ -256,15 +280,48 @@ function CalculatePageInner() {
         </div>
       </header>
 
-      {/* Main Content — Two-Panel Layout */}
+      {/* Main Content */}
       <main className="relative z-10 mx-auto max-w-screen-2xl p-6">
+        {/* Input Mode Toggle — always full width at top */}
+        <div className="mb-6 flex max-w-xs rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-1">
+          <button
+            onClick={() => setInputMode("upload")}
+            className={`flex-1 rounded-md px-3 py-2 font-mono text-xs font-bold transition-all ${
+              inputMode === "upload"
+                ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/40"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] border border-transparent"
+            }`}
+          >
+            Upload File
+          </button>
+          <button
+            onClick={() => setInputMode("draw")}
+            className={`flex-1 rounded-md px-3 py-2 font-mono text-xs font-bold transition-all ${
+              inputMode === "draw"
+                ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/40"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] border border-transparent"
+            }`}
+          >
+            Draw Molecule
+          </button>
+        </div>
+
+        {/* Draw mode: sketcher full-width, then params + results in 4/8 grid */}
+        {inputMode === "draw" && (
+          <div className="mb-6">
+            <MoleculeSketcher onFileGenerated={handleSketchedMolecule} />
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left Panel — Input Controls */}
           <aside className="space-y-6 lg:col-span-4">
-            <FileUploadSection
-              files={uploadedFiles}
-              onFilesChange={setUploadedFiles}
-            />
+            {inputMode === "upload" && (
+              <FileUploadSection
+                files={uploadedFiles}
+                onFilesChange={setUploadedFiles}
+              />
+            )}
             <ParameterPanel
               params={params}
               onChange={setParams}

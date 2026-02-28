@@ -19,6 +19,17 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore"
 
+# PyTorch 2.6+ defaults torch.load to weights_only=True, but MACE checkpoints
+# contain custom model classes (ScaleShiftMACE etc.) that require full unpickling.
+# Patch torch.load before any MACE import to restore the old default.
+import torch
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if "weights_only" not in kwargs:
+        kwargs["weights_only"] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
 # Redirect all non-JSON output (MACE/PyTorch info messages) to stderr
 import logging
 logging.disable(logging.CRITICAL)

@@ -407,3 +407,10 @@ The ml-peg benchmark structures are sourced from established computational mater
 Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
 </div>
+
+ SMILES string (from the 2D sketch) encodes topology — which atoms connect to which, bond orders, and stereochemistry — but contains zero spatial information. The 3D reconstruction is a physics-based pipeline:
+Distance bounds — From the bond graph, compute min/max distance constraints between every atom pair: bond lengths (1.0-1.5 A), 1-3 angles, 1-4 torsions, and van der Waals radii for non-bonded pairs.
+ETKDGv3 distance geometry — Sample a random distance matrix within those bounds, embed it in 3D via eigenvalue decomposition, then refine using experimental torsion angle preferences from the Cambridge Structural Database and chemical rules (aromatic rings planar, sp carbons linear).
+Multi-conformer sampling (the fix) — Generate 50 conformers (scaled down for large molecules), each starting from a different random seed. Each conformer is a different physically valid arrangement of the same molecule.
+MMFF94 optimization of each conformer — Minimize the energy of every conformer with the Merck Molecular Force Field, a classical force field parameterized against high-level quantum chemistry.
+Energy-ranked selection — Pick the conformer with the lowest MMFF94 energy. This is the best classical approximation to the global minimum geometry.
