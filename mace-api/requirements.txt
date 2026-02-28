@@ -1,7 +1,5 @@
 # MACE Python API - requirements
-# Use CPU-only PyTorch to avoid 2GB+ CUDA deps (Railway has no GPU, prevents build timeout)
---index-url https://download.pytorch.org/whl/cpu
---extra-index-url https://pypi.org/simple
+# Deployed on Hugging Face Spaces (Docker). GPU support via default PyTorch index.
 torch>=2.0.0
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0

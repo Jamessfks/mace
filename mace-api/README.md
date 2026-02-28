@@ -1,37 +1,32 @@
-# MACE Python API
+---
+title: MACE API
+emoji: ⚛️
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
 
-FastAPI backend for running MACE calculations and SMILES-to-3D conversion.
+# MACE Calculation API
 
-## Setup
+FastAPI backend for running MACE calculations, SMILES-to-3D conversion, and surface slab generation. Deployed on Hugging Face Spaces with Docker.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/calculate` | Run MACE calculation on uploaded structure file(s) |
+| POST | `/smiles-to-xyz` | Convert SMILES string to 3D XYZ coordinates |
+| POST | `/generate-surface` | Generate surface slab from bulk structure |
+| GET | `/health` | Health check |
+
+## Local Development
 
 ```bash
 cd mace-api
 pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 7860
 ```
-
-## Run Locally
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-API runs at `http://localhost:8000`
-
-## Endpoints
-
-### POST /calculate
-
-Run MACE calculation on uploaded structure file(s).
-
-**Request:** multipart/form-data
-- `files`: structure file(s) — .xyz, .cif, .poscar, .pdb
-- `params`: JSON string with modelType, modelSize, calculationType, device, etc.
-
-**Response:** JSON with energy, forces, positions, symbols, trajectory (for MD)
-
-### GET /health
-
-Health check.
 
 ## Scripts
 
@@ -45,20 +40,11 @@ python calculate_local.py <structure_file> [params_json] [--model-path <path>]
 
 ### `smiles_to_xyz.py`
 
-Converts a SMILES string to a 3D XYZ file for the Sketch-a-Molecule feature. Uses multi-conformer generation with energy-ranked selection for the best starting geometry.
+Converts a SMILES string to a 3D XYZ file using multi-conformer generation with energy-ranked selection.
 
 ```bash
 python smiles_to_xyz.py "CC(=O)Oc1ccccc1C(=O)O"   # aspirin
 ```
-
-**How it works:**
-1. Parse SMILES and validate elements against MACE-OFF's supported set (H, C, N, O, F, P, S, Cl, Br, I)
-2. Generate up to 50 conformers via ETKDGv3 distance geometry
-3. Optimize each with MMFF94 force field (UFF fallback)
-4. Select the lowest-energy conformer
-5. Output XYZ text as JSON to stdout
-
-**Output:** `{"status": "success", "xyz": "...", "atomCount": 21, "formula": "C9H8O4", "smiles": "...", "molecularWeight": 180.04, "numConformersGenerated": 30, "conformerEnergy_kcal": 18.91}`
 
 ### `generate_surface.py`
 
@@ -73,12 +59,9 @@ Models download and cache automatically on first use.
 
 ## Deployment
 
-```bash
-# Railway
-railway init && railway up
+This API is deployed as a Docker-based Hugging Face Space.
 
-# Render
-# Set start command: uvicorn main:app --host 0.0.0.0 --port $PORT
-```
-
-Set `MACE_API_URL` in the Next.js frontend to point to your deployed API.
+1. Create a new Space on huggingface.co (SDK: Docker)
+2. Push the `mace-api/` folder contents to the Space repo
+3. The Space builds the Docker image and starts the API on port 7860
+4. Set `MACE_API_URL` in the Vercel frontend to `https://<username>-<space-name>.hf.space`

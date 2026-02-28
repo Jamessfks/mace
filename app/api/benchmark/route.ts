@@ -5,8 +5,8 @@
  * plus optional user-uploaded structure files. Runs every (model, structure)
  * pair sequentially and returns a unified BenchmarkResult.
  *
- * Dual-mode: forwards to MACE_API_URL when set (Railway), otherwise
- * spawns local Python subprocesses via calculate_local.py.
+ * Dual-mode: forwards to MACE_API_URL when set (e.g. Hugging Face Spaces),
+ * otherwise spawns local Python subprocesses via calculate_local.py.
  *
  * Error resilience: individual calculation failures are caught and
  * recorded as status:"error" without aborting the batch.

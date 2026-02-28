@@ -20,7 +20,7 @@ const MACE_API_URL = (() => {
  *   - vacuumThickness: number (Angstroms)
  *
  * Mode selection:
- * 1. MACE_API_URL set → forward to remote backend (Vercel deployment)
+ * 1. MACE_API_URL set → forward to remote backend (e.g. Hugging Face Spaces)
  * 2. MACE_API_URL not set → run locally via Python subprocess
  */
 export async function POST(request: NextRequest) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Remote backend (Railway / any hosted MACE API) ──
+    // ── Remote backend (Hugging Face Spaces / any hosted MACE API) ──
     if (MACE_API_URL) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60 * 1000);

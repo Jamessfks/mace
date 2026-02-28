@@ -19,7 +19,7 @@ const MACE_API_URL = (() => {
  * - params: JSON string of CalculationParams
  *
  * Mode selection:
- * 1. MACE_API_URL set → forward to remote backend (e.g. Railway)
+ * 1. MACE_API_URL set → forward to remote backend (e.g. Hugging Face Spaces)
  * 2. MACE_API_URL not set → run MACE locally via Python subprocess
  *    (requires Python + mace-torch + ase installed on the machine)
  */
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const modelFile = formData.get("model") as File | null;
 
-    // ── Remote backend (Railway / any hosted MACE API) ──
+    // ── Remote backend (Hugging Face Spaces / any hosted MACE API) ──
     if (MACE_API_URL) {
       const maceFormData = new FormData();
       files.forEach((file) => maceFormData.append("files", file));

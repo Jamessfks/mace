@@ -148,17 +148,17 @@ Browser (localhost:3000)
 | Mode | When | How |
 |------|------|-----|
 | **Local** | `MACE_API_URL` not set | Python subprocess on same machine |
-| **Remote** | `MACE_API_URL` set | Forward to hosted API (e.g. Railway) |
+| **Remote** | `MACE_API_URL` set | Forward to hosted API (e.g. Hugging Face Spaces) |
 
 ---
 
 ## Deploy Online
 
-| Step | Frontend (Vercel) | Backend (Railway) |
-|------|-------------------|-------------------|
-| 1 | Push to GitHub | Create project at railway.app |
-| 2 | Import repo at vercel.com | Deploy from `mace-api/` folder |
-| 3 | Set `MACE_API_URL` env var | Copy the deployment URL |
+| Step | Frontend (Vercel) | Backend (Hugging Face Spaces) |
+|------|-------------------|-------------------------------|
+| 1 | Push to GitHub | Create a new Space at huggingface.co (SDK: Docker) |
+| 2 | Import repo at vercel.com | Push `mace-api/` contents to the Space repo |
+| 3 | Set `MACE_API_URL` env var | Copy the Space URL (e.g. `https://<user>-mace-api.hf.space`) |
 
 ---
 
@@ -231,6 +231,7 @@ mace/
     parse-structure.ts                # Multi-format structure parser
     utils.ts
   mace-api/
+    Dockerfile                        # Docker image for Hugging Face Spaces deployment
     smiles_to_xyz.py                  # SMILES → 3D XYZ (RDKit multi-conformer + MMFF94)
     calculate_local.py                # Standalone MACE calculation script
     generate_surface.py               # ASE surface slab generator
