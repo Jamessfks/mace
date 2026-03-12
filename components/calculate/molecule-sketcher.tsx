@@ -162,6 +162,12 @@ export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
   const handleSmilesChange = useCallback(
     (newSmiles: string) => {
       setSmiles(newSmiles);
+      // Clear preview immediately so we never show a molecule that doesn't match current input.
+      // validateSmiles (debounced) will set the correct values when it runs.
+      setSvgPreview(null);
+      setDescriptors(null);
+      setValidationError(null);
+      setGenerationError(null);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => validateSmiles(newSmiles), 300);
     },
@@ -188,17 +194,33 @@ export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
         return;
       }
 
+      // Generate SVG from the actual molecule we sent (canonical SMILES from API).
+      // Never use svgPreview here — it can be stale if user edited quickly before Generate.
+      let svgHtml = "";
+      const canonicalSmiles = data.smiles || smiles.trim();
+      if (rdkitModule && canonicalSmiles) {
+        try {
+          const mol = rdkitModule.get_mol(canonicalSmiles);
+          if (mol && mol.is_valid()) {
+            svgHtml = mol.get_svg(200, 160);
+            mol.delete();
+          }
+        } catch {
+          // RDKit failed; svgHtml stays empty
+        }
+      }
+
       const file = new File(
         [data.xyz],
         "sketched-molecule.xyz",
         { type: "text/plain" }
       );
       onFileGenerated(file, {
-        smiles: data.smiles || smiles.trim(),
+        smiles: canonicalSmiles,
         formula: data.formula || descriptors?.formula || "",
         mw: data.molecularWeight || descriptors?.mw || 0,
         numAtoms: data.atomCount ?? 0,
-        svgHtml: svgPreview || "",
+        svgHtml,
       });
     } catch (err) {
       setGenerationError(
@@ -207,7 +229,7 @@ export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [smiles, validationError, onFileGenerated]);
+  }, [smiles, validationError, onFileGenerated, rdkitModule, descriptors]);
 
   const [JsmeComponent, setJsmeComponent] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
