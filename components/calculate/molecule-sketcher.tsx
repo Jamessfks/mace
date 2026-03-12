@@ -197,7 +197,7 @@ export function MoleculeSketcher({ onFileGenerated }: MoleculeSketcherProps) {
         smiles: data.smiles || smiles.trim(),
         formula: data.formula || descriptors?.formula || "",
         mw: data.molecularWeight || descriptors?.mw || 0,
-        numAtoms: data.atomCount || descriptors?.numAtoms || 0,
+        numAtoms: data.atomCount ?? 0,
         svgHtml: svgPreview || "",
       });
     } catch (err) {
