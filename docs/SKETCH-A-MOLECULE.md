@@ -2,6 +2,8 @@
 
 **Draw any organic molecule in the browser and run DFT-accuracy MACE-OFF simulations instantly.**
 
+> **Architecture overview (layers, sequence, API contracts):** see [`architecture/2d-draw-to-mace-workflow.md`](./architecture/2d-draw-to-mace-workflow.md).
+
 This document covers every implementation detail of the Sketch-a-Molecule feature: the scientific reasoning, the tools chosen and why, the architecture, every file involved, the problems encountered and how they were solved, and the end-to-end data flow from a user's mouse click to a computed energy in electron-volts.
 
 ---
