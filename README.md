@@ -20,16 +20,32 @@
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
   <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/github/stars/Jamessfks/mace?style=flat-square&color=yellow" alt="Stars"/></a>
-  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=flat-square" alt="Status"/></a>
+  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.2.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
 </p>
 
 Built by **Zicheng Zhao** · Northeastern University
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[What's New in v1.2.0](#whats-new-in-v120-stable) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
+
+---
+
+## What's New in v1.2.0 Stable
+
+> **First stable release** — verified with automated scientific validation and hands-on testing at Northeastern University.
+
+This release marks the transition from active development to a validated, production-ready tool. Every calculation path has been tested end-to-end:
+
+- **All 3 calculation types verified**: single-point energy & forces, geometry optimization (BFGS), and molecular dynamics (NVE/NVT/NPT) produce scientifically correct results across both foundation models
+- **Automated validation suite**: a dedicated `validate_calculation.py` script checks energy bounds (model-aware for MACE-MP-0 vs MACE-OFF reference conventions), force conservation, interatomic distances, lattice validity, trajectory stability, and parameter sanity (including D3 dispersion double-counting detection)
+- **Model verification**: MACE-MP-0 on Si bulk returns -5.37 eV/atom with near-zero equilibrium forces; MACE-OFF on H2O achieves perfect force conservation; ethanol geometry optimization converges in 4 steps
+- **14 benchmark structures** spanning bulk crystals (Si, Cu, NaCl, Fe, diamond), molecular systems (H2O, ethanol, methane, benzene, aspirin), non-covalent complexes (water dimer, methane dimer), and surfaces (Cu(111), Si(111))
+- **Streamlined feature set**: removed the experimental 2D molecule sketcher to focus on the validated file-upload and catalog-based workflow
+- **Dual-mode backend**: local Python subprocess for development, remote FastAPI on Hugging Face Spaces for production — both tested and operational
+- **MACE Link sharing**: every calculation becomes a permanent, shareable URL backed by Supabase with row-level security
 
 ---
 
@@ -45,7 +61,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 <br/><br/>
 <a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo4.png" alt="MACE Web Calculator: 3D molecular viewer, MD trajectory animation, energy charts, and full parameter control" width="100%"/></a>
 <br/>
-<sub>Upload a structure or draw a molecule, configure the model and parameters,<br/>then explore results with a 3D viewer, trajectory animation, and energy charts.</sub>
+<sub>Upload a structure, configure the model and parameters,<br/>then explore results with a 3D viewer, trajectory animation, and energy charts.</sub>
 <br/><br/>
 </td>
 <td width="50%" align="center">
@@ -61,21 +77,14 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 <tr>
 <td width="50%" align="center">
 <br/>
-<strong>Sketch-a-Molecule</strong>
-<br/><br/>
-<a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo1.png" alt="Sketch-a-Molecule: draw bonds and atoms in the browser, get real-time SMILES, formula, and molecular weight" width="100%"/></a>
-<br/>
-<sub>Draw any organic molecule with the built-in sketcher. Real-time validation,<br/>SMILES, and molecular descriptors.</sub>
-<br/><br/>
-</td>
-<td width="50%" align="center">
-<br/>
 <strong>MACE Link — Share Results</strong>
 <br/><br/>
 <a href="https://mace-lake.vercel.app/r/gK7tabOE"><img src="public/Demo2.png" alt="MACE Link: permanent shareable URL with full calculation results, 3D viewer, and export options" width="100%"/></a>
 <br/>
 <sub>Every calculation becomes a permanent, shareable link. The full dashboard —<br/>energy, forces, 3D viewer, exports.</sub>
 <br/><br/>
+</td>
+<td width="50%" align="center">
 </td>
 </tr>
 </table>
@@ -92,7 +101,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
   Your browser does not support the video tag. <a href="public/demo-video.mp4">Download the video</a>.
 </video>
 
-*Draw a molecule → generate 3D coordinates → run MACE-OFF → explore results → share as a permanent link.*
+*Upload a structure → run MACE calculation → explore results → share as a permanent link.*
 
 <br/>
 </div>
@@ -111,43 +120,23 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 Machine learning interatomic potentials like [MACE](https://github.com/ACEsuit/mace) (NeurIPS 2022) have reached a point where they rival density functional theory in accuracy while running orders of magnitude faster. But using them still requires Python scripting, command-line fluency, and environment setup that shuts out a large number of researchers, especially those with accessibility needs, those in under-resourced labs, or students encountering computational chemistry for the first time.
 
-This project removes that barrier. Upload a crystal structure, draw a molecule on a canvas, or pick one from a catalog and get publication-quality results in seconds, from any browser.
+This project removes that barrier. Upload a crystal structure or pick one from a catalog and get publication-quality results in seconds, from any browser.
 
 ---
 
 ## Key Features
 
-### Sketch-a-Molecule
-
-**Draw any organic molecule and run a simulation — no files, no code, no setup.**
-
-Open the built-in sketcher (powered by [JSME](https://jsme-editor.github.io/)), draw bonds and atoms, and the interface handles everything: real-time validation via [RDKit.js](https://www.rdkitjs.com/) WASM, a 2D SVG preview with molecular descriptors, and one-click 3D coordinate generation through a multi-conformer physics pipeline.
-
-**How a 2D sketch becomes a real 3D structure:**
-
-1. **Distance bounds** — Min/max constraints between all atom pairs from bond lengths, angles, torsions, and van der Waals radii
-2. **ETKDGv3 distance geometry** — Random distance matrices embedded in 3D, refined with experimental torsion preferences from the Cambridge Structural Database
-3. **Multi-conformer sampling** — Up to 50 independent conformers explore the energy landscape
-4. **MMFF94 optimization** — Each conformer is minimized with the Merck Molecular Force Field (1.30 kcal/mol mean error vs. coupled-cluster)
-5. **Energy-ranked selection** — The lowest-energy conformer is selected as input for MACE-OFF
-
-```
-JSME editor → SMILES → RDKit.js validation + 2D SVG (browser)
-  → /api/smiles-to-xyz → RDKit Python (ETKDGv3 + MMFF94) → XYZ
-  → Auto-select MACE-OFF → Run calculation → Results dashboard
-```
-
 ### MACE Link — Shareable Permanent Results
 
-Every calculation can be shared as a permanent URL. Click **Share Result**, get a link like `mace-lake.vercel.app/r/gK7tabOE`, and anyone can view the full result — 3D viewer, metrics, charts, export options — without logging in. Drawn molecules embed the 2D structure, SMILES, formula, and molecular weight directly in the shared page. Results are stored in Supabase with row-level security: once created, a shared result cannot be modified or deleted.
+Every calculation can be shared as a permanent URL. Click **Share Result**, get a link like `mace-lake.vercel.app/r/gK7tabOE`, and anyone can view the full result — 3D viewer, metrics, charts, export options — without logging in. Results are stored in Supabase with row-level security: once created, a shared result cannot be modified or deleted.
 
 ### Scientific Calculator
 
 | Capability | Details |
 |---|---|
-| **Structure input** | Drag-and-drop upload (`.xyz`, `.cif`, `.poscar`, `.pdb`), [ml-peg catalog](https://github.com/ACEsuit/mace) (14 benchmark structures), or draw a molecule |
+| **Structure input** | Drag-and-drop upload (`.xyz`, `.cif`, `.poscar`, `.pdb`) or ml-peg catalog (14 benchmark structures across 5 categories) |
 | **Foundation models** | MACE-MP-0 (89 elements, materials & crystals) and MACE-OFF (organic molecules, DFT-level accuracy). Small, medium, and large variants |
-| **Custom models** | Upload your own `.model` file — compare side-by-side against foundation models with radar charts (MAE, RMSE, R²) |
+| **Custom models** | Upload your own `.model` file — compare side-by-side against foundation models with radar charts (MAE, RMSE, R2) |
 | **Calculation types** | Single-point energy & forces, geometry optimization (BFGS), molecular dynamics (NVE / NVT / NPT) |
 | **Parameter control** | Temperature, pressure, time step, friction, MD steps, force threshold, D3 dispersion correction, precision, device |
 
@@ -163,7 +152,7 @@ Every calculation can be shared as a permanent URL. Click **Share Result**, get 
 
 ### Multi-Model Benchmark Suite
 
-Navigate to `/benchmark` to batch-evaluate 2–3 models across multiple structures. Results include a sortable leaderboard, force comparison bar charts, timing analysis with speedup ratios, energy landscape plots, and a pairwise model agreement heatmap. Export everything as CSV, JSON, or a formatted PDF.
+Navigate to `/benchmark` to batch-evaluate 2-3 models across multiple structures. Results include a sortable leaderboard, force comparison bar charts, timing analysis with speedup ratios, energy landscape plots, and a pairwise model agreement heatmap. Export everything as CSV, JSON, or a formatted PDF.
 
 ### Accessibility & Design
 
@@ -172,7 +161,7 @@ The interface is built with accessibility as a first principle, not an afterthou
 - **Keyboard navigation** throughout — focus rings, Space to play/pause trajectory animations
 - **ARIA labels and semantic HTML** — screen readers can traverse the full calculation workflow
 - **Colorblind-safe data palette** — Paul Tol's qualitative scheme across all visualizations
-- **Dark scientific aesthetic** — ambient glow effects, dot-grid patterns, and an animated water MD simulation on the landing page, inspired by research-tool interfaces like Schrödinger
+- **Dark scientific aesthetic** — ambient glow effects, dot-grid patterns, and an animated water MD simulation on the landing page, inspired by research-tool interfaces
 
 ---
 
@@ -182,7 +171,6 @@ The interface is built with accessibility as a first principle, not an afterthou
 git clone https://github.com/Jamessfks/mace.git && cd mace
 npm install                    # frontend dependencies
 pip install mace-torch ase     # backend (MACE + ASE)
-pip install rdkit-pypi         # required for Sketch-a-Molecule
 npm run dev                    # → http://localhost:3000
 ```
 
@@ -190,13 +178,14 @@ npm run dev                    # → http://localhost:3000
 
 **Try the guided demo:** visit `http://localhost:3000/calculate?demo=true` — it loads an ethanol molecule and walks you through the interface step by step.
 
-**Try the sketcher:**
+### Verify Your Installation
 
-1. Go to `/calculate` → click **Draw Molecule**
-2. Draw a molecule (aspirin, caffeine, ibuprofen — anything organic)
-3. Click **Generate 3D & Load Structure**
-4. Click **RUN MACE CALCULATION**
-5. Explore the tabbed results dashboard, then click **Share Result** to get a permanent link
+```bash
+# Run the automated scientific validation suite
+python mace-api/validate_calculation.py --test
+```
+
+This runs 5 tests: Si bulk with MACE-MP-0, H2O with MACE-OFF, ethanol geometry optimization, force conservation check, and result validation. All must pass for a correct installation.
 
 ---
 
@@ -204,43 +193,44 @@ npm run dev                    # → http://localhost:3000
 
 ```
 Browser (localhost:3000)
-    │
-    ├── /                           Landing page with animated water MD background
-    │
-    ├── /calculate                  Calculator — [Upload File | Draw Molecule] toggle
-    │       ├── Draw mode ──▶ JSME editor → SMILES → /api/smiles-to-xyz
-    │       │                   → RDKit 3D coords → auto-load as .xyz
-    │       └── Upload mode ──▶ Drag-and-drop / ml-peg catalog
-    │
-    ├── /benchmark                  Multi-model benchmark suite
-    │
-    ├── /r/[id]                     MACE Link — shared result viewer
-    │
-    ▼
+    |
+    |-- /                           Landing page with animated water MD background
+    |
+    |-- /calculate                  Calculator — upload structure, configure, run MACE
+    |
+    |-- /benchmark                  Multi-model benchmark suite
+    |
+    |-- /r/[id]                     MACE Link — shared result viewer
+    |
+    v
     Next.js API Routes
-         ├── /api/smiles-to-xyz     SMILES → 3D XYZ (RDKit multi-conformer + MMFF94)
-         ├── /api/calculate         MACE calculation (single-point / opt / MD)
-         ├── /api/benchmark         Batch evaluation (model × structure pairs)
-         └── /api/generate-surface  Surface slab generation (ASE)
-    │
-    ▼
+         |-- /api/calculate         MACE calculation (single-point / opt / MD)
+         |-- /api/benchmark         Batch evaluation (model x structure pairs)
+         |-- /api/generate-surface  Surface slab generation (ASE)
+    |
+    v
+    Python Backend (ASE + mace-torch)
+         |-- calculate_local.py     Subprocess runner (local mode)
+         |-- main.py                FastAPI server (remote mode)
+         |-- validate_calculation.py  Scientific result validator
+    |
+    v
     Supabase                        Shared results storage (RLS-protected)
 ```
 
 | Mode | When | How |
 |------|------|-----|
 | **Local** | `MACE_API_URL` not set | Python subprocess on same machine |
-| **Remote** | `MACE_API_URL` set | Forwards to hosted API (e.g. Hugging Face Spaces) |
+| **Remote** | `MACE_API_URL` set | Forwards to hosted FastAPI (e.g. Hugging Face Spaces) |
 
 ### Key Technologies
 
 | Layer | Stack |
 |-------|-------|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | 3D rendering | 3Dmol.js, WEAS widget |
 | Charts | Plotly.js, Recharts |
-| Chemistry (browser) | RDKit.js (WASM), JSME molecule editor |
-| Chemistry (server) | RDKit (Python), MACE-torch, ASE |
+| Chemistry | mace-torch (v0.3.14+), ASE (v3.27+) |
 | Data | Supabase (Postgres + row-level security) |
 | Reports | @react-pdf/renderer |
 
@@ -260,9 +250,11 @@ Browser (localhost:3000)
 
 | Model | Best For | Elements | Training Data |
 |-------|----------|----------|---------------|
-| **MACE-MP-0** | Materials, crystals, surfaces | 89 elements | Materials Project DFT |
+| **MACE-MP-0** | Materials, crystals, surfaces | 89 elements | Materials Project DFT (PBE+U) |
 | **MACE-OFF** | Organic molecules, drug-like compounds | H, C, N, O, F, P, S, Cl, Br, I | wB97M-D3BJ coupled-cluster quality |
 | **Custom** | Domain-specific accuracy | Your training set | Upload `.model` file |
+
+> **Note:** MACE-MP-0 is trained at PBE+U level, which typically overbinds by 0.1-0.5 eV/atom relative to experiment. MACE-OFF already includes D3 dispersion in its training data — do not enable D3 correction when using MACE-OFF.
 
 ---
 
@@ -276,10 +268,9 @@ mace/
   app/
     api/
       calculate/route.ts              # Single-structure calculation API
-      benchmark/route.ts              # Batch benchmark API (model × structure)
-      smiles-to-xyz/route.ts          # SMILES → 3D XYZ conversion API
+      benchmark/route.ts              # Batch benchmark API (model x structure)
       generate-surface/route.ts       # Surface slab generation via ASE
-    calculate/page.tsx                # Calculator page with [Upload | Draw] toggle
+    calculate/page.tsx                # Calculator page — upload, configure, run
     benchmark/
       page.tsx                        # Multi-model benchmark page
       loading.tsx                     # Loading spinner
@@ -291,7 +282,6 @@ mace/
     page.tsx                          # Landing page with animated hero
   components/
     calculate/
-      molecule-sketcher.tsx           # Sketch-a-Molecule: JSME + RDKit.js validation
       charts/
         chart-config.ts               # Shared Plotly config + colorblind-safe palette
         parity-plot.tsx               # Predicted vs. reference scatter plot
@@ -331,20 +321,43 @@ mace/
     utils.ts
   mace-api/
     Dockerfile                        # Docker image for HF Spaces deployment
-    smiles_to_xyz.py                  # SMILES → 3D XYZ (RDKit multi-conformer + MMFF94)
     calculate_local.py                # Standalone MACE calculation script
     generate_surface.py               # ASE surface slab generator
     main.py                           # FastAPI server for cloud deployment
+    validate_calculation.py           # Scientific result validation suite
     requirements.txt
   types/
     mace.ts                           # TypeScript type definitions
   public/
-    RDKit_minimal.js                  # RDKit WASM loader (static asset)
-    RDKit_minimal.wasm                # RDKit WASM binary (static asset)
     demo/                             # Demo structures (ethanol.xyz, water.xyz)
 ```
 
 </details>
+
+---
+
+## Validation
+
+The project includes an automated scientific validation suite that verifies calculation correctness:
+
+```bash
+python mace-api/validate_calculation.py --test
+```
+
+| Test | What It Checks |
+|------|----------------|
+| MACE-MP-0 Si bulk | Energy/atom in correct range (-5.37 eV), equilibrium forces near zero |
+| MACE-OFF H2O | Energy computed, force conservation (net force = 0) |
+| Ethanol geometry opt | Energy decreases during optimization, converges within step limit |
+| Force conservation | Newton's 3rd law: sum of forces on isolated molecule equals zero |
+| Result validation | Physical bounds (energy, forces, distances, volume) all pass |
+
+You can also validate individual calculation results:
+
+```bash
+python mace-api/validate_calculation.py '<result_json>'
+python mace-api/validate_calculation.py result.json
+```
 
 ---
 
@@ -355,22 +368,21 @@ mace/
 | First calculation slow (~30s) | Normal — model downloads on first use, cached afterward |
 | `mace-torch` install fails | Install PyTorch first: `pip install torch`. Requires Python 3.10+ |
 | CUDA out of memory | Switch to CPU in the parameter panel, or use a smaller model |
-| Sketcher shows blank editor | JSME needs pixel dimensions — resize the browser window to trigger re-measurement |
-| RDKit WASM fails to load | Verify `public/RDKit_minimal.js` and `public/RDKit_minimal.wasm` exist |
 | `torch.load` / `weights_only` error | PyTorch 2.6+ issue — already patched in `calculate_local.py`. Run `pip install --upgrade mace-torch` |
 | MACE-OFF element error | MACE-OFF only supports 10 organic elements. Use MACE-MP-0 for metals/inorganics |
 | Shared link shows "not found" | The result ID may be invalid. Shared results are permanent once created |
+| Validation suite fails | Run `pip install mace-torch ase` to ensure dependencies are installed |
 
 ---
 
 ## Acknowledgments
 
-Built on the [MACE framework](https://github.com/ACEsuit/mace) by Batatia et al. (NeurIPS 2022). Sketch-a-Molecule uses [RDKit](https://www.rdkit.org/) for 3D coordinate generation and [JSME](https://jsme-editor.github.io/) for molecule drawing. 3D visualization powered by [3Dmol.js](https://3dmol.csb.pitt.edu/) and [WEAS](https://github.com/superstar54/weas). The ml-peg benchmark structures are sourced from established computational materials science datasets.
+Built on the [MACE framework](https://github.com/ACEsuit/mace) by Batatia et al. (NeurIPS 2022). 3D visualization powered by [3Dmol.js](https://3dmol.csb.pitt.edu/) and [WEAS](https://github.com/superstar54/weas). The ml-peg benchmark structures are sourced from established computational materials science datasets.
 
 ---
 
 <div align="center">
 
-Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
+**v1.2.0 Stable** · Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
 </div>

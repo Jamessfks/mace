@@ -24,7 +24,7 @@ from pydantic import BaseModel
 app = FastAPI(
     title="MACE Calculation API",
     description="Run MACE energy and force calculations on atomic structures",
-    version="1.0.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -250,21 +250,6 @@ async def calculate(
             os.unlink(tmp_path)
 
 
-class SmilesRequest(BaseModel):
-    smiles: str
-
-
-@app.post("/smiles-to-xyz")
-async def smiles_to_xyz_endpoint(req: SmilesRequest):
-    """Convert a SMILES string to 3D XYZ via RDKit (multi-conformer + MMFF94)."""
-    from smiles_to_xyz import smiles_to_xyz
-
-    result = smiles_to_xyz(req.smiles)
-    if result["status"] == "error":
-        raise HTTPException(status_code=422, detail=result["message"])
-    return result
-
-
 class SurfaceRequest(BaseModel):
     xyzData: str
     h: int = 1
@@ -338,10 +323,9 @@ async def root():
     """API info."""
     return {
         "name": "MACE API",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "endpoints": {
             "POST /calculate": "Run MACE calculation on uploaded structure",
-            "POST /smiles-to-xyz": "Convert SMILES to 3D XYZ coordinates",
             "POST /generate-surface": "Generate surface slab from bulk structure",
             "GET /health": "Health check",
         },

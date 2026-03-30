@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Copy, Check, ExternalLink, Beaker } from "lucide-react";
+import { Copy, Check, ExternalLink } from "lucide-react";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { Badge } from "@/components/ui/badge";
 import type { SharedResult, CalculationParams } from "@/types/mace";
@@ -23,8 +23,7 @@ export function SharedResultView({ shared }: Props) {
   const [copied, setCopied] = useState<"link" | "cite" | null>(null);
 
   const url = `https://mace-lake.vercel.app/r/${id}`;
-  const p = params as Partial<CalculationParams> & { _sketchMeta?: { smiles: string; formula: string; mw: number; numAtoms: number; svgHtml: string } };
-  const sketch = p._sketchMeta ?? null;
+  const p = params as Partial<CalculationParams>;
   const date = new Date(created_at).toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric",
   });
@@ -102,38 +101,6 @@ export function SharedResultView({ shared }: Props) {
             Shared {date}
           </span>
         </div>
-
-        {/* Sketched molecule identity — shown when the shared result came from Draw Molecule */}
-        {sketch && (
-          <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
-            <h2 className="mb-3 flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-widest text-[var(--color-accent-primary)]">
-              <Beaker className="h-3.5 w-3.5" />
-              Sketched Molecule
-            </h2>
-            <div className="flex items-start gap-4">
-              {sketch.svgHtml && (
-                <div className="shrink-0 rounded border border-[var(--color-border-subtle)] bg-white p-2">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: sketch.svgHtml }}
-                    className="[&>svg]:h-[80px] [&>svg]:w-[100px]"
-                  />
-                </div>
-              )}
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <p className="font-mono text-sm font-bold text-[var(--color-text-primary)]">
-                  {sketch.formula}
-                </p>
-                <p className="break-all font-mono text-xs text-[var(--color-text-muted)]">
-                  {sketch.smiles}
-                </p>
-                <div className="flex gap-3 font-mono text-xs text-[var(--color-text-secondary)]">
-                  <span>MW {sketch.mw.toFixed(2)}</span>
-                  <span>{sketch.numAtoms} atoms</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Results dashboard (reused as-is) */}
         <MetricsDashboard result={result} filename={filename} />

@@ -14,33 +14,13 @@ import {
   Share2,
   Copy,
   Check,
-  Atom,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { ModelComparison } from "@/components/calculate/model-comparison";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
-import type { SketchMetadata } from "@/components/calculate/molecule-sketcher";
 import { saveResult } from "@/lib/share";
-
-const MoleculeSketcher = dynamic(
-  () =>
-    import("@/components/calculate/molecule-sketcher").then((m) => ({
-      default: m.MoleculeSketcher,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-        <p className="font-mono text-xs text-[var(--color-text-muted)]">
-          Loading molecule editor...
-        </p>
-      </div>
-    ),
-  }
-);
 
 // ---------------------------------------------------------------------------
 // Progress phase definitions per calculation type
@@ -124,11 +104,9 @@ function CalculatePageInner() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<"upload" | "draw">("upload");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [sketchMeta, setSketchMeta] = useState<SketchMetadata | null>(null);
 
   // Demo mode — guided overlay steps
   const [demoStep, setDemoStep] = useState<number | null>(null);
@@ -239,17 +217,11 @@ function CalculatePageInner() {
     }
   };
 
-  const handleSketchedMolecule = useCallback((file: File, metadata: SketchMetadata) => {
-    setUploadedFiles([file]);
-    setSketchMeta(metadata);
-    setParams((prev) => ({ ...prev, modelType: "MACE-OFF" }));
-  }, []);
-
   const handleShare = async () => {
     if (!result || result.status !== "success") return;
     setIsSharing(true);
     try {
-      const { url } = await saveResult(result, params, uploadedFiles[0]?.name, sketchMeta);
+      const { url } = await saveResult(result, params, uploadedFiles[0]?.name);
       setShareUrl(url);
     } catch {
       setError("Failed to share result. Please try again.");
@@ -314,76 +286,13 @@ function CalculatePageInner() {
 
       {/* Main Content */}
       <main className="relative z-10 mx-auto max-w-screen-2xl p-6">
-        {/* Input Mode Toggle — always full width at top */}
-        <div className="mb-6 flex max-w-xs rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-1">
-          <button
-            onClick={() => { setInputMode("upload"); setSketchMeta(null); }}
-            className={`flex-1 rounded-md px-3 py-2 font-mono text-xs font-bold transition-all ${
-              inputMode === "upload"
-                ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/40"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] border border-transparent"
-            }`}
-          >
-            Upload File
-          </button>
-          <button
-            onClick={() => setInputMode("draw")}
-            className={`flex-1 rounded-md px-3 py-2 font-mono text-xs font-bold transition-all ${
-              inputMode === "draw"
-                ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/40"
-                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] border border-transparent"
-            }`}
-          >
-            Draw Molecule
-          </button>
-        </div>
-
-        {/* Draw mode: sketcher full-width, then params + results in 4/8 grid */}
-        {inputMode === "draw" && (
-          <div className="mb-6">
-            <MoleculeSketcher onFileGenerated={handleSketchedMolecule} />
-          </div>
-        )}
-
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left Panel — Input Controls */}
           <aside className="space-y-6 lg:col-span-4">
-            {inputMode === "upload" && (
-              <FileUploadSection
-                files={uploadedFiles}
-                onFilesChange={setUploadedFiles}
-              />
-            )}
-            {inputMode === "draw" && sketchMeta && uploadedFiles.length > 0 && (
-              <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
-                <h2 className="mb-3 flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-widest text-[var(--color-accent-primary)]">
-                  <Atom className="h-3.5 w-3.5" />
-                  Sketched Molecule
-                </h2>
-                <div className="flex items-start gap-4">
-                  {sketchMeta.svgHtml && (
-                    <div className="shrink-0 rounded border border-[var(--color-border-subtle)] bg-white p-2">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: sketchMeta.svgHtml }}
-                        className="[&>svg]:h-[80px] [&>svg]:w-[100px]"
-                      />
-                    </div>
-                  )}
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <p className="font-mono text-sm font-bold text-[var(--color-text-primary)]">
-                      {sketchMeta.formula}
-                    </p>
-                    <p className="break-all font-mono text-xs text-[var(--color-text-muted)]">
-                      {sketchMeta.smiles}
-                    </p>
-                    <div className="flex gap-3 font-mono text-xs text-[var(--color-text-secondary)]">
-                      <span>MW {sketchMeta.mw.toFixed(2)}</span>
-                      <span>{sketchMeta.numAtoms} atoms</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            <FileUploadSection
+              files={uploadedFiles}
+              onFilesChange={setUploadedFiles}
+            />
             <ParameterPanel
               params={params}
               onChange={setParams}
