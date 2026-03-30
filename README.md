@@ -37,15 +37,10 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 > **First stable release** — verified with automated scientific validation and hands-on testing of students at Northeastern University.
 
-This release marks the transition from active development to a validated, production-ready tool. Every calculation path has been tested end-to-end:
-
-- **All 3 calculation types verified**: single-point energy & forces, geometry optimization (BFGS), and molecular dynamics (NVE/NVT/NPT) produce scientifically correct results across both foundation models
-- **Automated validation suite**: a dedicated `validate_calculation.py` script checks energy bounds (model-aware for MACE-MP-0 vs MACE-OFF reference conventions), force conservation, interatomic distances, lattice validity, trajectory stability, and parameter sanity (including D3 dispersion double-counting detection)
-- **Model verification**: MACE-MP-0 on Si bulk returns -5.37 eV/atom with near-zero equilibrium forces; MACE-OFF on H2O achieves perfect force conservation; ethanol geometry optimization converges in 4 steps
-- **14 benchmark structures** spanning bulk crystals (Si, Cu, NaCl, Fe, diamond), molecular systems (H2O, ethanol, methane, benzene, aspirin), non-covalent complexes (water dimer, methane dimer), and surfaces (Cu(111), Si(111))
-- **Streamlined feature set**: removed the experimental 2D molecule sketcher to focus on the validated file-upload and catalog-based workflow
-- **Dual-mode backend**: local Python subprocess for development, remote FastAPI on Hugging Face Spaces for production — both tested and operational
-- **MACE Link sharing**: every calculation becomes a permanent, shareable URL backed by Supabase with row-level security
+- **Validated end-to-end**: single-point, geometry optimization (BFGS), and MD (NVE/NVT/NPT) verified across MACE-MP-0 and MACE-OFF on 14 benchmark structures
+- **Scientific validation suite** (`validate_calculation.py`): model-aware energy bounds, force conservation, D3 double-counting detection, trajectory stability checks
+- **Verified accuracy**: Si bulk at -5.37 eV/atom with equilibrium forces ~0; H2O with perfect force conservation; ethanol opt converges in 4 steps
+- Removed experimental 2D sketcher; streamlined to file-upload and catalog workflow
 
 ---
 
