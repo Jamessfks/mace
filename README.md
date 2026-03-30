@@ -35,7 +35,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ## What's New in v1.2.0 Stable
 
-> **First stable release** — verified with automated scientific validation and hands-on testing at Northeastern University.
+> **First stable release** — verified with automated scientific validation and hands-on testing of students at Northeastern University.
 
 This release marks the transition from active development to a validated, production-ready tool. Every calculation path has been tested end-to-end:
 
