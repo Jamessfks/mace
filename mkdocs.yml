@@ -1,0 +1,68 @@
+site_name: MACE Web Calculator
+site_url: https://mace-web.readthedocs.io/
+site_description: Browser-based interface for MACE machine learning interatomic potentials
+site_author: Zicheng Zhao
+
+repo_name: Jamessfks/mace
+repo_url: https://github.com/Jamessfks/mace
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started.md
+      - Troubleshooting: troubleshooting.md
+  - User Guide:
+      - Calculator: guide/calculator.md
+      - Benchmark Suite: guide/benchmark.md
+      - MACE Link: guide/sharing.md
+  - Science:
+      - Models: science/models.md
+      - Units & Conventions: science/units.md
+      - Validation: science/validation.md
+  - Developer:
+      - Architecture: dev/architecture.md
+      - API Reference: dev/api.md
+      - Deployment: dev/deployment.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
