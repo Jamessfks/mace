@@ -10,7 +10,23 @@
 
 A browser-based interface for [MACE](https://github.com/ACEsuit/mace) (Multi-Atomic Cluster Expansion) machine learning interatomic potentials. Upload a crystal or molecular structure, pick a model, and get publication-quality energies, forces, and trajectories in seconds.
 
-## Why it exists
+## Why it exists and the story behind it
+
+I am a freshman college student majoring in computer science. I was lucky to be assigned a research project by Oak Ridge National Laboratory, focusing on the use of MACE.
+
+MACE is a powerful tool for quantum chemistry, but I initially had no idea how to use it. The detailed documentation and Google Colab are not user-friendly, at least for me.
+
+So I decided to act.
+
+I am not an expert in quantum chemistry or machine-learning interatomic potentials, but I'm a front-end developer. I can visualize complex, abstract tools and simplify the command-line interface into a modern software tool accessible to researchers and even students in my research team.
+
+[Rowan Scientific](https://www.rowansci.com/), a molecular design and simulation platform for scientists, truly inspires me. They share my vision of making complex scientific tools more accessible to researchers. I would like to include their quote:
+
+> *"We're starting Rowan because we think that scientific software shouldn't be hard to use."*
+
+It is inspiring when I realize they had the exact same vision as I did!
+
+Especially with the age of AI, modern software using AI agents becomes increasingly easy to build, and the quality is amazing. Even someone without a PhD in quantum chemistry can build a research-grade web interface for others to use.
 
 Machine learning interatomic potentials like MACE have reached DFT-level accuracy while running orders of magnitude faster. But using them still requires Python scripting, command-line fluency, and environment setup that shuts out many researchers — especially those with accessibility needs, those in under-resourced labs, or students encountering computational chemistry for the first time.
 
