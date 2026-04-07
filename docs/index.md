@@ -49,6 +49,7 @@ This project removes that barrier.
 
 - [Getting Started](getting-started.md) — install and run locally in 3 commands
 - [Calculator Guide](guide/calculator.md) — walkthrough of a calculation
+- [MACE Calculator Parameters](guide/mace-calculator-parameters.md) — complete parameter reference
 - [Models](science/models.md) — which model to pick for your system
 - [Validation](science/validation.md) — how results are verified
 - [Architecture](dev/architecture.md) — system design and data flow

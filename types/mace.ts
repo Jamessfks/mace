@@ -34,15 +34,12 @@ export interface CalculationParams {
   mdSteps?: number;
   mdEnsemble?: "NVE" | "NVT" | "NPT";
   forceThreshold?: number;
-  energyThreshold?: number;
 
   // Advanced options
-  cutoffRadius?: number;
   maxOptSteps?: number;
 
   // Custom model support — user-uploaded .model files
   customModelName?: string;
-  customModelDescription?: string;
 }
 
 export interface CalculationResult {

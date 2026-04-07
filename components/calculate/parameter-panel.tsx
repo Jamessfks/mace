@@ -293,14 +293,6 @@ export function ParameterPanel({ params, onChange, customModelFile, onCustomMode
         {showAdvanced && (
           <div className="mt-4 space-y-4">
             <ParamInput
-              label="Cutoff Radius (Å)"
-              value={params.cutoffRadius ?? 5.0}
-              onChange={(v) => updateParam("cutoffRadius", v)}
-              min={3}
-              max={10}
-              step={0.5}
-            />
-            <ParamInput
               label="Max Opt Steps"
               value={params.maxOptSteps ?? 500}
               onChange={(v) => updateParam("maxOptSteps", v)}
