@@ -21,13 +21,14 @@
   <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/github/stars/Jamessfks/mace?style=flat-square&color=yellow" alt="Stars"/></a>
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.2.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
+  <a href="https://mace-web-interface.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/docs-readthedocs-8CA1AF?style=flat-square&logo=readthedocs&logoColor=white" alt="Documentation"/></a>
 </p>
 
 Built by **Zicheng Zhao** · Northeastern University
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[What's New in v1.2.0](#whats-new-in-v120-stable) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[Documentation](https://mace-web-interface.readthedocs.io/en/latest/) · [What's New in v1.2.0](#whats-new-in-v120-stable) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
 
