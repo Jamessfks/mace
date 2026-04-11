@@ -69,20 +69,6 @@ export function IntroSection() {
       </div>
 
       <div className="relative z-10 flex max-w-5xl flex-col items-center gap-10 text-center">
-        {/* ── University affiliation banner ── */}
-        <a
-          href="https://www.northeastern.edu"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group"
-        >
-          <img
-            src="/NEU_name.png"
-            alt="Northeastern University"
-            className="h-16 sm:h-20 w-auto transition-opacity opacity-90 group-hover:opacity-100"
-          />
-        </a>
-
         {/* ── Badge ── */}
         <Badge
           variant="outline"
@@ -196,12 +182,7 @@ export function IntroSection() {
         </div>
 
         {/* ── Builder credit ── */}
-        <div className="mt-2 flex items-center justify-center gap-2.5">
-          <img
-            src="/NEU_logo.png"
-            alt="Northeastern University"
-            className="h-14 w-14 opacity-80"
-          />
+        <div className="mt-2 flex items-center justify-center">
           <p className="font-mono text-xs text-[var(--color-text-muted)]">
             Built by{" "}
             <a
