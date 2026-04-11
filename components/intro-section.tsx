@@ -93,11 +93,10 @@ export function IntroSection() {
 
         {/* ── Hero Title ── */}
         <div className="space-y-2">
-          <h1 className="font-sans text-5xl font-bold tracking-tight text-white sm:text-7xl md:text-8xl">
-            <span className="text-shadow-accent">MACE</span>
-            <br />
-            <span className="text-[var(--color-accent-primary)] text-shadow-accent-strong">
-              FORCE FIELDS
+          <h1 className="font-sans text-5xl font-bold tracking-tight sm:text-7xl md:text-8xl">
+            <span className="simple-atom-title">
+              <span className="simple-atom-simple">Simple</span>
+              <span className="simple-atom-atom">Atom</span>
             </span>
           </h1>
         </div>

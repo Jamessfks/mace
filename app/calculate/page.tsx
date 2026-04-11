@@ -98,6 +98,7 @@ function CalculatePageInner() {
     mdSteps: 100,
     mdEnsemble: "NVT",
     forceThreshold: 0.05,
+    maxOptSteps: 500,
   });
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const [result, setResult] = useState<CalculationResult | null>(null);

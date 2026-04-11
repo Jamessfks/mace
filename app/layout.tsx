@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MACE Force Fields | Machine Learning Interatomic Potentials",
+  title: "SimpleAtom | Machine Learning Interatomic Potentials",
   description:
     "MACE (Many-body Atomic Cluster Expansion) — equivariant message-passing neural networks for fast, accurate interatomic potentials. Web-based calculator with 3D visualization, model benchmarking, and scientific analysis.",
 };

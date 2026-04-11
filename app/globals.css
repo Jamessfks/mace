@@ -219,6 +219,31 @@ html {
     0 0 60px rgba(74, 123, 247, 0.2);
 }
 
+/* ── SimpleAtom hero title ── */
+.simple-atom-title {
+  display: inline-flex;
+  align-items: baseline;
+  letter-spacing: -0.03em;
+}
+
+.simple-atom-simple {
+  color: #E8ECF4;
+  font-weight: 300;
+  text-shadow:
+    0 0 20px rgba(232, 236, 244, 0.15),
+    0 0 40px rgba(232, 236, 244, 0.05);
+}
+
+.simple-atom-atom {
+  color: #4A7BF7;
+  font-weight: 800;
+  text-shadow:
+    0 0 10px rgba(74, 123, 247, 0.6),
+    0 0 25px rgba(74, 123, 247, 0.4),
+    0 0 50px rgba(74, 123, 247, 0.25),
+    0 0 80px rgba(74, 123, 247, 0.15);
+}
+
 .glow-border-accent {
   box-shadow:
     0 0 20px rgba(74, 123, 247, 0.2),

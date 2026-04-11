@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Info, Upload, X, FileText, Info as InfoIcon } from "lucide-react";
+import { Info, Upload, X, FileText, Info as InfoIcon } from "lucide-react";
 import type { CalculationParams } from "@/types/mace";
 
 interface ParameterPanelProps {
@@ -12,8 +12,6 @@ interface ParameterPanelProps {
 }
 
 export function ParameterPanel({ params, onChange, customModelFile, onCustomModelChange }: ParameterPanelProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
   const updateParam = <K extends keyof CalculationParams>(
     key: K,
     value: CalculationParams[K]
@@ -186,13 +184,20 @@ export function ParameterPanel({ params, onChange, customModelFile, onCustomMode
         </div>
       </div>
 
-      {/* Physical Parameters */}
+      {/* Physical Parameters — contextual based on calculation type */}
       <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
+        <h2 className="mb-1 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
           PHYSICAL PARAMETERS
         </h2>
+        <p className="mb-4 font-mono text-[10px] text-zinc-500">
+          {params.calculationType === "single-point" && "Compute energy and forces at current geometry"}
+          {params.calculationType === "geometry-opt" && "Relax atomic positions to minimize energy"}
+          {params.calculationType === "molecular-dynamics" && "Simulate atomic motion over time"}
+          {params.calculationType === "phonon" && "Vibrational frequency analysis"}
+        </p>
 
         <div className="space-y-4">
+          {/* Dispersion — applies to all calculation types */}
           <label className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -205,102 +210,108 @@ export function ParameterPanel({ params, onChange, customModelFile, onCustomMode
             </span>
           </label>
 
-          <ParamSelect
-            label="MD Ensemble"
-            value={params.mdEnsemble ?? "NVT"}
-            onChange={(v) => updateParam("mdEnsemble", v as "NVE" | "NVT" | "NPT")}
-            options={[
-              { value: "NVE", label: "NVE (microcanonical)" },
-              { value: "NVT", label: "NVT (canonical)" },
-              { value: "NPT", label: "NPT (isothermal-isobaric)" },
-            ]}
-            tooltip="Thermodynamic ensemble for MD"
-          />
+          {/* ── Geometry Optimization parameters ── */}
+          {params.calculationType === "geometry-opt" && (
+            <>
+              <ParamInput
+                label="Force Threshold (eV/A)"
+                value={params.forceThreshold ?? 0.05}
+                onChange={(v) => updateParam("forceThreshold", v)}
+                min={0.001}
+                max={1}
+                step={0.01}
+              />
+              <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
+                Convergence criterion: max force per atom (fmax)
+              </span>
 
-          <ParamInput
-            label="Temperature (K)"
-            value={params.temperature ?? 300}
-            onChange={(v) => updateParam("temperature", v)}
-            min={0}
-            max={5000}
-          />
-
-          <ParamInput
-            label="Pressure (GPa)"
-            value={params.pressure ?? 0}
-            onChange={(v) => updateParam("pressure", v)}
-            min={0}
-            max={1000}
-          />
-
-          <ParamInput
-            label="Time Step (fs)"
-            value={params.timeStep ?? 1.0}
-            onChange={(v) => updateParam("timeStep", v)}
-            min={0.1}
-            max={10}
-            step={0.1}
-          />
-
-          <ParamInput
-            label="Langevin Friction"
-            value={params.friction ?? 0.005}
-            onChange={(v) => updateParam("friction", v)}
-            min={0.0001}
-            max={0.1}
-            step={0.001}
-          />
-          <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
-            Thermostat coupling for NVT (ASE default 5e-3)
-          </span>
-
-          <ParamInput
-            label="MD Steps"
-            value={params.mdSteps ?? 100}
-            onChange={(v) => updateParam("mdSteps", v)}
-            min={1}
-            max={100000}
-          />
-
-          <ParamInput
-            label="Force Threshold (eV/Å)"
-            value={params.forceThreshold ?? 0.05}
-            onChange={(v) => updateParam("forceThreshold", v)}
-            min={0.001}
-            max={1}
-            step={0.01}
-          />
-          <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
-            fmax for geometry optimization
-          </span>
-        </div>
-      </div>
-
-      {/* Advanced Options */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex w-full items-center justify-between font-sans text-sm font-bold text-[var(--color-accent-primary)]"
-        >
-          ADVANCED OPTIONS
-          {showAdvanced ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
+              <ParamInput
+                label="Max Optimization Steps"
+                value={params.maxOptSteps ?? 500}
+                onChange={(v) => updateParam("maxOptSteps", v)}
+                min={10}
+                max={5000}
+              />
+            </>
           )}
-        </button>
 
-        {showAdvanced && (
-          <div className="mt-4 space-y-4">
-            <ParamInput
-              label="Max Opt Steps"
-              value={params.maxOptSteps ?? 500}
-              onChange={(v) => updateParam("maxOptSteps", v)}
-              min={10}
-              max={5000}
-            />
-          </div>
-        )}
+          {/* ── Molecular Dynamics parameters ── */}
+          {params.calculationType === "molecular-dynamics" && (
+            <>
+              <ParamSelect
+                label="Ensemble"
+                value={params.mdEnsemble ?? "NVT"}
+                onChange={(v) => updateParam("mdEnsemble", v as "NVE" | "NVT" | "NPT")}
+                options={[
+                  { value: "NVE", label: "NVE — constant energy (microcanonical)" },
+                  { value: "NVT", label: "NVT — constant temperature (canonical)" },
+                  { value: "NPT", label: "NPT — constant temperature + pressure" },
+                ]}
+                tooltip="NVE: no thermostat. NVT: Langevin thermostat. NPT: thermostat + barostat."
+              />
+
+              <ParamInput
+                label="Temperature (K)"
+                value={params.temperature ?? 300}
+                onChange={(v) => updateParam("temperature", v)}
+                min={0}
+                max={5000}
+              />
+
+              {/* Friction — only for NVT (Langevin thermostat) */}
+              {(params.mdEnsemble ?? "NVT") === "NVT" && (
+                <>
+                  <ParamInput
+                    label="Friction (1/fs)"
+                    value={params.friction ?? 0.005}
+                    onChange={(v) => updateParam("friction", v)}
+                    min={0.0001}
+                    max={0.1}
+                    step={0.001}
+                  />
+                  <span className="-mt-2 block font-mono text-[10px] text-zinc-600">
+                    Langevin thermostat coupling strength
+                  </span>
+                </>
+              )}
+
+              {/* Pressure — only for NPT (barostat) */}
+              {(params.mdEnsemble ?? "NVT") === "NPT" && (
+                <ParamInput
+                  label="Pressure (GPa)"
+                  value={params.pressure ?? 0}
+                  onChange={(v) => updateParam("pressure", v)}
+                  min={0}
+                  max={1000}
+                />
+              )}
+
+              <ParamInput
+                label="Time Step (fs)"
+                value={params.timeStep ?? 1.0}
+                onChange={(v) => updateParam("timeStep", v)}
+                min={0.1}
+                max={10}
+                step={0.1}
+              />
+
+              <ParamInput
+                label="MD Steps"
+                value={params.mdSteps ?? 100}
+                onChange={(v) => updateParam("mdSteps", v)}
+                min={1}
+                max={100000}
+              />
+            </>
+          )}
+
+          {/* Single-point: no extra parameters needed */}
+          {params.calculationType === "single-point" && (
+            <p className="font-mono text-[10px] text-zinc-600">
+              No additional parameters required for single-point evaluation.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
