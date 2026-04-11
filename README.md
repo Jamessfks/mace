@@ -1,9 +1,9 @@
 <div align="center">
 
-# MACE Force Fields — Web Interface
+# SimpleAtom — Web Interface
 
 **Run DFT-accuracy atomistic simulations entirely in your browser.**
-**No installation. No command line. No barriers.**
+**No installation. No command line.**
 
 <h3>
   <a href="https://mace-lake.vercel.app"> Live → mace-lake.vercel.app</a>
@@ -23,8 +23,6 @@
   <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.2.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
   <a href="https://mace-web-interface.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/docs-readthedocs-8CA1AF?style=flat-square&logo=readthedocs&logoColor=white" alt="Documentation"/></a>
 </p>
-
-Built by **Zicheng Zhao** · Northeastern University
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
