@@ -85,24 +85,19 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 </div>
 
-<details>
-<summary align="center"><strong>Watch the full walkthrough</strong></summary>
-
 <div align="center">
-<br/>
 
-<video src="https://raw.githubusercontent.com/Jamessfks/mace/main/public/demo-video.mp4" width="100%" controls>
-  Your browser does not support the video tag. <a href="public/demo-video.mp4">Download the video</a>.
+### Full Walkthrough
+
+https://github.com/user-attachments/assets/demo_1.mp4
+
+<video src="https://raw.githubusercontent.com/Jamessfks/mace/main/public/demo_1.mp4" width="100%" controls>
+  Your browser does not support the video tag.
 </video>
 
 *Upload a structure → run MACE calculation → explore results → share as a permanent link.*
 
-<br/>
 </div>
-
-> **Tip:** If the video doesn't render on GitHub, download [`public/demo-video.mp4`](public/demo-video.mp4) to view locally.
-
-</details>
 
 ---
 
