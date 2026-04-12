@@ -1,6 +1,6 @@
 <div align="center">
 
-# SimpleAtom — Web Interface
+# SimpleAtom
 
 **Run DFT-accuracy atomistic simulations entirely in your browser.**
 **No installation. No command line.**
@@ -89,13 +89,9 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ### Full Walkthrough
 
-https://github.com/user-attachments/assets/demo_1.mp4
+[![Watch the demo](public/Demo4.png)](https://drive.google.com/file/d/1VJX2zz52lPSK7c-eqCeQAdVylE4gjE7w/view?usp=sharing)
 
-<video src="https://raw.githubusercontent.com/Jamessfks/mace/main/public/demo_1.mp4" width="100%" controls>
-  Your browser does not support the video tag.
-</video>
-
-*Upload a structure → run MACE calculation → explore results → share as a permanent link.*
+*Click the image above to watch the full walkthrough video.*
 
 </div>
 
