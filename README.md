@@ -89,7 +89,7 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ### Full Walkthrough
 
-[![Watch the demo](public/Demo4.png)](https://drive.google.com/file/d/1VJX2zz52lPSK7c-eqCeQAdVylE4gjE7w/view?usp=sharing)
+[![Watch the demo](public/Demo_image.png)](https://drive.google.com/file/d/1VJX2zz52lPSK7c-eqCeQAdVylE4gjE7w/view?usp=sharing)
 
 *Click the image above to watch the full walkthrough video.*
 
