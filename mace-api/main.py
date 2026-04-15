@@ -6,12 +6,22 @@ Deploy: uvicorn main:app --host 0.0.0.0 --port 7860
 """
 
 import json
+import logging
 import os
 import sys
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger("mace-api")
+_app_dir = os.path.dirname(os.path.abspath(__file__))
+_logger.info(
+    "App dir: %s — Python files: %s",
+    _app_dir,
+    [f for f in sorted(os.listdir(_app_dir)) if f.endswith(".py")],
+)
 
 # PyTorch 2.6+ defaults torch.load to weights_only=True, but MACE checkpoints
 # contain custom model classes (ScaleShiftMACE etc.) that require full unpickling.
@@ -28,7 +38,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from calculate import run_calculation
 from pydantic import BaseModel
-from smiles_to_xyz import smiles_to_xyz
+
+try:
+    from smiles_to_xyz import smiles_to_xyz as _smiles_to_xyz
+except ImportError:
+    _smiles_to_xyz = None
 
 app = FastAPI(
     title="MACE Calculation API",
@@ -106,10 +120,15 @@ class SmilesRequest(BaseModel):
 @app.post("/smiles-to-xyz")
 async def convert_smiles(req: SmilesRequest):
     """Convert a SMILES string to a 3D XYZ structure using RDKit."""
+    if _smiles_to_xyz is None:
+        raise HTTPException(
+            status_code=503,
+            detail="SMILES conversion unavailable (smiles_to_xyz module not found)",
+        )
     if not req.smiles or not req.smiles.strip():
         raise HTTPException(status_code=400, detail="Missing or empty SMILES string")
     try:
-        result = smiles_to_xyz(req.smiles.strip())
+        result = _smiles_to_xyz(req.smiles.strip())
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
