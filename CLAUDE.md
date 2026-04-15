@@ -35,8 +35,11 @@ Backend (Python 3.10+)
 | Area | Files |
 |------|-------|
 | **Calculation API** | `app/api/calculate/route.ts`, `app/api/benchmark/route.ts` |
+| **SMILES conversion** | `app/api/smiles-to-xyz/route.ts`, `mace-api/smiles_to_xyz.py` |
 | **Python backend** | `mace-api/calculate_local.py`, `mace-api/main.py` |
 | **Calculator UI** | `app/calculate/page.tsx`, `components/calculate/*.tsx` |
+| **SMILES input** | `components/calculate/smiles-input.tsx` |
+| **Molecular editor** | `components/calculate/ketcher-editor.tsx` (Ketcher 2D/3D editor) |
 | **Benchmark UI** | `app/benchmark/page.tsx`, `components/benchmark/*.tsx` |
 | **Type definitions** | `types/mace.ts` |
 | **Structure parser** | `lib/parse-structure.ts` (XYZ, CIF, POSCAR, PDB) |

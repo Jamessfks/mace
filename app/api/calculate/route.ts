@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           {
             timeout: 60 * 60 * 1000,
             maxBuffer: 50 * 1024 * 1024,
-            env: { ...process.env, PYTHONUNBUFFERED: "1" },
+            env: { ...process.env, PYTHONUNBUFFERED: "1", KMP_DUPLICATE_LIB_OK: "TRUE" },
           }
         );
         stdout = result.stdout;

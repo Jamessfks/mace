@@ -22,6 +22,7 @@
 import { useCallback } from "react";
 import { Upload, X, File } from "lucide-react";
 import { MlPegCatalog } from "./mlpeg-catalog";
+import { SmilesInput } from "./smiles-input";
 import { StructureInfo } from "./structure-info";
 import { StructurePreview } from "./structure-preview";
 
@@ -125,6 +126,33 @@ export function FileUploadSection({
 
         {/* ml-peg catalog browser */}
         <MlPegCatalog onSelect={(file) => onFilesChange([file])} />
+      </div>
+
+      {/* ── "OR" divider ── */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
+        <span className="font-mono text-xs text-zinc-500">OR</span>
+        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
+      </div>
+
+      {/* ── Option C: Enter SMILES string ── */}
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
+          OPTION C — ENTER SMILES
+        </h2>
+        <p className="mb-3 font-mono text-xs text-zinc-500">
+          Enter a{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--color-accent-primary)]/70 underline hover:text-[var(--color-accent-primary)]"
+          >
+            SMILES
+          </a>{" "}
+          string to generate a 3D structure with RDKit.
+        </p>
+        <SmilesInput onFilesChange={onFilesChange} />
       </div>
 
       {/* ── Selected file + info + preview (shown after upload or catalog selection) ── */}

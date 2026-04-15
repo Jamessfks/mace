@@ -66,6 +66,11 @@ export interface CalculationResult {
   /** Reference data extracted from input file (for accuracy metrics) */
   referenceEnergy?: number;
   referenceForces?: number[][];
+
+  /** Original SMILES string when input came from SMILES conversion */
+  smilesString?: string;
+  /** How the structure was provided */
+  inputSource?: "file" | "smiles" | "catalog";
 }
 
 export interface UploadedStructure {

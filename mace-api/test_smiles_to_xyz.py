@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""
+Unit tests for SMILES → XYZ conversion.
+
+Run: python -m pytest test_smiles_to_xyz.py -v
+  or: python test_smiles_to_xyz.py
+"""
+
+import math
+import unittest
+
+from smiles_to_xyz import smiles_to_xyz
+
+
+class TestValidSmiles(unittest.TestCase):
+    """Verify correct conversion of well-known molecules."""
+
+    def test_ethanol(self):
+        result = smiles_to_xyz("CCO")
+        self.assertEqual(result["num_atoms"], 9)  # C2H6O = 2+6+1
+        self.assertIn("C", result["formula"])
+        self.assertIn("O", result["formula"])
+        self._assert_xyz_valid(result["xyz"], 9)
+
+    def test_benzene(self):
+        result = smiles_to_xyz("c1ccccc1")
+        self.assertEqual(result["num_atoms"], 12)  # C6H6 = 6+6
+        self._assert_xyz_valid(result["xyz"], 12)
+
+    def test_acetic_acid(self):
+        result = smiles_to_xyz("CC(=O)O")
+        self.assertEqual(result["num_atoms"], 8)  # C2H4O2 = 2+4+2
+        self._assert_xyz_valid(result["xyz"], 8)
+
+    def test_water(self):
+        result = smiles_to_xyz("O")
+        self.assertEqual(result["num_atoms"], 3)  # H2O = 2+1
+        self._assert_xyz_valid(result["xyz"], 3)
+
+    def test_methane(self):
+        result = smiles_to_xyz("C")
+        self.assertEqual(result["num_atoms"], 5)  # CH4 = 1+4
+        self._assert_xyz_valid(result["xyz"], 5)
+
+    def test_single_atom_copper(self):
+        result = smiles_to_xyz("[Cu]")
+        self.assertEqual(result["num_atoms"], 1)
+        self._assert_xyz_valid(result["xyz"], 1)
+
+    def test_canonical_smiles_returned(self):
+        result = smiles_to_xyz("C(O)C")  # non-canonical ethanol
+        self.assertEqual(result["smiles_canonical"], "CCO")
+
+    def _assert_xyz_valid(self, xyz: str, expected_atoms: int):
+        """Verify XYZ block structure: atom count, correct number of coordinate lines."""
+        lines = xyz.strip().split("\n")
+        self.assertGreaterEqual(len(lines), expected_atoms + 2)
+        atom_count = int(lines[0].strip())
+        self.assertEqual(atom_count, expected_atoms)
+
+
+class TestGeometryQuality(unittest.TestCase):
+    """Verify 3D coordinates are chemically reasonable."""
+
+    def test_no_overlapping_atoms(self):
+        """All pairwise distances should be > 0.5 Angstrom."""
+        for smiles in ["CCO", "c1ccccc1", "CC(=O)O"]:
+            result = smiles_to_xyz(smiles)
+            positions = self._parse_positions(result["xyz"])
+            for i in range(len(positions)):
+                for j in range(i + 1, len(positions)):
+                    dist = self._distance(positions[i], positions[j])
+                    self.assertGreater(
+                        dist, 0.5,
+                        f"Overlapping atoms in {smiles}: atoms {i},{j} dist={dist:.3f}"
+                    )
+
+    def test_ethanol_bond_lengths(self):
+        """Spot-check C-C and C-O bond lengths in ethanol are reasonable."""
+        result = smiles_to_xyz("CCO")
+        positions = self._parse_positions(result["xyz"])
+        symbols = self._parse_symbols(result["xyz"])
+
+        c_indices = [i for i, s in enumerate(symbols) if s == "C"]
+        o_indices = [i for i, s in enumerate(symbols) if s == "O"]
+        h_indices = [i for i, s in enumerate(symbols) if s == "H"]
+
+        self.assertEqual(len(c_indices), 2)
+        self.assertEqual(len(o_indices), 1)
+        self.assertEqual(len(h_indices), 6)
+
+        cc_dist = self._distance(positions[c_indices[0]], positions[c_indices[1]])
+        self.assertGreater(cc_dist, 1.2, f"C-C too short: {cc_dist:.3f}")
+        self.assertLess(cc_dist, 1.7, f"C-C too long: {cc_dist:.3f}")
+
+        co_dists = [self._distance(positions[c], positions[o_indices[0]]) for c in c_indices]
+        min_co = min(co_dists)
+        self.assertGreater(min_co, 1.1, f"C-O too short: {min_co:.3f}")
+        self.assertLess(min_co, 1.6, f"C-O too long: {min_co:.3f}")
+
+    def _parse_positions(self, xyz: str) -> list[list[float]]:
+        lines = xyz.strip().split("\n")
+        n = int(lines[0].strip())
+        positions = []
+        for line in lines[2 : 2 + n]:
+            parts = line.split()
+            positions.append([float(parts[1]), float(parts[2]), float(parts[3])])
+        return positions
+
+    def _parse_symbols(self, xyz: str) -> list[str]:
+        lines = xyz.strip().split("\n")
+        n = int(lines[0].strip())
+        return [line.split()[0] for line in lines[2 : 2 + n]]
+
+    @staticmethod
+    def _distance(a: list[float], b: list[float]) -> float:
+        return math.sqrt(sum((ai - bi) ** 2 for ai, bi in zip(a, b)))
+
+
+class TestInvalidSmiles(unittest.TestCase):
+    """Verify that bad inputs raise ValueError with helpful messages."""
+
+    def test_empty_string(self):
+        with self.assertRaises(ValueError):
+            smiles_to_xyz("")
+
+    def test_whitespace_only(self):
+        with self.assertRaises(ValueError):
+            smiles_to_xyz("   ")
+
+    def test_nonsense_string(self):
+        with self.assertRaises(ValueError):
+            smiles_to_xyz("not_a_smiles")
+
+    def test_unbalanced_parens(self):
+        with self.assertRaises(ValueError):
+            smiles_to_xyz("C(C")
+
+    def test_invalid_element(self):
+        with self.assertRaises(ValueError):
+            smiles_to_xyz("[InvalidElement]")
+
+
+class TestEdgeCases(unittest.TestCase):
+    """Edge cases: stereochemistry, charged species, atom limit."""
+
+    def test_stereochemistry(self):
+        result = smiles_to_xyz("C/C=C/C")
+        self.assertGreater(result["num_atoms"], 0)
+
+    def test_charged_species(self):
+        result = smiles_to_xyz("[NH4+]")
+        self.assertEqual(result["num_atoms"], 5)  # N + 4H
+
+    def test_atom_limit_exceeded(self):
+        with self.assertRaises(ValueError) as ctx:
+            smiles_to_xyz("CCO", max_atoms=2)
+        self.assertIn("exceeding", str(ctx.exception).lower())
+
+    def test_aromatic_nitrogen(self):
+        result = smiles_to_xyz("c1ccncc1")  # pyridine
+        self.assertEqual(result["num_atoms"], 11)  # C5H5N
+
+
+if __name__ == "__main__":
+    unittest.main()

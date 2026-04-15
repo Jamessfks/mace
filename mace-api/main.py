@@ -24,6 +24,8 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from calculate import run_calculation
+from pydantic import BaseModel
+from smiles_to_xyz import smiles_to_xyz
 
 app = FastAPI(
     title="MACE Calculation API",
@@ -94,6 +96,24 @@ async def calculate(
             os.unlink(model_path)
 
 
+class SmilesRequest(BaseModel):
+    smiles: str
+
+
+@app.post("/smiles-to-xyz")
+async def convert_smiles(req: SmilesRequest):
+    """Convert a SMILES string to a 3D XYZ structure using RDKit."""
+    if not req.smiles or not req.smiles.strip():
+        raise HTTPException(status_code=400, detail="Missing or empty SMILES string")
+    try:
+        result = smiles_to_xyz(req.smiles.strip())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
@@ -108,6 +128,7 @@ async def root():
         "version": "1.2.0",
         "endpoints": {
             "POST /calculate": "Run MACE calculation on uploaded structure",
+            "POST /smiles-to-xyz": "Convert SMILES to 3D XYZ structure",
             "GET /health": "Health check",
         },
     }

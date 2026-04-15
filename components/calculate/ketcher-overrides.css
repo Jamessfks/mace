@@ -1,0 +1,29 @@
+/*
+ * Dark theme overrides for the Ketcher molecular editor.
+ * Matches the MACE app's dark UI (--color-bg-primary, --color-accent-primary, etc.).
+ */
+
+.ketcher-editor-container {
+  --ketcher-color-background-primary: #0e1117;
+  --ketcher-color-background-canvas: #0e1117;
+}
+
+/* Canvas background */
+.ketcher-editor-container .Ketcher-module_root__UvCEt,
+.ketcher-editor-container [class*="Ketcher-module_root"],
+.ketcher-editor-container [class*="App-module_root"],
+.ketcher-editor-container [class*="Editor-module_root"] {
+  background-color: #0e1117;
+}
+
+/* Ensure the editor fills its container */
+.ketcher-editor-container > div {
+  height: 100%;
+  width: 100%;
+}
+
+/* Hide the macromolecules toggle -- not needed for small molecules */
+.ketcher-editor-container [class*="PolymerToggler"],
+.ketcher-editor-container [class*="polymerToggler"] {
+  display: none;
+}

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   CheckCircle2,
   Circle,
@@ -14,6 +15,8 @@ import {
   Share2,
   Copy,
   Check,
+  PenTool,
+  Calculator,
 } from "lucide-react";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
@@ -21,6 +24,24 @@ import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { ModelComparison } from "@/components/calculate/model-comparison";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 import { saveResult } from "@/lib/share";
+
+const KetcherEditor = dynamic(
+  () =>
+    import("@/components/calculate/ketcher-editor").then(
+      (mod) => mod.KetcherEditorInner
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[700px] items-center justify-center">
+        <div className="flex items-center gap-3 text-zinc-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="font-mono text-sm">Loading molecular editor...</span>
+        </div>
+      </div>
+    ),
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Progress phase definitions per calculation type
@@ -109,9 +130,38 @@ function CalculatePageInner() {
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // Top-level tab: "calculator" or "draw"
+  const [activeTab, setActiveTab] = useState("calculator");
+
   // Demo mode — guided overlay steps
   const [demoStep, setDemoStep] = useState<number | null>(null);
   const searchParams = useSearchParams();
+
+  const handleFilesChange = useCallback(
+    (files: File[]) => {
+      setUploadedFiles(files);
+      if (
+        files.length > 0 &&
+        files[0].name.startsWith("smiles_") &&
+        params.modelType !== "custom"
+      ) {
+        setParams((prev) => ({
+          ...prev,
+          modelType: "MACE-OFF",
+          dispersion: false,
+        }));
+      }
+    },
+    [params.modelType]
+  );
+
+  const handleStructureFromEditor = useCallback(
+    (files: File[]) => {
+      handleFilesChange(files);
+      setActiveTab("calculator");
+    },
+    [handleFilesChange]
+  );
 
   const loadDemoStructure = useCallback(async () => {
     try {
@@ -270,6 +320,31 @@ function CalculatePageInner() {
             <h1 className="font-sans text-lg font-bold text-white">
               MACE <span className="text-[var(--color-accent-primary)]">Calculator</span>
             </h1>
+            <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
+            <nav className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab("calculator")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors ${
+                  activeTab === "calculator"
+                    ? "bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] font-bold"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Calculator className="h-3.5 w-3.5" />
+                Calculator
+              </button>
+              <button
+                onClick={() => setActiveTab("draw")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors ${
+                  activeTab === "draw"
+                    ? "bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] font-bold"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <PenTool className="h-3.5 w-3.5" />
+                Draw Structure
+              </button>
+            </nav>
           </div>
           <div className="flex items-center gap-3">
             <div
@@ -287,12 +362,19 @@ function CalculatePageInner() {
 
       {/* Main Content */}
       <main className="relative z-10 mx-auto max-w-screen-2xl p-6">
+        {/* ── Draw Structure Tab ── */}
+        {activeTab === "draw" && (
+          <KetcherEditor onStructureReady={handleStructureFromEditor} />
+        )}
+
+        {/* ── Calculator Tab ── */}
+        <div className={activeTab !== "calculator" ? "hidden" : ""}>
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left Panel — Input Controls */}
           <aside className="space-y-6 lg:col-span-4">
             <FileUploadSection
               files={uploadedFiles}
-              onFilesChange={setUploadedFiles}
+              onFilesChange={handleFilesChange}
             />
             <ParameterPanel
               params={params}
@@ -456,6 +538,7 @@ function CalculatePageInner() {
             )}
           </section>
         </div>
+        </div>
       </main>
 
       {/* ── Demo Mode Guided Overlay ── */}
@@ -503,7 +586,7 @@ function CalculatePageInner() {
 
 // Demo guided tour steps
 const DEMO_STEPS = [
-  "Your structure is loaded (ethanol molecule). You can also upload your own .xyz, .cif, .poscar, or .pdb file, or browse the ml-peg catalog.",
+  "Your structure is loaded (ethanol molecule). You can also upload your own .xyz, .cif, .poscar, or .pdb file, browse the ml-peg catalog, or enter a SMILES string to generate a 3D structure.",
   "Choose your model and calculation type in the left panel. Try Molecular Dynamics for trajectory animations, or Geometry Optimization to relax the structure.",
   "Click \"Run MACE Calculation\" to compute energies and forces. Results will appear in a tabbed dashboard with scientific visualizations.",
 ];
