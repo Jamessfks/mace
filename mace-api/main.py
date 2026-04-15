@@ -7,8 +7,11 @@ Deploy: uvicorn main:app --host 0.0.0.0 --port 7860
 
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # PyTorch 2.6+ defaults torch.load to weights_only=True, but MACE checkpoints
 # contain custom model classes (ScaleShiftMACE etc.) that require full unpickling.
