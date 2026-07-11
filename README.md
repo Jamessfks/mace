@@ -10,36 +10,39 @@
 </h3>
 
 <p>
-  <a href="https://mace-lake.vercel.app"><img src="https://img.shields.io/badge/live-mace--lake.vercel.app-00C853?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"/></a>
+  <a href="https://mace-lake.vercel.app"><img src="https://img.shields.io/badge/live-mace--lake.vercel.app-2E7D32?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo"/></a>
 </p>
 
 <p>
-  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.2.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue?style=flat-square" alt="Version"/></a>
   <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
   <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
-  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/github/stars/Jamessfks/mace?style=flat-square&color=yellow" alt="Stars"/></a>
-  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.2.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
-  <a href="https://mace-web-interface.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/docs-readthedocs-8CA1AF?style=flat-square&logo=readthedocs&logoColor=white" alt="Documentation"/></a>
+  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.3.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
+  <a href="https://mace-lake.vercel.app/docs"><img src="https://img.shields.io/badge/docs-in--app-8CA1AF?style=flat-square&logo=readthedocs&logoColor=white" alt="Documentation"/></a>
 </p>
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[Documentation](https://mace-web-interface.readthedocs.io/en/latest/) · [What's New in v1.2.0](#whats-new-in-v120-stable) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[Documentation](https://mace-lake.vercel.app/docs) · [What's New in v1.3.0](#whats-new-in-v130) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
 
 ---
 
-## What's New in v1.2.0 Stable
+## What's New in v1.3.0
 
-> **First stable release** — verified with automated scientific validation and hands-on testing of students at Northeastern University.
+> A ground-up redesign focused on being genuinely useful to the science community — clearer, more accessible, and more honest about the science.
 
-- **Validated end-to-end**: single-point, geometry optimization (BFGS), and MD (NVE/NVT/NPT) verified across MACE-MP-0 and MACE-OFF on 14 benchmark structures
-- **Scientific validation suite** (`validate_calculation.py`): model-aware energy bounds, force conservation, D3 double-counting detection, trajectory stability checks
-- **Verified accuracy**: Si bulk at -5.37 eV/atom with equilibrium forces ~0; H2O with perfect force conservation; ethanol opt converges in 4 steps
-- Removed experimental 2D sketcher; streamlined to file-upload and catalog workflow
+- **New humanist interface** — a warm, low-contrast light theme with a light-green accent and a serif display face, replacing the previous dark theme. Designed to feel calm and readable, not like a high-contrast "AI" dashboard.
+- **Rebranded to SimpleAtom** — one consistent name across the app.
+- **In-app documentation** at [`/docs`](https://mace-lake.vercel.app/docs) — foundation models, calculation types & parameters, units & conventions, validation & reproducibility, and an FAQ, written to be accessible yet rigorous.
+- **Expanded structure input** — file upload (`.xyz`, `.cif`, `.poscar`, `.pdb`), the ml-peg benchmark catalog, **SMILES → 3D** generation, and a **2D/3D molecular sketcher** (Ketcher).
+- **Recent calculations** — an account-free history stored locally in your browser (nothing is uploaded).
+- **Environment-aware links** — shareable, citation, and export URLs now derive from the live origin instead of a hardcoded host.
+- **Accessibility** — shadcn/Radix primitives with proper roles and ARIA, keyboard navigation, `prefers-reduced-motion` support, and the colorblind-safe Paul Tol palette across all charts.
+- **Correctness fixes** — removed a misleading Energy R² metric that was hardcoded to 1.0 for a single data point (now reports the signed energy error vs. a reference), and D3 dispersion is now automatically disabled for MACE-OFF, which already includes dispersion.
 
 ---
 
@@ -53,9 +56,9 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 <br/>
 <strong>Web Calculator</strong>
 <br/><br/>
-<a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo4.png" alt="MACE Web Calculator: 3D molecular viewer, MD trajectory animation, energy charts, and full parameter control" width="100%"/></a>
+<a href="https://mace-lake.vercel.app/calculate"><img src="public/Demo4.png" alt="SimpleAtom web calculator: 3D molecular viewer, MD trajectory animation, energy charts, and full parameter control" width="100%"/></a>
 <br/>
-<sub>Upload a structure, configure the model and parameters,<br/>then explore results with a 3D viewer, trajectory animation, and energy charts.</sub>
+<sub>Upload or sketch a structure, configure the model and parameters,<br/>then explore results with a 3D viewer, trajectory animation, and energy charts.</sub>
 <br/><br/>
 </td>
 <td width="50%" align="center">
@@ -82,6 +85,8 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 </td>
 </tr>
 </table>
+
+<sub><em>Screenshots above reflect earlier releases; the v1.3.0 interface is live at the links.</em></sub>
 
 </div>
 
@@ -119,11 +124,11 @@ Every calculation can be shared as a permanent URL. Click **Share Result**, get 
 
 | Capability | Details |
 |---|---|
-| **Structure input** | Drag-and-drop upload (`.xyz`, `.cif`, `.poscar`, `.pdb`) or ml-peg catalog (14 benchmark structures across 5 categories) |
+| **Structure input** | Drag-and-drop upload (`.xyz`, `.cif`, `.poscar`, `.pdb`), the ml-peg catalog (14 benchmark structures across 5 categories), **SMILES → 3D** (RDKit), or a **2D/3D molecular sketcher** (Ketcher) |
 | **Foundation models** | MACE-MP-0 (89 elements, materials & crystals) and MACE-OFF (organic molecules, DFT-level accuracy). Small, medium, and large variants |
-| **Custom models** | Upload your own `.model` file — compare side-by-side against foundation models with radar charts (MAE, RMSE, R2) |
+| **Custom models** | Upload your own `.model` file — compare side-by-side against foundation models with agreement metrics (MAE, RMSE, R²) |
 | **Calculation types** | Single-point energy & forces, geometry optimization (BFGS), molecular dynamics (NVE / NVT / NPT) |
-| **Parameter control** | Temperature, pressure, time step, friction, MD steps, force threshold, D3 dispersion correction, precision, device |
+| **Parameter control** | Temperature, pressure, time step, friction, MD steps, force threshold, D3 dispersion (MACE-MP-0 only), precision, device |
 
 ### Visualization & Analysis
 
@@ -137,16 +142,20 @@ Every calculation can be shared as a permanent URL. Click **Share Result**, get 
 
 ### Multi-Model Benchmark Suite
 
-Navigate to `/benchmark` to batch-evaluate 2-3 models across multiple structures. Results include a sortable leaderboard, force comparison bar charts, timing analysis with speedup ratios, energy landscape plots, and a pairwise model agreement heatmap. Export everything as CSV, JSON, or a formatted PDF.
+Navigate to `/benchmark` to batch-evaluate 2–3 models across multiple structures. Results include a sortable leaderboard, force comparison bar charts, timing analysis with speedup ratios, energy landscape plots, and a pairwise model agreement heatmap. Export everything as CSV, JSON, or a formatted PDF.
+
+### In-App Documentation
+
+The [`/docs`](https://mace-lake.vercel.app/docs) section explains the science behind the tool — foundation models and their levels of theory, each calculation type and its parameters, unit conventions (eV / eV·Å⁻¹ / Å / K / fs), how results are validated, and how to cite them.
 
 ### Accessibility & Design
 
 The interface is built with accessibility as a first principle, not an afterthought:
 
 - **Keyboard navigation** throughout — focus rings, Space to play/pause trajectory animations
-- **ARIA labels and semantic HTML** — screen readers can traverse the full calculation workflow
+- **ARIA roles and semantic HTML** — screen readers can traverse the full calculation workflow; tabs, status, and controls are properly labeled
 - **Colorblind-safe data palette** — Paul Tol's qualitative scheme across all visualizations
-- **Dark scientific aesthetic** — ambient glow effects, dot-grid patterns, and an animated water MD simulation on the landing page, inspired by research-tool interfaces
+- **Reduced-motion support** and a calm, warm, low-contrast light theme designed for long reading sessions
 
 ---
 
@@ -179,24 +188,23 @@ This runs 5 tests: Si bulk with MACE-MP-0, H2O with MACE-OFF, ethanol geometry o
 ```
 Browser (localhost:3000)
     |
-    |-- /                           Landing page with animated water MD background
-    |
-    |-- /calculate                  Calculator — upload structure, configure, run MACE
-    |
+    |-- /                           Landing page
+    |-- /calculate                  Calculator — upload/sketch structure, configure, run MACE
     |-- /benchmark                  Multi-model benchmark suite
-    |
+    |-- /docs                       In-app documentation
     |-- /r/[id]                     MACE Link — shared result viewer
     |
     v
     Next.js API Routes
          |-- /api/calculate         MACE calculation (single-point / opt / MD)
          |-- /api/benchmark         Batch evaluation (model x structure pairs)
-         |-- /api/generate-surface  Surface slab generation (ASE)
+         |-- /api/smiles-to-xyz     SMILES → 3D structure (RDKit)
     |
     v
     Python Backend (ASE + mace-torch)
          |-- calculate_local.py     Subprocess runner (local mode)
          |-- main.py                FastAPI server (remote mode)
+         |-- smiles_to_xyz.py       SMILES → XYZ conversion (RDKit)
          |-- validate_calculation.py  Scientific result validator
     |
     v
@@ -212,12 +220,21 @@ Browser (localhost:3000)
 
 | Layer | Stack |
 |-------|-------|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
 | 3D rendering | 3Dmol.js, WEAS widget |
 | Charts | Plotly.js, Recharts |
 | Chemistry | mace-torch (v0.3.14+), ASE (v3.27+) |
 | Data | Supabase (Postgres + row-level security) |
 | Reports | @react-pdf/renderer |
+
+### Configuration
+
+| Env var | Purpose |
+|---------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (MACE Link sharing) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `MACE_API_URL` | Remote backend URL (omit for local subprocess mode) |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site origin for share/citation links (optional) |
 
 ---
 
@@ -236,17 +253,17 @@ Browser (localhost:3000)
 | Model | Best For | Elements | Training Data |
 |-------|----------|----------|---------------|
 | **MACE-MP-0** | Materials, crystals, surfaces | 89 elements | Materials Project DFT (PBE+U) |
-| **MACE-OFF** | Organic molecules, drug-like compounds | H, C, N, O, F, P, S, Cl, Br, I | wB97M-D3BJ coupled-cluster quality |
+| **MACE-OFF** | Organic molecules, drug-like compounds | H, C, N, O, F, P, S, Cl, Br, I | ωB97M-D3BJ reference data |
 | **Custom** | Domain-specific accuracy | Your training set | Upload `.model` file |
 
-> **Note:** MACE-MP-0 is trained at PBE+U level, which typically overbinds by 0.1-0.5 eV/atom relative to experiment. MACE-OFF already includes D3 dispersion in its training data — do not enable D3 correction when using MACE-OFF.
+> **Note:** MACE-MP-0 is trained at PBE+U level, which typically overbinds by 0.1–0.5 eV/atom relative to experiment. MACE-OFF already includes D3 dispersion in its training data — the D3 correction is disabled automatically when MACE-OFF is selected.
 
 ---
 
 ## Project Structure
 
 <details>
-<summary><strong>Click to expand full file tree</strong></summary>
+<summary><strong>Click to expand file tree</strong></summary>
 
 ```
 mace/
@@ -254,67 +271,40 @@ mace/
     api/
       calculate/route.ts              # Single-structure calculation API
       benchmark/route.ts              # Batch benchmark API (model x structure)
-      generate-surface/route.ts       # Surface slab generation via ASE
-    calculate/page.tsx                # Calculator page — upload, configure, run
-    benchmark/
-      page.tsx                        # Multi-model benchmark page
-      loading.tsx                     # Loading spinner
-    r/[id]/
-      page.tsx                        # MACE Link server component (data fetch)
-      shared-result-view.tsx          # MACE Link client component (full dashboard)
+      smiles-to-xyz/route.ts          # SMILES → 3D structure (RDKit)
+    calculate/page.tsx                # Calculator — upload/sketch, configure, run
+    benchmark/page.tsx                # Multi-model benchmark page
+    docs/                             # In-app documentation (layout + pages)
+    r/[id]/                           # MACE Link shared result (server + client view)
     globals.css                       # Design system (CSS custom properties)
-    layout.tsx                        # Root layout + metadata
-    page.tsx                          # Landing page with animated hero
+    layout.tsx                        # Root layout + metadata + TooltipProvider
+    page.tsx                          # Landing page
   components/
-    calculate/
-      charts/
-        chart-config.ts               # Shared Plotly config + colorblind-safe palette
-        parity-plot.tsx               # Predicted vs. reference scatter plot
-        error-histogram.tsx           # Error distribution histogram
-        energy-convergence.tsx        # Energy vs. step line chart
-        radar-comparison.tsx          # Multi-metric spider chart
-      trajectory/
-        trajectory-viewer.tsx         # MD animation player with controls
-        energy-chart.tsx              # SVG energy chart synced to frames
-      file-upload-section.tsx         # Drag-and-drop upload + ml-peg catalog
-      metrics-dashboard.tsx           # Tabbed results dashboard (5 tabs)
-      mlpeg-catalog.tsx               # Benchmark structure browser
-      model-comparison.tsx            # Custom vs. foundation model comparison
-      molecule-viewer-3d.tsx          # 3Dmol.js + WEAS dual-engine viewer
-      parameter-panel.tsx             # Model selection + calculation params
-      pdf-report.tsx                  # PDF report generator
-      structure-info.tsx              # Auto-parsed structure summary + warnings
-      structure-preview.tsx           # Click-to-display 3D preview
-      weas-viewer.tsx                 # WEAS iframe viewer
-    benchmark/
-      benchmark-config.tsx            # Model + structure selection panel
-      benchmark-dashboard.tsx         # Tabbed results container (5 tabs)
-      benchmark-leaderboard.tsx       # Sortable energy/atom comparison table
-      benchmark-force-bars.tsx        # RMS force bar chart + per-atom table
-      benchmark-timing.tsx            # Timing bar chart + speedup ratios
-      benchmark-energy-landscape.tsx  # Energy/atom scatter+line plot
-      benchmark-heatmap.tsx           # Pairwise model agreement heatmap
-      benchmark-export.tsx            # CSV / JSON / PDF export
+    site-header.tsx                   # Shared top navigation
+    site-footer.tsx                   # Shared footer
+    intro-section.tsx                 # Landing hero + feature/workflow sections
+    docs/                             # Docs sidebar, pager, callout
+    calculate/                        # Calculator UI (upload, params, dashboard, charts, viewers)
+    benchmark/                        # Benchmark UI (config, leaderboard, heatmap, ...)
     ui/                               # shadcn/ui primitives
-    intro-section.tsx                 # Landing page hero + features grid
-    water-md-canvas.tsx               # Animated Three.js water background
   lib/
     mlpeg-catalog.ts                  # ml-peg structure definitions (14 structures)
     parse-structure.ts                # Multi-format structure parser
     share.ts                          # MACE Link: save/load shared results (Supabase)
+    site.ts                           # Env-driven canonical site origin
+    history.ts                        # Local (browser) recent-calculations history
     supabase.ts                       # Supabase client singleton
     utils.ts
   mace-api/
     Dockerfile                        # Docker image for HF Spaces deployment
     calculate_local.py                # Standalone MACE calculation script
-    generate_surface.py               # ASE surface slab generator
     main.py                           # FastAPI server for cloud deployment
+    smiles_to_xyz.py                  # SMILES → XYZ conversion (RDKit)
     validate_calculation.py           # Scientific result validation suite
     requirements.txt
-  types/
-    mace.ts                           # TypeScript type definitions
-  public/
-    demo/                             # Demo structures (ethanol.xyz, water.xyz)
+  types/mace.ts                       # TypeScript type definitions
+  docs/                               # MkDocs source (mirrors the in-app docs)
+  public/demo/                        # Demo structures (ethanol.xyz, water.xyz)
 ```
 
 </details>
@@ -368,6 +358,6 @@ Built on the [MACE framework](https://github.com/ACEsuit/mace) by Batatia et al.
 
 <div align="center">
 
-**v1.2.0 Stable** · Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
+**v1.3.0** · Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
 </div>

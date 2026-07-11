@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-Structural and workflow documentation for the MACE Force Fields web interface (v1.2.0).
+Structural and workflow documentation for the MACE Force Fields web interface (v1.3.0).
 
 ---
 

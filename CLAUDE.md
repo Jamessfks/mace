@@ -4,7 +4,7 @@ Browser-based interface for MACE (Multi-Atomic Cluster Expansion) machine learni
 
 **Author:** Zicheng Zhao, Northeastern University
 **Live:** https://mace-lake.vercel.app
-**Version:** 1.2.0 Stable
+**Version:** 1.3.0 Stable
 
 ## Architecture
 
