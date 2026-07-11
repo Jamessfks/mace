@@ -11,7 +11,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Atom, Github, Menu, X } from "lucide-react";
+import { Atom, Github, Heart, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -84,6 +84,14 @@ export function SiteHeader() {
           >
             <Github className="h-5 w-5" strokeWidth={1.75} />
           </a>
+          <Link
+            href="/support"
+            aria-current={isActive("/support") ? "page" : undefined}
+            className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-soft)] px-3.5 py-1.5 text-sm font-medium text-[var(--color-accent-strong)] transition-colors hover:bg-[var(--color-accent-primary)] hover:text-white"
+          >
+            <Heart className="h-4 w-4" strokeWidth={2} />
+            Support
+          </Link>
         </nav>
 
         {/* Mobile menu toggle */}
@@ -131,6 +139,15 @@ export function SiteHeader() {
               >
                 <Github className="h-4 w-4" /> GitHub
               </a>
+            </li>
+            <li>
+              <Link
+                href="/support"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-md bg-[var(--color-accent-soft)] px-3 py-2 text-sm font-medium text-[var(--color-accent-strong)]"
+              >
+                <Heart className="h-4 w-4" /> Support
+              </Link>
             </li>
           </ul>
         </nav>

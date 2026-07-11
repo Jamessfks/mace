@@ -15,6 +15,7 @@ const PRODUCT_LINKS = [
   { href: "/calculate", label: "Calculator" },
   { href: "/benchmark", label: "Benchmark" },
   { href: "/docs", label: "Documentation" },
+  { href: "/support", label: "Support ♥" },
 ];
 
 const RESOURCE_LINKS = [
