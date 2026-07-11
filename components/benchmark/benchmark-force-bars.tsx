@@ -10,6 +10,15 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult } from "@/types/mace";
 
@@ -29,9 +38,9 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
 
   if (result.results.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6 text-center">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-6 text-center">
         <p className="text-sm text-[var(--color-text-muted)]">No force data available.</p>
-      </div>
+      </Card>
     );
   }
 
@@ -91,7 +100,7 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
   return (
     <div className="space-y-6">
       {/* Bar chart */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-4">
         <h3 className="mb-2 font-sans text-sm font-bold text-[var(--color-text-primary)]">
           RMS Force by Structure
         </h3>
@@ -118,51 +127,51 @@ export function BenchmarkForceBars({ result }: ForceBarsProps) {
           config={BASE_CONFIG}
           className="w-full"
         />
-      </div>
+      </Card>
 
       {/* Force comparison table */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-4">
         <h3 className="mb-2 font-sans text-sm font-bold text-[var(--color-text-primary)]">
           Per-Atom Force Magnitudes
         </h3>
         <div className="max-h-96 overflow-auto rounded border border-[var(--color-border-subtle)]">
-          <table className="w-full font-mono text-xs">
-            <thead className="sticky top-0 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
-              <tr>
-                <th className="px-3 py-2 text-left">Structure</th>
-                <th className="px-3 py-2 text-right">Atom#</th>
-                <th className="px-3 py-2 text-left">Elem</th>
+          <Table className="font-mono text-xs">
+            <TableHeader className="sticky top-0 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-auto px-3 py-2 text-left text-[var(--color-text-muted)]">Structure</TableHead>
+                <TableHead className="h-auto px-3 py-2 text-right text-[var(--color-text-muted)]">Atom#</TableHead>
+                <TableHead className="h-auto px-3 py-2 text-left text-[var(--color-text-muted)]">Elem</TableHead>
                 {modelLabels.map((l, i) => (
-                  <th key={i} className="px-3 py-2 text-right" style={{ color: MODEL_COLORS[i] }}>
+                  <TableHead key={i} className="h-auto px-3 py-2 text-right" style={{ color: MODEL_COLORS[i] }}>
                     |F| {l.split(" (")[0]}
-                  </th>
+                  </TableHead>
                 ))}
-                <th className="px-3 py-2 text-right">Spread</th>
-              </tr>
-            </thead>
-            <tbody className="text-[var(--color-text-secondary)]">
+                <TableHead className="h-auto px-3 py-2 text-right text-[var(--color-text-muted)]">Spread</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="text-[var(--color-text-secondary)]">
               {forceTable.map((row, i) => (
-                <tr
+                <TableRow
                   key={i}
-                  className="border-t border-[var(--color-border-subtle)]/60 transition-colors hover:bg-[var(--color-bg-elevated)]"
+                  className="border-t border-b-0 border-[var(--color-border-subtle)]/60 transition-colors hover:bg-[var(--color-bg-elevated)]"
                 >
-                  <td className="px-3 py-1.5">{row.structureName}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{row.atomIndex}</td>
-                  <td className="px-3 py-1.5 font-semibold">{row.element}</td>
+                  <TableCell className="px-3 py-1.5">{row.structureName}</TableCell>
+                  <TableCell className="px-3 py-1.5 text-right tabular-nums">{row.atomIndex}</TableCell>
+                  <TableCell className="px-3 py-1.5 font-semibold">{row.element}</TableCell>
                   {row.forces.map((f, fi) => (
-                    <td key={fi} className="px-3 py-1.5 text-right tabular-nums">
+                    <TableCell key={fi} className="px-3 py-1.5 text-right tabular-nums">
                       {f != null ? f.toFixed(4) : "—"}
-                    </td>
+                    </TableCell>
                   ))}
-                  <td className="px-3 py-1.5 text-right tabular-nums text-[var(--color-text-muted)]">
+                  <TableCell className="px-3 py-1.5 text-right tabular-nums text-[var(--color-text-muted)]">
                     {row.spread.toFixed(4)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

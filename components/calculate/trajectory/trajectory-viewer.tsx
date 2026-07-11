@@ -154,7 +154,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
 
       viewerRef.current.innerHTML = "";
       const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "#0B0E17",
+        backgroundColor: "#FBFAF7",
       });
       viewerInstance.current = viewer;
 
@@ -276,7 +276,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
   return (
     <div
       ref={containerRef}
-      className={`${fullscreen ? "flex h-screen w-screen flex-col bg-[#0B0E17]" : "space-y-4"}`}
+      className={`${fullscreen ? "flex h-screen w-screen flex-col bg-[var(--color-bg-primary)]" : "space-y-4"}`}
     >
       {/* ── 3D Viewer ── */}
       <div
@@ -303,14 +303,14 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
         {/* Top-right overlay: frame badge + fullscreen toggle */}
         {viewerReady && (
           <div className="absolute right-3 top-3 flex items-center gap-2">
-            <div className="rounded bg-[var(--color-bg-primary)]/70 px-2 py-1 font-mono text-[10px] text-[var(--color-accent-primary)] backdrop-blur-sm">
+            <div className="rounded bg-[var(--color-bg-elevated)]/70 px-2 py-1 font-mono text-[10px] text-[var(--color-accent-primary)] backdrop-blur-sm">
               Frame {currentFrame + 1}/{totalFrames}
             </div>
             <button
               type="button"
               onClick={toggleFullscreen}
               title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-              className="flex h-7 w-7 items-center justify-center rounded bg-[var(--color-bg-primary)]/70 text-zinc-400 backdrop-blur-sm transition-colors hover:text-[var(--color-accent-primary)]"
+              className="flex h-7 w-7 items-center justify-center rounded bg-[var(--color-bg-elevated)]/70 text-[var(--color-text-muted)] backdrop-blur-sm transition-colors hover:text-[var(--color-accent-primary)]"
             >
               {fullscreen ? (
                 <Minimize className="h-3.5 w-3.5" />
@@ -323,7 +323,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
 
         {/* Fullscreen: bottom transport bar overlay */}
         {fullscreen && viewerReady && (
-          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent px-4 pb-4 pt-10">
+          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 bg-gradient-to-t from-[var(--color-bg-elevated)]/90 to-transparent px-4 pb-4 pt-10">
             <div className="flex items-center gap-1">
               <ControlButton onClick={reset} title="Reset to first frame">
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -349,7 +349,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
                 <Gauge className="h-3.5 w-3.5" />
               </ControlButton>
             </div>
-            <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+            <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-secondary)]">
               {speed}×
             </span>
             <input
@@ -361,13 +361,13 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
                 setPlaying(false);
                 setCurrentFrame(Number(e.target.value));
               }}
-              className="flex-1 accent-[#4A7BF7]"
+              className="flex-1 accent-[var(--color-accent-primary)]"
               title={`Frame ${currentFrame + 1}`}
             />
             <div className="shrink-0 text-right font-mono text-xs">
-              <span className="text-zinc-500">E = </span>
-              <span className="text-white">{currentEnergy?.toFixed(4)}</span>
-              <span className="text-zinc-500"> eV</span>
+              <span className="text-[var(--color-text-muted)]">E = </span>
+              <span className="text-[var(--color-text-primary)]">{currentEnergy?.toFixed(4)}</span>
+              <span className="text-[var(--color-text-muted)]"> eV</span>
             </div>
           </div>
         )}
@@ -401,7 +401,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
               <Gauge className="h-3.5 w-3.5" />
             </ControlButton>
           </div>
-          <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+          <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-secondary)]">
             {speed}×
           </span>
           <input
@@ -413,21 +413,21 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
               setPlaying(false);
               setCurrentFrame(Number(e.target.value));
             }}
-            className="flex-1 accent-[#4A7BF7]"
+            className="flex-1 accent-[var(--color-accent-primary)]"
             title={`Frame ${currentFrame + 1}`}
           />
           <div className="shrink-0 text-right font-mono text-xs">
-            <span className="text-zinc-500">E = </span>
-            <span className="text-white">{currentEnergy?.toFixed(4)}</span>
-            <span className="text-zinc-500"> eV</span>
+            <span className="text-[var(--color-text-muted)]">E = </span>
+            <span className="text-[var(--color-text-primary)]">{currentEnergy?.toFixed(4)}</span>
+            <span className="text-[var(--color-text-muted)]"> eV</span>
           </div>
         </div>
       )}
 
       {/* ── Energy vs Step Chart (hidden in fullscreen) ── */}
       {!fullscreen && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-          <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
+        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3">
+          <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-primary)]">
             Energy vs. MD Step
           </h4>
           <EnergyChart
@@ -444,7 +444,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
 
       {/* ── Footer (hidden in fullscreen) ── */}
       {!fullscreen && (
-        <p className="font-mono text-[10px] text-zinc-600">
+        <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
           Drag to rotate · Scroll to zoom · Click chart to jump to frame ·
           Keyboard: Space = play/pause
         </p>
@@ -471,7 +471,7 @@ function ControlButton({
       type="button"
       onClick={onClick}
       title={title}
-      className="flex h-7 w-7 items-center justify-center rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] text-zinc-400 transition-colors hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
+      className="flex h-7 w-7 items-center justify-center rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
     >
       {children}
     </button>

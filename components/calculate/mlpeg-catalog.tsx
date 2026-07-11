@@ -104,7 +104,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
           onClick={() => setIsOpen(true)}
           className="flex items-center gap-2 rounded border border-[var(--color-border-emphasis)] bg-[var(--color-accent-primary)]/10 px-4 py-2 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 hover:border-[var(--color-accent-primary)]"
         >
-          <BookOpen className="h-4 w-4" />
+          <BookOpen className="h-4 w-4" strokeWidth={1.75} />
           Browse ml-peg structures ({totalStructures})
         </button>
       ) : (
@@ -113,7 +113,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
           {/* Header */}
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-[var(--color-accent-primary)]" />
+              <BookOpen className="h-4 w-4 text-[var(--color-accent-primary)]" strokeWidth={1.75} />
               <h3 className="font-sans text-sm font-bold text-[var(--color-accent-primary)]">
                 ML-PEG BENCHMARK STRUCTURES
               </h3>
@@ -122,13 +122,14 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
               type="button"
               onClick={() => setIsOpen(false)}
               title="Close catalog"
-              className="text-zinc-500 transition-colors hover:text-red-400"
+              aria-label="Close catalog"
+              className="rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-error)]"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.75} />
             </button>
           </div>
 
-          <p className="mb-4 font-mono text-xs text-zinc-500">
+          <p className="mb-4 font-mono text-xs text-[var(--color-text-muted)]">
             Select a benchmark structure from the{" "}
             <a
               href="https://github.com/ddmms/ml-peg"
@@ -156,7 +157,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
 
           {/* Footer */}
           <div className="mt-4 flex items-center justify-between">
-            <p className="font-mono text-[10px] text-zinc-600">
+            <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
               Structures from{" "}
               <a
                 href="https://github.com/ddmms/ml-peg"
@@ -171,9 +172,9 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
             </p>
             <Link
               href="/benchmark"
-              className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-accent-secondary)] transition-colors hover:text-[var(--color-accent-primary)]"
+              className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-accent-strong)] transition-colors hover:text-[var(--color-accent-hover)]"
             >
-              <FlaskConical className="h-3 w-3" />
+              <FlaskConical className="h-3 w-3" strokeWidth={1.75} />
               Run full benchmark →
             </Link>
           </div>
@@ -207,12 +208,12 @@ function CategorySection({
         className="flex w-full items-center gap-2 px-3 py-2 font-mono text-xs transition-colors hover:bg-[var(--color-accent-primary)]/15"
       >
         {isExpanded ? (
-          <ChevronDown className="h-3 w-3 text-[var(--color-accent-primary)]" />
+          <ChevronDown className="h-3 w-3 text-[var(--color-accent-primary)]" strokeWidth={1.75} />
         ) : (
-          <ChevronRight className="h-3 w-3 text-zinc-500" />
+          <ChevronRight className="h-3 w-3 text-[var(--color-text-muted)]" strokeWidth={1.75} />
         )}
-        <span className="font-bold text-zinc-300">{category.name}</span>
-        <span className="text-zinc-600">
+        <span className="font-bold text-[var(--color-text-primary)]">{category.name}</span>
+        <span className="text-[var(--color-text-muted)]">
           ({category.entries.length})
         </span>
       </button>
@@ -250,18 +251,18 @@ function EntryRow({
       onClick={onSelect}
       className="flex w-full items-center gap-3 rounded px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-[var(--color-accent-primary)]/15"
     >
-      <Atom className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]/70" />
+      <Atom className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]/70" strokeWidth={1.75} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-zinc-200">{entry.name}</span>
+          <span className="font-bold text-[var(--color-text-primary)]">{entry.name}</span>
           <span className="rounded bg-[var(--color-accent-primary)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
             {entry.formula}
           </span>
-          <span className="text-zinc-600">
+          <span className="text-[var(--color-text-muted)]">
             {entry.atomCount} atoms
           </span>
         </div>
-        <p className="mt-0.5 truncate text-zinc-500">{entry.description}</p>
+        <p className="mt-0.5 truncate text-[var(--color-text-muted)]">{entry.description}</p>
       </div>
       <span className="shrink-0 rounded border border-[var(--color-border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
         {entry.recommendedModel === "MACE-MP-0" ? "MP" : "OFF"}

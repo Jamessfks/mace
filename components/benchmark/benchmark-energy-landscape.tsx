@@ -11,6 +11,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult } from "@/types/mace";
 
@@ -54,7 +55,7 @@ export function BenchmarkEnergyLandscape({ result }: EnergyLandscapeProps) {
   }));
 
   return (
-    <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
+    <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-4">
       <h3 className="mb-2 font-sans text-sm font-bold text-[var(--color-text-primary)]">
         Energy Landscape
       </h3>
@@ -82,6 +83,6 @@ export function BenchmarkEnergyLandscape({ result }: EnergyLandscapeProps) {
         config={BASE_CONFIG}
         className="w-full"
       />
-    </div>
+    </Card>
   );
 }

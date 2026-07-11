@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   CheckCircle2,
@@ -16,31 +15,53 @@ import {
   Copy,
   Check,
   PenTool,
-  Calculator,
+  Calculator as CalculatorIcon,
+  History as HistoryIcon,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
 import { ModelComparison } from "@/components/calculate/model-comparison";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
 import { saveResult } from "@/lib/share";
+import {
+  addHistory,
+  clearHistory,
+  getHistory,
+  updateHistoryShareUrl,
+  type HistoryEntry,
+} from "@/lib/history";
 
 const KetcherEditor = dynamic(
   () =>
     import("@/components/calculate/ketcher-editor").then(
-      (mod) => mod.KetcherEditorInner
+      (mod) => mod.KetcherEditorInner,
     ),
   {
     ssr: false,
     loading: () => (
       <div className="flex h-[700px] items-center justify-center">
-        <div className="flex items-center gap-3 text-zinc-400">
+        <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="font-mono text-sm">Loading molecular editor...</span>
+          <span className="font-mono text-sm">Loading molecular editor…</span>
         </div>
       </div>
     ),
-  }
+  },
 );
 
 // ---------------------------------------------------------------------------
@@ -129,6 +150,7 @@ function CalculatePageInner() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [lastHistoryId, setLastHistoryId] = useState<string | null>(null);
 
   // Top-level tab: "calculator" or "draw"
   const [activeTab, setActiveTab] = useState("calculator");
@@ -152,7 +174,7 @@ function CalculatePageInner() {
         }));
       }
     },
-    [params.modelType]
+    [params.modelType],
   );
 
   const handleStructureFromEditor = useCallback(
@@ -160,7 +182,7 @@ function CalculatePageInner() {
       handleFilesChange(files);
       setActiveTab("calculator");
     },
-    [handleFilesChange]
+    [handleFilesChange],
   );
 
   const loadDemoStructure = useCallback(async () => {
@@ -195,42 +217,48 @@ function CalculatePageInner() {
 
   const isCustomModel = params.modelType === "custom";
 
-  const handleRunFoundation = useCallback(async (): Promise<CalculationResult | null> => {
-    if (uploadedFiles.length === 0) return null;
+  const handleRunFoundation =
+    useCallback(async (): Promise<CalculationResult | null> => {
+      if (uploadedFiles.length === 0) return null;
 
-    const nameHint = (params.customModelName || customModelFile?.name || "").toLowerCase();
-    const isOFF = nameHint.includes("off") || nameHint.includes("organic");
+      const nameHint = (
+        params.customModelName ||
+        customModelFile?.name ||
+        ""
+      ).toLowerCase();
+      const isOFF = nameHint.includes("off") || nameHint.includes("organic");
 
-    const foundationParams: CalculationParams = {
-      ...params,
-      modelType: isOFF ? "MACE-OFF" : "MACE-MP-0",
-    };
+      const foundationParams: CalculationParams = {
+        ...params,
+        modelType: isOFF ? "MACE-OFF" : "MACE-MP-0",
+      };
 
-    const formData = new FormData();
-    uploadedFiles.forEach((file) => formData.append("files", file));
-    formData.append("params", JSON.stringify(foundationParams));
+      const formData = new FormData();
+      uploadedFiles.forEach((file) => formData.append("files", file));
+      formData.append("params", JSON.stringify(foundationParams));
 
-    const response = await fetch("/api/calculate", {
-      method: "POST",
-      body: formData,
-    });
+      const response = await fetch("/api/calculate", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || "Foundation model calculation failed");
-    }
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Foundation model calculation failed");
+      }
 
-    return response.json();
-  // FIX: customModelFile was missing → stale closure when reading customModelFile?.name
-  }, [uploadedFiles, params, customModelFile]);
+      return response.json();
+    }, [uploadedFiles, params, customModelFile]);
 
   const handleCalculate = async () => {
     if (uploadedFiles.length === 0) {
-      setError("Please upload at least one structure file");
+      setError("Please choose or upload a structure first.");
       return;
     }
     if (params.calculationType === "phonon") {
-      setError("Phonon Spectrum is not yet supported. Please choose another calculation type.");
+      setError(
+        "Phonon spectrum is not yet supported. Please choose another calculation type.",
+      );
       return;
     }
     setIsCalculating(true);
@@ -261,6 +289,19 @@ function CalculatePageInner() {
       const data: CalculationResult = await response.json();
       const timeTaken = Math.round((Date.now() - startTime) / 1000);
       setResult({ ...data, params, timeTaken });
+
+      // Record a compact summary in local (account-free) history.
+      if (data.status === "success") {
+        const entries = addHistory({
+          filename: uploadedFiles[0]?.name,
+          modelType: params.modelType,
+          modelSize: params.modelSize,
+          calculationType: params.calculationType,
+          energy: typeof data.energy === "number" ? data.energy : undefined,
+          atoms: data.symbols?.length,
+        });
+        setLastHistoryId(entries[0]?.id ?? null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Calculation failed");
     } finally {
@@ -274,6 +315,7 @@ function CalculatePageInner() {
     try {
       const { url } = await saveResult(result, params, uploadedFiles[0]?.name);
       setShareUrl(url);
+      if (lastHistoryId) updateHistoryShareUrl(lastHistoryId, url);
     } catch {
       setError("Failed to share result. Please try again.");
     } finally {
@@ -288,270 +330,274 @@ function CalculatePageInner() {
     setTimeout(() => setShareCopied(false), 2000);
   };
 
-  const phases =
-    PHASE_MAP[params.calculationType] || PHASE_MAP["single-point"];
+  const phases = PHASE_MAP[params.calculationType] || PHASE_MAP["single-point"];
   const estimatedTotal = getEstimatedTime(
     params.calculationType,
-    params.mdSteps
+    params.mdSteps,
   );
   const currentPhase = estimatePhase(elapsedSeconds, estimatedTotal);
   const progressPct = Math.min(
     95,
-    Math.round((elapsedSeconds / estimatedTotal) * 100)
+    Math.round((elapsedSeconds / estimatedTotal) * 100),
   );
   const estRemaining = Math.max(0, estimatedTotal - elapsedSeconds);
 
   return (
-    <div className="relative min-h-screen bg-[var(--color-bg-primary)]">
-      {/* Ambient glow */}
-      <div className="ambient-glow pointer-events-none fixed inset-0 z-0" aria-hidden />
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-screen-2xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="font-mono text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
-            >
-              &larr; Home
-            </Link>
-            <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
-            <h1 className="font-sans text-lg font-bold text-white">
-              MACE <span className="text-[var(--color-accent-primary)]">Calculator</span>
+      {/* Page sub-header */}
+      <div className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-4 px-6 py-4">
+          <div>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+              Calculator
             </h1>
-            <div className="h-4 w-px bg-[var(--color-border-subtle)]" />
-            <nav className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveTab("calculator")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors ${
-                  activeTab === "calculator"
-                    ? "bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] font-bold"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Calculator className="h-3.5 w-3.5" />
-                Calculator
-              </button>
-              <button
-                onClick={() => setActiveTab("draw")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-xs transition-colors ${
-                  activeTab === "draw"
-                    ? "bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] font-bold"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <PenTool className="h-3.5 w-3.5" />
-                Draw Structure
-              </button>
-            </nav>
+            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
+              Run MACE on your structure — configure, compute, and explore.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <div
-              className={`h-2 w-2 rounded-full ${
-                isCalculating
-                  ? "bg-[var(--color-warning)] animate-glow-pulse"
-                  : result
-                    ? "bg-[var(--color-success)]"
-                    : "bg-[var(--color-text-muted)]"
-              }`}
-            />
+            <StatusPill isCalculating={isCalculating} hasResult={!!result} />
+            <RecentCalculations />
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="relative z-10 mx-auto max-w-screen-2xl p-6">
-        {/* ── Draw Structure Tab ── */}
-        {activeTab === "draw" && (
-          <KetcherEditor onStructureReady={handleStructureFromEditor} />
-        )}
+      {/* Main content */}
+      <main className="mx-auto max-w-screen-2xl px-6 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="calculator" className="gap-1.5">
+              <CalculatorIcon className="h-4 w-4" />
+              Calculator
+            </TabsTrigger>
+            <TabsTrigger value="draw" className="gap-1.5">
+              <PenTool className="h-4 w-4" />
+              Draw structure
+            </TabsTrigger>
+          </TabsList>
 
-        {/* ── Calculator Tab ── */}
-        <div className={activeTab !== "calculator" ? "hidden" : ""}>
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left Panel — Input Controls */}
-          <aside className="space-y-6 lg:col-span-4">
-            <FileUploadSection
-              files={uploadedFiles}
-              onFilesChange={handleFilesChange}
-            />
-            <ParameterPanel
-              params={params}
-              onChange={setParams}
-              customModelFile={customModelFile}
-              onCustomModelChange={setCustomModelFile}
-            />
-          </aside>
+          {/* Calculator */}
+          <TabsContent value="calculator" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-12">
+              {/* Config */}
+              <aside className="space-y-6 lg:col-span-5">
+                <FileUploadSection
+                  files={uploadedFiles}
+                  onFilesChange={handleFilesChange}
+                />
+                <ParameterPanel
+                  params={params}
+                  onChange={setParams}
+                  customModelFile={customModelFile}
+                  onCustomModelChange={setCustomModelFile}
+                />
+              </aside>
 
-          {/* Right Panel — Execution + Results */}
-          <section className="space-y-6 lg:col-span-8">
-            {/* Run Card */}
-            <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-5">
-              <button
-                onClick={handleCalculate}
-                disabled={isCalculating || uploadedFiles.length === 0}
-                className="group relative w-full overflow-hidden rounded-md border-2 border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 px-8 py-4 font-sans text-lg font-bold text-[var(--color-accent-primary)] transition-all hover:bg-[var(--color-accent-primary)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[var(--color-accent-primary)]/10 disabled:hover:text-[var(--color-accent-primary)]"
-              >
-                {isCalculating ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Computing...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Zap className="h-5 w-5" />
-                    RUN MACE CALCULATION
-                  </span>
-                )}
-              </button>
+              {/* Run + results */}
+              <section className="space-y-6 lg:col-span-7">
+                {/* Run card */}
+                <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-5">
+                  <Button
+                    onClick={handleCalculate}
+                    disabled={isCalculating || uploadedFiles.length === 0}
+                    size="lg"
+                    className="w-full text-base"
+                  >
+                    {isCalculating ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Computing…
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-5 w-5" />
+                        Run MACE calculation
+                      </>
+                    )}
+                  </Button>
 
-              {/* Smart Progress Feedback */}
-              {isCalculating && (
-                <div className="mt-5 space-y-4">
-                  {elapsedSeconds >= 3 && (
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      {phases.map((phase, i) => (
-                        <div key={phase} className="flex items-center gap-1.5">
-                          {i < currentPhase ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-[var(--color-success)]" />
-                          ) : i === currentPhase ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-accent-primary)]" />
+                  {uploadedFiles.length === 0 && !isCalculating && (
+                    <p className="mt-3 text-center text-xs text-[var(--color-text-muted)]">
+                      Choose or upload a structure to enable the run button.
+                    </p>
+                  )}
+
+                  {/* Progress feedback */}
+                  {isCalculating && (
+                    <div className="mt-5 space-y-4">
+                      {elapsedSeconds >= 3 && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          {phases.map((phase, i) => (
+                            <div key={phase} className="flex items-center gap-1.5">
+                              {i < currentPhase ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--color-success)]" />
+                              ) : i === currentPhase ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-accent-primary)]" />
+                              ) : (
+                                <Circle className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
+                              )}
+                              <span
+                                className={`font-mono text-xs ${
+                                  i < currentPhase
+                                    ? "text-[var(--color-text-muted)] line-through"
+                                    : i === currentPhase
+                                      ? "font-semibold text-[var(--color-accent-strong)]"
+                                      : "text-[var(--color-text-muted)]"
+                                }`}
+                              >
+                                {phase}
+                              </span>
+                              {i < phases.length - 1 && (
+                                <span className="text-[var(--color-text-muted)]">
+                                  →
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bg-secondary)]">
+                          {elapsedSeconds >= 10 ? (
+                            <div
+                              className="h-full rounded-full bg-[var(--color-accent-primary)] transition-all duration-700"
+                              style={{ width: `${progressPct}%` }}
+                            />
                           ) : (
-                            <Circle className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-                          )}
-                          <span
-                            className={`font-mono text-xs ${
-                              i < currentPhase
-                                ? "text-[var(--color-success)]/60 line-through"
-                                : i === currentPhase
-                                  ? "text-[var(--color-accent-primary)] font-bold"
-                                  : "text-[var(--color-text-muted)]"
-                            }`}
-                          >
-                            {phase}
-                          </span>
-                          {i < phases.length - 1 && (
-                            <span className="text-[var(--color-text-muted)]">&rarr;</span>
+                            <div
+                              className="h-full w-1/3 rounded-full bg-[var(--color-accent-primary)]"
+                              style={{ animation: "shimmer 1.5s ease-in-out infinite" }}
+                            />
                           )}
                         </div>
-                      ))}
+                        <div className="flex items-center justify-between font-mono text-xs text-[var(--color-text-muted)]">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" />
+                            Elapsed: {elapsedSeconds}s
+                          </span>
+                          {elapsedSeconds >= 10 && (
+                            <span>
+                              ~{estRemaining}s remaining · {progressPct}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
+                </div>
 
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bg-surface)]">
-                      {elapsedSeconds >= 10 ? (
-                        <div
-                          className="h-full rounded-full bg-[var(--color-accent-primary)] transition-all duration-700"
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-1/3 rounded-full bg-[var(--color-accent-primary)]"
-                          style={{
-                            animation: "shimmer 1.5s ease-in-out infinite",
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between font-mono text-xs text-[var(--color-text-muted)]">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" />
-                        Elapsed: {elapsedSeconds}s
-                      </div>
-                      {elapsedSeconds >= 10 && (
-                        <span>
-                          ~{estRemaining}s remaining &middot; {progressPct}%
-                        </span>
-                      )}
+                {/* Error */}
+                {error && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-3 rounded-xl border border-[var(--color-error)]/25 bg-[var(--color-error)]/5 p-4"
+                  >
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-error)]" />
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--color-error)]">
+                        Calculation error
+                      </p>
+                      <p className="mt-1 font-mono text-xs text-[var(--color-error)]/80">
+                        {error}
+                      </p>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Error Display */}
-            {error && (
-              <div className="flex items-start gap-3 rounded-lg border border-[var(--color-error)]/30 bg-[var(--color-error)]/5 p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-error)]" />
-                <div>
-                  <p className="font-sans text-sm font-bold text-[var(--color-error)]">
-                    Calculation Error
-                  </p>
-                  <p className="mt-1 font-mono text-xs text-[var(--color-error)]/80">
-                    {error}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Skeleton Loading */}
-            {isCalculating && elapsedSeconds >= 1 && <ResultsSkeleton />}
-
-            {/* Results — tabbed scientific dashboard */}
-            {result && !isCalculating && (
-              <div className="animate-fade-in-up space-y-6">
-                {/* Share Result bar */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {!shareUrl ? (
-                    <button
-                      onClick={handleShare}
-                      disabled={isSharing}
-                      className="flex items-center gap-1.5 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)] hover:text-white disabled:opacity-50"
-                    >
-                      {isSharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                      {isSharing ? "Sharing..." : "Share Result"}
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-primary)]/5 px-3 py-1.5">
-                      <Share2 className="h-3.5 w-3.5 text-[var(--color-accent-primary)]" />
-                      <a
-                        href={shareUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-xs text-[var(--color-accent-primary)] hover:underline"
-                      >
-                        {shareUrl}
-                      </a>
-                      <button
-                        onClick={handleCopyShareUrl}
-                        className="ml-1 rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-white"
-                      >
-                        {shareCopied ? <Check className="h-3.5 w-3.5 text-[var(--color-success)]" /> : <Copy className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <MetricsDashboard result={result} filename={uploadedFiles[0]?.name} />
-
-                {isCustomModel && (
-                  <ModelComparison
-                    customResult={result}
-                    customModelName={params.customModelName || customModelFile?.name || "Custom Model"}
-                    onRunFoundation={handleRunFoundation}
-                  />
                 )}
-              </div>
-            )}
-          </section>
-        </div>
-        </div>
+
+                {/* Skeleton */}
+                {isCalculating && elapsedSeconds >= 1 && <ResultsSkeleton />}
+
+                {/* Results */}
+                {result && !isCalculating && (
+                  <div className="animate-fade-in-up space-y-6">
+                    {/* Share bar */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {!shareUrl ? (
+                        <Button
+                          onClick={handleShare}
+                          disabled={isSharing || result.status !== "success"}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {isSharing ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Share2 className="h-3.5 w-3.5" />
+                          )}
+                          {isSharing ? "Sharing…" : "Share result"}
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-lg border border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-soft)] px-3 py-1.5">
+                          <Share2 className="h-3.5 w-3.5 text-[var(--color-accent-strong)]" />
+                          <a
+                            href={shareUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-xs text-[var(--color-accent-strong)] hover:underline"
+                          >
+                            {shareUrl}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={handleCopyShareUrl}
+                            aria-label="Copy share link"
+                            className="ml-1 rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+                          >
+                            {shareCopied ? (
+                              <Check className="h-3.5 w-3.5 text-[var(--color-success)]" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <MetricsDashboard
+                      result={result}
+                      filename={uploadedFiles[0]?.name}
+                    />
+
+                    {isCustomModel && (
+                      <ModelComparison
+                        customResult={result}
+                        customModelName={
+                          params.customModelName ||
+                          customModelFile?.name ||
+                          "Custom model"
+                        }
+                        onRunFoundation={handleRunFoundation}
+                      />
+                    )}
+                  </div>
+                )}
+              </section>
+            </div>
+          </TabsContent>
+
+          {/* Draw structure */}
+          <TabsContent value="draw" className="mt-6">
+            <KetcherEditor onStructureReady={handleStructureFromEditor} />
+          </TabsContent>
+        </Tabs>
       </main>
 
-      {/* ── Demo Mode Guided Overlay ── */}
+      {/* Demo guided overlay */}
       {demoStep != null && demoStep < DEMO_STEPS.length && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-6 pointer-events-none">
-          <div className="pointer-events-auto max-w-lg rounded-lg border border-[var(--color-accent-primary)]/30 bg-[var(--color-bg-elevated)] p-5 shadow-xl backdrop-blur-sm">
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-6">
+          <div className="elevate pointer-events-auto max-w-lg rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-5">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] text-[var(--color-accent-primary)]">
-                Quick Demo &middot; Step {demoStep + 1}/{DEMO_STEPS.length}
+              <span className="font-mono text-[11px] text-[var(--color-accent-strong)]">
+                Quick demo · Step {demoStep + 1}/{DEMO_STEPS.length}
               </span>
               <button
+                type="button"
                 onClick={() => setDemoStep(null)}
-                className="text-[var(--color-text-muted)] hover:text-white"
+                aria-label="Close demo"
+                className="text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -559,23 +605,26 @@ function CalculatePageInner() {
             <p className="text-sm text-[var(--color-text-primary)]">
               {DEMO_STEPS[demoStep]}
             </p>
-            <div className="mt-3 flex justify-end gap-2">
+            <div className="mt-4 flex justify-end gap-2">
               {demoStep > 0 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setDemoStep(demoStep - 1)}
-                  className="rounded px-3 py-1 font-sans text-xs text-[var(--color-text-muted)] hover:text-white"
                 >
                   Back
-                </button>
+                </Button>
               )}
-              <button
+              <Button
+                size="sm"
                 onClick={() =>
-                  setDemoStep(demoStep + 1 < DEMO_STEPS.length ? demoStep + 1 : null)
+                  setDemoStep(
+                    demoStep + 1 < DEMO_STEPS.length ? demoStep + 1 : null,
+                  )
                 }
-                className="rounded bg-[var(--color-accent-primary)] px-3 py-1 font-sans text-xs text-white hover:bg-[var(--color-accent-primary)]/90"
               >
                 {demoStep + 1 < DEMO_STEPS.length ? "Next" : "Got it"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -584,27 +633,188 @@ function CalculatePageInner() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Status pill — conveys state with text + icon (not color alone)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatusPill({
+  isCalculating,
+  hasResult,
+}: {
+  isCalculating: boolean;
+  hasResult: boolean;
+}) {
+  const state = isCalculating
+    ? {
+        label: "Computing",
+        dot: "bg-[var(--color-warning)]",
+        text: "text-[var(--color-warning)]",
+      }
+    : hasResult
+      ? {
+          label: "Complete",
+          dot: "bg-[var(--color-success)]",
+          text: "text-[var(--color-success)]",
+        }
+      : {
+          label: "Ready",
+          dot: "bg-[var(--color-text-muted)]",
+          text: "text-[var(--color-text-muted)]",
+        };
+
+  return (
+    <span
+      className="hidden items-center gap-2 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-xs font-medium sm:inline-flex"
+      role="status"
+      aria-live="polite"
+    >
+      <span className={`h-2 w-2 rounded-full ${state.dot}`} aria-hidden />
+      <span className={state.text}>{state.label}</span>
+    </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Recent calculations — account-free local history in a slide-over
+// ═══════════════════════════════════════════════════════════════════════════
+
+function timeAgo(ts: number): string {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+const CALC_LABEL: Record<string, string> = {
+  "single-point": "Single-point",
+  "geometry-opt": "Geometry opt.",
+  "molecular-dynamics": "Mol. dynamics",
+  phonon: "Phonon",
+};
+
+function RecentCalculations() {
+  const [open, setOpen] = useState(false);
+  const [entries, setEntries] = useState<HistoryEntry[]>([]);
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) setEntries(getHistory());
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm">
+          <HistoryIcon className="h-4 w-4" />
+          Recent
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full gap-0 sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="font-serif text-xl">
+            Recent calculations
+          </SheetTitle>
+          <SheetDescription>
+            Stored locally in this browser — never uploaded.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-4">
+          {entries.length === 0 ? (
+            <p className="py-10 text-center text-sm text-[var(--color-text-muted)]">
+              No calculations yet. Your runs will appear here.
+            </p>
+          ) : (
+            <ul className="space-y-2 py-2">
+              {entries.map((e) => (
+                <li
+                  key={e.id}
+                  className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-mono text-xs text-[var(--color-text-primary)]">
+                      {e.filename ?? "structure"}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-[var(--color-text-muted)]">
+                      {timeAgo(e.timestamp)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-text-secondary)]">
+                    <span>{e.modelType}</span>
+                    <span aria-hidden>·</span>
+                    <span>{CALC_LABEL[e.calculationType] ?? e.calculationType}</span>
+                    {typeof e.atoms === "number" && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>{e.atoms} atoms</span>
+                      </>
+                    )}
+                  </div>
+                  {typeof e.energy === "number" && (
+                    <p className="mt-1 font-mono text-[11px] text-[var(--color-text-muted)]">
+                      E = {e.energy.toFixed(4)} eV
+                    </p>
+                  )}
+                  {e.shareUrl && (
+                    <a
+                      href={e.shareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--color-accent-strong)] hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Open shared result
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {entries.length > 0 && (
+          <div className="border-t border-[var(--color-border-subtle)] p-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEntries(clearHistory())}
+              className="w-full text-[var(--color-text-secondary)]"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear history
+            </Button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // Demo guided tour steps
 const DEMO_STEPS = [
-  "Your structure is loaded (ethanol molecule). You can also upload your own .xyz, .cif, .poscar, or .pdb file, browse the ml-peg catalog, or enter a SMILES string to generate a 3D structure.",
-  "Choose your model and calculation type in the left panel. Try Molecular Dynamics for trajectory animations, or Geometry Optimization to relax the structure.",
-  "Click \"Run MACE Calculation\" to compute energies and forces. Results will appear in a tabbed dashboard with scientific visualizations.",
+  "Your structure is loaded (an ethanol molecule). You can also upload your own .xyz, .cif, .poscar, or .pdb file, browse the ml-peg catalog, or enter a SMILES string to generate a 3D structure.",
+  "Choose your model and calculation type on the left. Try molecular dynamics for a trajectory animation, or geometry optimization to relax the structure.",
+  'Click "Run MACE calculation" to compute energies and forces. Results appear in a tabbed dashboard with interactive scientific visualizations.',
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Skeleton placeholder — matches MetricsDashboard card layout
+// Skeleton placeholder — matches the results layout
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ResultsSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
-      <div className="h-14 rounded-lg bg-[var(--color-bg-elevated)]" />
+    <div className="space-y-4">
+      <Skeleton className="h-14 rounded-xl" />
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="h-28 rounded-lg border-l-4 border-l-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]" />
-        <div className="h-28 rounded-lg border-l-4 border-l-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]" />
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-28 rounded-xl" />
       </div>
-      <div className="h-[420px] rounded-lg bg-[var(--color-bg-elevated)]" />
-      <div className="h-52 rounded-lg bg-[var(--color-bg-elevated)]" />
+      <Skeleton className="h-[420px] rounded-xl" />
+      <Skeleton className="h-52 rounded-xl" />
     </div>
   );
 }

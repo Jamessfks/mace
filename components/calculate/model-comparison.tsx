@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { computeRmsForce } from "@/lib/utils";
 import { RadarComparison, type ModelMetrics } from "./charts/radar-comparison";
+import { Button } from "@/components/ui/button";
 import type { CalculationResult } from "@/types/mace";
 
 interface ModelComparisonProps {
@@ -61,7 +62,7 @@ export function ModelComparison({
     return (
       <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-5">
         <div className="flex items-center gap-3 mb-3">
-          <GitCompareArrows className="h-5 w-5 text-[var(--color-accent-secondary)]" />
+          <GitCompareArrows className="h-5 w-5 text-[var(--color-accent-primary)]" strokeWidth={1.75} />
           <h3 className="font-sans text-sm font-bold text-[var(--color-text-primary)]">
             Model Comparison
           </h3>
@@ -73,23 +74,25 @@ export function ModelComparison({
         {error && (
           <p className="mb-3 text-xs text-[var(--color-error)]">{error}</p>
         )}
-        <button
+        <Button
+          type="button"
+          variant="outline"
           onClick={handleCompare}
           disabled={loading}
-          className="flex items-center gap-2 rounded border border-[var(--color-accent-secondary)]/50 bg-[var(--color-accent-secondary)]/10 px-4 py-2 font-sans text-sm text-[var(--color-accent-secondary)] transition-colors hover:bg-[var(--color-accent-secondary)]/20 disabled:opacity-50"
+          className="gap-2"
         >
           {loading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
               Running foundation model...
             </>
           ) : (
             <>
-              <GitCompareArrows className="h-4 w-4" />
+              <GitCompareArrows className="h-4 w-4" strokeWidth={1.75} />
               Compare with Foundation Model
             </>
           )}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -113,7 +116,8 @@ export function ModelComparison({
         className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-5"
         style={{
           borderLeftWidth: "4px",
-          borderImage: "linear-gradient(to bottom, #4477AA, #AA3377) 1",
+          borderImage:
+            "linear-gradient(to bottom, var(--color-data-blue), var(--color-data-purple)) 1",
         }}
       >
         <h3 className="mb-4 font-sans text-sm font-bold text-[var(--color-text-primary)]">
@@ -130,13 +134,13 @@ export function ModelComparison({
             <div className="space-y-1 font-mono text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--color-text-muted)]">Energy</span>
-                <span className="text-white">
+                <span className="text-[var(--color-text-primary)]">
                   {customResult.energy?.toFixed(6) ?? "N/A"} eV
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--color-text-muted)]">RMS Force</span>
-                <span className="text-white">
+                <span className="text-[var(--color-text-primary)]">
                   {customRms?.toFixed(4) ?? "N/A"} eV/A
                 </span>
               </div>
@@ -151,13 +155,13 @@ export function ModelComparison({
             <div className="space-y-1 font-mono text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--color-text-muted)]">Energy</span>
-                <span className="text-white">
+                <span className="text-[var(--color-text-primary)]">
                   {foundationResult.energy?.toFixed(6) ?? "N/A"} eV
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--color-text-muted)]">RMS Force</span>
-                <span className="text-white">
+                <span className="text-[var(--color-text-primary)]">
                   {foundationRms?.toFixed(4) ?? "N/A"} eV/A
                 </span>
               </div>
@@ -169,7 +173,7 @@ export function ModelComparison({
         {deltaE != null && (
           <div className="mt-3 flex items-center gap-2 font-mono text-xs">
             <span className="text-[var(--color-text-muted)]">&Delta;E =</span>
-            <span className="font-bold text-white">
+            <span className="font-bold text-[var(--color-text-primary)]">
               {(deltaE * 1000).toFixed(1)} meV
             </span>
             <span className="text-[var(--color-text-muted)]">

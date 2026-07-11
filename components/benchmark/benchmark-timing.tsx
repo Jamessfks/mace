@@ -13,6 +13,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { BASE_LAYOUT, BASE_CONFIG, DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult } from "@/types/mace";
 
@@ -55,9 +56,9 @@ export function BenchmarkTiming({ result }: TimingProps) {
 
   if (stats.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6 text-center">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-6 text-center">
         <p className="text-sm text-[var(--color-text-muted)]">No timing data available.</p>
-      </div>
+      </Card>
     );
   }
 
@@ -72,7 +73,7 @@ export function BenchmarkTiming({ result }: TimingProps) {
   return (
     <div className="space-y-6">
       {/* Horizontal bar chart */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-4">
         <h3 className="mb-2 font-sans text-sm font-bold text-[var(--color-text-primary)]">
           Computation Time by Structure
         </h3>
@@ -95,10 +96,10 @@ export function BenchmarkTiming({ result }: TimingProps) {
           config={BASE_CONFIG}
           className="w-full"
         />
-      </div>
+      </Card>
 
       {/* Summary */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-5">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-5">
         <h3 className="mb-4 font-sans text-sm font-bold text-[var(--color-text-primary)]">
           Timing Summary
         </h3>
@@ -112,7 +113,7 @@ export function BenchmarkTiming({ result }: TimingProps) {
               <p className="mb-1 font-mono text-[10px] uppercase tracking-wider" style={{ color: s.color }}>
                 {s.label}
               </p>
-              <p className="font-mono text-xl font-bold text-white">
+              <p className="font-mono text-xl font-bold text-[var(--color-text-primary)]">
                 {s.total.toFixed(1)}s
               </p>
               <p className="font-mono text-xs text-[var(--color-text-muted)]">
@@ -139,7 +140,7 @@ export function BenchmarkTiming({ result }: TimingProps) {
             </p>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

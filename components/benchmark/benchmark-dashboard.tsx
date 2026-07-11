@@ -18,6 +18,8 @@ import {
   Grid3X3,
   AlertTriangle,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { BenchmarkLeaderboard } from "./benchmark-leaderboard";
 import { BenchmarkForceBars } from "./benchmark-force-bars";
 import { BenchmarkTiming } from "./benchmark-timing";
@@ -66,7 +68,10 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
       {/* Status Banner */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-success)]/20 bg-[var(--color-success)]/5 px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="h-2.5 w-2.5 rounded-full bg-[var(--color-success)] animate-glow-pulse" />
+          <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+            <span className="absolute inset-0 animate-pulse rounded-full bg-[var(--color-success)]/50" />
+            <span className="relative block h-2.5 w-2.5 rounded-full bg-[var(--color-success)]" />
+          </span>
           <span className="font-sans text-sm font-bold text-[var(--color-success)]">
             Benchmark Complete
           </span>
@@ -75,9 +80,12 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
             {result.summary.totalTime.toFixed(1)}s
           </span>
           {result.summary.errorCount > 0 && (
-            <span className="rounded bg-[var(--color-error)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--color-error)]">
+            <Badge
+              variant="outline"
+              className="rounded font-mono text-[10px] text-[var(--color-error)] border-[var(--color-error)]/30 bg-[var(--color-error)]/10"
+            >
               {result.summary.errorCount} error{result.summary.errorCount !== 1 ? "s" : ""}
-            </span>
+            </Badge>
           )}
         </div>
         <BenchmarkExport result={result} />
@@ -98,32 +106,43 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
         </div>
       )}
 
-      {/* Tab Bar */}
-      <div className="flex overflow-x-auto border-b border-[var(--color-border-subtle)]">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 font-sans text-sm transition-colors ${
-              activeTab === tab.id
-                ? "border-[var(--color-accent-primary)] text-[var(--color-accent-primary)]"
-                : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="gap-5">
+        <TabsList
+          variant="line"
+          className="w-full justify-start overflow-x-auto rounded-none border-b border-[var(--color-border-subtle)] bg-transparent p-0"
+        >
+          {TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="flex-none gap-2 whitespace-nowrap rounded-none border-transparent px-4 py-2.5 font-sans text-sm text-[var(--color-text-muted)] shadow-none after:bg-[var(--color-accent-primary)] hover:text-[var(--color-text-secondary)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--color-accent-primary)] data-[state=active]:shadow-none"
+            >
+              {tab.icon}
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {/* Tab Content */}
-      <div className="min-h-[400px]">
-        {activeTab === "leaderboard" && <BenchmarkLeaderboard result={result} />}
-        {activeTab === "forces" && <BenchmarkForceBars result={result} />}
-        {activeTab === "timing" && <BenchmarkTiming result={result} />}
-        {activeTab === "energy" && <BenchmarkEnergyLandscape result={result} />}
-        {activeTab === "heatmap" && <BenchmarkHeatmap result={result} />}
-      </div>
+        {/* Tab Content */}
+        <div className="min-h-[400px]">
+          <TabsContent value="leaderboard">
+            <BenchmarkLeaderboard result={result} />
+          </TabsContent>
+          <TabsContent value="forces">
+            <BenchmarkForceBars result={result} />
+          </TabsContent>
+          <TabsContent value="timing">
+            <BenchmarkTiming result={result} />
+          </TabsContent>
+          <TabsContent value="energy">
+            <BenchmarkEnergyLandscape result={result} />
+          </TabsContent>
+          <TabsContent value="heatmap">
+            <BenchmarkHeatmap result={result} />
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

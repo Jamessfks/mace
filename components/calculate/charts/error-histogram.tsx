@@ -55,7 +55,7 @@ export function ErrorHistogram({
 
   const layout: Record<string, any> = {
     ...BASE_LAYOUT,
-    title: { text: title, font: { size: 13, color: "#E8ECF4" } },
+    title: { text: title, font: { size: 13, color: "#5C574E" } },
     xaxis: {
       ...BASE_LAYOUT.xaxis,
       title: { text: xLabel, font: { size: 11 } },
@@ -72,7 +72,7 @@ export function ErrorHistogram({
         y0: 0,
         y1: 1,
         yref: "paper",
-        line: { color: "#E8ECF4", dash: "dash", width: 1.5 },
+        line: { color: "#5C574E", dash: "dash", width: 1.5 },
       },
     ],
     annotations: [
@@ -83,9 +83,9 @@ export function ErrorHistogram({
         yref: "paper",
         text: `Mean = ${mean.toFixed(4)}<br>Std = ${std.toFixed(4)}<br>N = ${errors.length}`,
         showarrow: false,
-        font: { family: "Geist Mono, monospace", size: 10, color: "#E8ECF4" },
-        bgcolor: "rgba(17,24,39,0.8)",
-        bordercolor: "#2A3650",
+        font: { family: "Geist Mono, monospace", size: 10, color: "#5C574E" },
+        bgcolor: "rgba(255,255,255,0.85)",
+        bordercolor: "#D8D2C6",
         borderwidth: 1,
         borderpad: 6,
         align: "right",

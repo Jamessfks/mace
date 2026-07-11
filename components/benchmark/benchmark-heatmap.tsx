@@ -10,6 +10,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { BASE_LAYOUT, BASE_CONFIG } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult } from "@/types/mace";
 
@@ -65,7 +66,7 @@ export function BenchmarkHeatmap({ result }: HeatmapProps) {
           text: val != null ? val.toFixed(1) : "err",
           showarrow: false,
           font: {
-            color: val != null && val > 10 ? "#ffffff" : "#9BA4B8",
+            color: val != null && val > 10 ? "#FFFFFF" : "#5C574E",
             size: 10,
             family: "Geist Mono, ui-monospace, monospace",
           },
@@ -78,21 +79,21 @@ export function BenchmarkHeatmap({ result }: HeatmapProps) {
 
   if (pairLabels.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6 text-center">
+      <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-6 text-center">
         <p className="text-sm text-[var(--color-text-muted)]">
           Need at least 2 models to generate agreement heatmap.
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-4">
+    <Card className="gap-0 rounded-lg bg-[var(--color-bg-secondary)] p-4">
       <h3 className="mb-2 font-sans text-sm font-bold text-[var(--color-text-primary)]">
         Model Agreement Heatmap
       </h3>
       <p className="mb-3 text-xs text-[var(--color-text-muted)]">
-        Pairwise energy disagreement (|ΔE| in meV/atom) for each structure. Dark cells indicate
+        Pairwise energy disagreement (|ΔE| in meV/atom) for each structure. Light cells indicate
         consensus; bright cells reveal contention.
       </p>
       <Plot
@@ -103,15 +104,15 @@ export function BenchmarkHeatmap({ result }: HeatmapProps) {
             y: pairLabels,
             z: z,
             colorscale: [
-              [0, "#111827"],
-              [0.25, "#2A3650"],
+              [0, "#E9F2E4"],
+              [0.25, "#D8D2C6"],
               [0.5, "#CCBB44"],
               [1, "#EE6677"],
             ],
             colorbar: {
               title: { text: "|ΔE| (meV)", side: "right" },
-              tickfont: { color: "#9BA4B8", size: 10 },
-              titlefont: { color: "#9BA4B8", size: 10 },
+              tickfont: { color: "#5C574E", size: 10 },
+              titlefont: { color: "#5C574E", size: 10 },
             },
             hovertemplate:
               "<b>%{x}</b><br>%{y}<br>|ΔE| = %{z:.2f} meV<extra></extra>",
@@ -136,7 +137,7 @@ export function BenchmarkHeatmap({ result }: HeatmapProps) {
         config={BASE_CONFIG}
         className="w-full"
       />
-    </div>
+    </Card>
   );
 }
 

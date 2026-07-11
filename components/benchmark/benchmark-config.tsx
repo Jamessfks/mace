@@ -15,6 +15,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Play, AlertTriangle, Info, Upload, X, File as FileIcon } from "lucide-react";
 import { MLPEG_CATALOG, type CatalogCategory, type CatalogEntry } from "@/lib/mlpeg-catalog";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { ModelType, ModelSize } from "@/types/mace";
 
 export interface SelectedModel {
@@ -244,7 +248,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
   };
 
   return (
-    <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+    <Card className="gap-0 rounded-xl bg-[var(--color-bg-secondary)] p-6">
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Model Selection */}
         <div className="flex-1">
@@ -319,14 +323,20 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
               Custom Model
             </p>
             {customModel ? (
-              <div className="flex items-center gap-2 rounded-lg border border-[var(--color-accent-secondary)]/50 bg-[var(--color-accent-secondary)]/10 px-3 py-1.5">
-                <Upload className="h-3 w-3 text-[var(--color-accent-secondary)]" />
-                <span className="font-mono text-xs text-[var(--color-accent-secondary)]">
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--color-accent-primary)]/50 bg-[var(--color-accent-primary)]/10 px-3 py-1.5">
+                <Upload className="h-3 w-3 text-[var(--color-accent-strong)]" />
+                <span className="font-mono text-xs text-[var(--color-accent-strong)]">
                   {customModel.name}
                 </span>
-                <button onClick={() => setCustomModel(null)} className="ml-auto" aria-label="Remove custom model">
-                  <X className="h-3 w-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" />
-                </button>
+                <Button
+                  onClick={() => setCustomModel(null)}
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-auto text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  aria-label="Remove custom model"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
               </div>
             ) : (
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[var(--color-border-subtle)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-emphasis)] hover:text-[var(--color-text-secondary)]">
@@ -384,18 +394,22 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
               </span>
             </h3>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={selectAll}
-                className="font-mono text-[10px] text-[var(--color-accent-primary)] hover:underline"
+                variant="link"
+                size="xs"
+                className="h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
               >
                 Select All
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={clearAll}
-                className="font-mono text-[10px] text-[var(--color-text-muted)] hover:underline"
+                variant="link"
+                size="xs"
+                className="h-auto p-0 font-mono text-[10px] text-[var(--color-text-muted)]"
               >
                 Clear
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -410,69 +424,62 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
               return (
                 <div key={cat.id}>
-                  <button
-                    role="checkbox"
-                    aria-checked={allChecked ? true : someChecked ? "mixed" : false}
-                    aria-label={`Select all ${cat.name}`}
-                    onClick={() => toggleCategory(cat)}
-                    disabled={catIds.length === 0}
-                    className="mb-1 flex w-full items-center gap-2 text-left disabled:opacity-40"
-                  >
-                    <span
-                      className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
-                        allChecked
-                          ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] text-white"
-                          : someChecked
-                            ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/30 text-[var(--color-accent-primary)]"
-                            : "border-[var(--color-border-emphasis)] bg-transparent"
+                  <div className="mb-1 flex w-full items-center gap-2">
+                    <Checkbox
+                      id={`cat-${cat.id}`}
+                      checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                      onCheckedChange={() => toggleCategory(cat)}
+                      disabled={catIds.length === 0}
+                      aria-label={`Select all ${cat.name}`}
+                    />
+                    <Label
+                      htmlFor={`cat-${cat.id}`}
+                      className={`flex-1 gap-1.5 font-sans text-xs font-semibold text-[var(--color-text-secondary)] ${
+                        catIds.length === 0 ? "opacity-40" : "cursor-pointer"
                       }`}
                     >
-                      {allChecked ? "✓" : someChecked ? "–" : ""}
-                    </span>
-                    <span className="font-sans text-xs font-semibold text-[var(--color-text-secondary)]">
                       {cat.name}
-                    </span>
-                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
-                      ({incompatibleIds.size > 0
-                        ? `${compatibleEntries.length}/${cat.entries.length}`
-                        : cat.entries.length})
-                    </span>
-                  </button>
+                      <span className="font-mono text-[10px] font-normal text-[var(--color-text-muted)]">
+                        ({incompatibleIds.size > 0
+                          ? `${compatibleEntries.length}/${cat.entries.length}`
+                          : cat.entries.length})
+                      </span>
+                    </Label>
+                  </div>
 
                   <div className="ml-6 space-y-0.5">
                     {cat.entries.map((entry) => {
                       const isDisabled = incompatibleIds.has(entry.id);
                       const checked = selectedStructures.has(entry.id);
                       return (
-                        <button
+                        <div
                           key={entry.id}
-                          role="checkbox"
-                          aria-checked={checked}
-                          aria-label={`Select ${entry.name}`}
-                          onClick={() => !isDisabled && toggleStructure(entry.id)}
-                          disabled={isDisabled}
-                          className={`flex w-full items-center gap-2 rounded px-1 py-0.5 text-left transition-colors ${
+                          className={`flex w-full items-center gap-2 rounded px-1 py-0.5 transition-colors ${
                             isDisabled
-                              ? "opacity-35 cursor-not-allowed"
+                              ? "opacity-35"
                               : "hover:bg-[var(--color-bg-elevated)]"
                           }`}
                         >
-                          <span
-                            className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border text-[9px] ${
-                              checked
-                                ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] text-white"
-                                : "border-[var(--color-border-subtle)] bg-transparent"
+                          <Checkbox
+                            id={`entry-${entry.id}`}
+                            checked={checked}
+                            onCheckedChange={() => !isDisabled && toggleStructure(entry.id)}
+                            disabled={isDisabled}
+                            aria-label={`Select ${entry.name}`}
+                            className="h-3.5 w-3.5"
+                          />
+                          <Label
+                            htmlFor={`entry-${entry.id}`}
+                            className={`flex-1 gap-0 font-mono text-xs font-normal text-[var(--color-text-muted)] ${
+                              isDisabled ? "cursor-not-allowed" : "cursor-pointer"
                             }`}
                           >
-                            {checked ? "✓" : ""}
-                          </span>
-                          <span className="font-mono text-xs text-[var(--color-text-muted)]">
                             {entry.name}
-                          </span>
+                          </Label>
                           <span className="ml-auto font-mono text-[10px] text-[var(--color-text-muted)]/60">
                             {entry.formula}
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -492,22 +499,24 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 {userStructures.map((f) => (
                   <div
                     key={f.name}
-                    className="flex items-center gap-2 rounded border border-[var(--color-accent-secondary)]/30 bg-[var(--color-accent-secondary)]/5 px-2 py-1"
+                    className="flex items-center gap-2 rounded border border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-primary)]/5 px-2 py-1"
                   >
-                    <FileIcon className="h-3 w-3 flex-shrink-0 text-[var(--color-accent-secondary)]" />
-                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-accent-secondary)]">
+                    <FileIcon className="h-3 w-3 flex-shrink-0 text-[var(--color-accent-strong)]" />
+                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-accent-strong)]">
                       {f.name}
                     </span>
                     <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
                       {(f.size / 1024).toFixed(1)} KB
                     </span>
-                    <button
+                    <Button
                       onClick={() => removeUserStructure(f.name)}
+                      variant="ghost"
+                      size="icon-xs"
                       aria-label={`Remove ${f.name}`}
                       className="flex-shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -538,19 +547,20 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
       {/* Run button */}
       <div className="mt-6 flex items-center gap-4 border-t border-[var(--color-border-subtle)] pt-5">
-        <button
+        <Button
           onClick={handleRun}
           disabled={!canRun || isRunning}
-          className="flex items-center gap-2.5 rounded-lg bg-[var(--color-accent-primary)] px-6 py-2.5 font-sans text-sm font-semibold text-white transition-all hover:bg-[var(--color-accent-primary)]/90 disabled:opacity-40 disabled:cursor-not-allowed"
+          size="lg"
+          className="gap-2.5 font-sans text-sm font-semibold"
         >
           <Play className="h-4 w-4" />
           Run Benchmark
-        </button>
+        </Button>
         <span className="font-mono text-xs text-[var(--color-text-muted)]">
           {totalModels} model{totalModels !== 1 ? "s" : ""} × {totalStructures} structure{totalStructures !== 1 ? "s" : ""} ={" "}
           <span className="text-[var(--color-text-secondary)]">{totalCalcs}</span> calculations
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

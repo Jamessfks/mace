@@ -7,7 +7,7 @@ sdk: docker
 app_port: 7860
 ---
 
-# MACE Calculation API (v1.2.0)
+# MACE Calculation API (v1.3.0)
 
 FastAPI backend for running MACE machine learning interatomic potential calculations and surface slab generation. Deployed on Hugging Face Spaces with Docker.
 

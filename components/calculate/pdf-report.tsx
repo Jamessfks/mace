@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import { FileText } from "lucide-react";
 import type { CalculationParams, CalculationResult } from "@/types/mace";
+import { Button } from "@/components/ui/button";
+import { getSiteUrl } from "@/lib/site";
 
 const styles = StyleSheet.create({
   page: {
@@ -89,6 +91,7 @@ function formatParams(params: Partial<CalculationParams> | undefined): string {
 function MACEReportPDF({ result }: { result: CalculationResult }) {
   const forceMag = (f: number[]) =>
     Math.sqrt(f[0] ** 2 + f[1] ** 2 + f[2] ** 2).toFixed(4);
+  const siteHost = new URL(getSiteUrl()).host;
 
   return (
     <Document>
@@ -160,7 +163,7 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
               {result.forces.slice(0, 50).map((force, i) => (
                 <View key={i} style={styles.tableRow}>
                   <Text style={styles.tableCol1}>{i + 1}</Text>
-                  {/* FIX: symbols may be shorter than forces → guard with fallback */}
+                  {/* symbols may be shorter than forces — guard with a fallback */}
                   <Text style={styles.tableCol2}>{result.symbols![i] ?? "?"}</Text>
                   <Text style={styles.tableCol3}>{force[0].toFixed(4)}</Text>
                   <Text style={styles.tableCol4}>{force[1].toFixed(4)}</Text>
@@ -178,7 +181,7 @@ function MACEReportPDF({ result }: { result: CalculationResult }) {
         )}
 
         <Text style={styles.footer}>
-          MACE Calculator • Generated from mace-lake.vercel.app
+          SimpleAtom • Powered by MACE • Generated from {siteHost}
         </Text>
       </Page>
     </Document>
@@ -208,13 +211,9 @@ export function PDFReportButton({ result }: PDFReportButtonProps) {
   };
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={loading}
-      className="flex items-center gap-2 rounded border border-[var(--color-accent-primary)]/50 bg-[var(--color-accent-primary)]/10 px-3 py-1.5 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 disabled:opacity-50"
-    >
-      <FileText className="h-3 w-3" />
-      {loading ? "Generating..." : "Download PDF Report"}
-    </button>
+    <Button onClick={handleDownload} disabled={loading} variant="outline" size="sm">
+      <FileText className="h-3.5 w-3.5" />
+      {loading ? "Generating…" : "Download PDF report"}
+    </Button>
   );
 }

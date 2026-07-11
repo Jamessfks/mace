@@ -76,7 +76,7 @@ function generateWeasHTML(
   <meta charset="utf-8" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0B0E17; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #FBFAF7; }
     #viewer { width: 100%; height: 100%; }
     /* Hide only the zoom button — it doesn't work in iframe context.
        Keep all other WEAS control buttons (settings, etc.) */
@@ -142,7 +142,7 @@ function generateWeasHTML(
       editor.render();
     } catch (err) {
       domElement.innerText = "WEAS viewer error: " + err.message;
-      domElement.style.color = "#ff4444";
+      domElement.style.color = "#C0392B";
       domElement.style.padding = "20px";
       domElement.style.fontFamily = "monospace";
       domElement.style.fontSize = "12px";
@@ -195,7 +195,7 @@ export function WeasViewer({
           title="WEAS Structure Viewer"
           sandbox="allow-scripts"
           className="h-full w-full border-0"
-          style={{ height, minHeight: height, background: "#0B0E17" }}
+          style={{ height, minHeight: height, background: "#FBFAF7" }}
         />
       )}
       {loading && (

@@ -41,13 +41,14 @@ from pydantic import BaseModel
 
 try:
     from smiles_to_xyz import smiles_to_xyz as _smiles_to_xyz
-except ImportError:
+except Exception as _import_err:
+    _logger.warning("Failed to import smiles_to_xyz: %s", _import_err)
     _smiles_to_xyz = None
 
 app = FastAPI(
     title="MACE Calculation API",
     description="Run MACE energy and force calculations on atomic structures",
-    version="1.2.0",
+    version="1.3.0",
 )
 
 app.add_middleware(
@@ -147,7 +148,7 @@ async def root():
     """API info."""
     return {
         "name": "MACE API",
-        "version": "1.2.0",
+        "version": "1.3.0",
         "endpoints": {
             "POST /calculate": "Run MACE calculation on uploaded structure",
             "POST /smiles-to-xyz": "Convert SMILES to 3D XYZ structure",

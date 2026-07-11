@@ -1,24 +1,22 @@
-"use client";
-
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { IntroSection } from "@/components/intro-section";
 
 /**
- * MACE Force Fields — Landing page
+ * SimpleAtom — landing page.
  *
- * Scientific computing aesthetic with deep navy gradient background,
- * ambient glow, and subtle dot-grid pattern.
+ * A warm, low-contrast introduction on an off-white canvas. Structure,
+ * navigation, and footer are shared across the app; the hero and marketing
+ * content live in IntroSection.
  */
 export default function Home() {
   return (
-    <div className="relative min-h-screen scientific-bg">
-      {/* Ambient radial glow overlay */}
-      <div className="ambient-glow pointer-events-none fixed inset-0 z-0" />
-      {/* Subtle dot-grid pattern overlay */}
-      <div className="dot-grid pointer-events-none fixed inset-0 z-0" />
-
-      <main className="relative z-10">
+    <div className="warm-bg min-h-screen">
+      <SiteHeader />
+      <main>
         <IntroSection />
       </main>
+      <SiteFooter />
     </div>
   );
 }
