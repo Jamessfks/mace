@@ -41,7 +41,8 @@ from pydantic import BaseModel
 
 try:
     from smiles_to_xyz import smiles_to_xyz as _smiles_to_xyz
-except ImportError:
+except Exception as _import_err:
+    _logger.warning("Failed to import smiles_to_xyz: %s", _import_err)
     _smiles_to_xyz = None
 
 app = FastAPI(
