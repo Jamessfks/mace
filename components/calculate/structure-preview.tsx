@@ -149,7 +149,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
 
       viewerRef.current.innerHTML = "";
       viewerInstance.current = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "black",
+        backgroundColor: "#FBFAF7",
       });
       const viewer = viewerInstance.current;
 
@@ -188,7 +188,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
           onClick={handlePreview}
           className="flex items-center gap-2 rounded border border-[var(--color-border-emphasis)] bg-[var(--color-accent-primary)]/10 px-4 py-2 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 hover:border-[var(--color-accent-primary)]"
         >
-          <Eye className="h-4 w-4" />
+          <Eye className="h-4 w-4" strokeWidth={1.75} />
           Preview Structure
         </button>
       )}
@@ -212,7 +212,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                     className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
                       engine === "weas"
                         ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     WEAS
@@ -224,7 +224,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                     className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
                       engine === "3dmol"
                         ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     3Dmol
@@ -236,9 +236,10 @@ export function StructurePreview({ files }: StructurePreviewProps) {
               type="button"
               onClick={handleClose}
               title="Close preview"
-              className="text-zinc-500 transition-colors hover:text-red-400"
+              aria-label="Close preview"
+              className="rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-error)]"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.75} />
             </button>
           </div>
 
@@ -251,7 +252,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
 
           {/* Parse error */}
           {error && (
-            <div className="rounded border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs text-red-400">
+            <div className="rounded border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 p-3 font-mono text-xs text-[var(--color-error)]">
               <strong>Parse error:</strong> {error}
             </div>
           )}
@@ -263,10 +264,10 @@ export function StructurePreview({ files }: StructurePreviewProps) {
               <div className="mb-3 space-y-1.5">
                 {/* Formula + atom count */}
                 <div className="flex items-center gap-3 font-mono">
-                  <span className="text-sm font-bold text-white">
+                  <span className="text-sm font-bold text-[var(--color-text-primary)]">
                     {parsed.empiricalFormula}
                   </span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-[var(--color-text-secondary)]">
                     {parsed.atomCount} atoms
                   </span>
                 </div>
@@ -274,25 +275,25 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                 {/* Element breakdown + geometry stats */}
                 <div className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs">
                   {/* Per-element counts */}
-                  <span className="text-zinc-400">
+                  <span className="text-[var(--color-text-secondary)]">
                     {parsed.elements.map((el) => (
                       <span key={el} className="mr-1.5">
                         {el}×{parsed.elementCounts[el]}
                       </span>
                     ))}
                   </span>
-                  <span className="text-zinc-400">
+                  <span className="text-[var(--color-text-secondary)]">
                     Box:{" "}
-                    <span className="text-white">
+                    <span className="text-[var(--color-text-primary)]">
                       {parsed.boundingBox.size[0].toFixed(1)} × {" "}
                       {parsed.boundingBox.size[1].toFixed(1)} × {" "}
                       {parsed.boundingBox.size[2].toFixed(1)} Å
                     </span>
                   </span>
                   {parsed.frameCount > 1 && (
-                    <span className="text-zinc-400">
+                    <span className="text-[var(--color-text-secondary)]">
                       Frames:{" "}
-                      <span className="text-white">
+                      <span className="text-[var(--color-text-primary)]">
                         {parsed.frameCount} (showing first)
                       </span>
                     </span>
@@ -302,8 +303,8 @@ export function StructurePreview({ files }: StructurePreviewProps) {
 
               {/* ── Warnings ── */}
               {isVeryLarge && (
-                <div className="mb-3 flex items-start gap-2 rounded border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs text-red-400">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="mb-3 flex items-start gap-2 rounded border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 p-3 font-mono text-xs text-[var(--color-error)]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
                   <div>
                     <strong>Very large structure ({atomCount} atoms).</strong>{" "}
                     Calculations will be very slow or may timeout. Consider
@@ -312,8 +313,8 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                 </div>
               )}
               {isLarge && !isVeryLarge && (
-                <div className="mb-3 flex items-start gap-2 rounded border border-amber-500/50 bg-amber-500/10 p-3 font-mono text-xs text-amber-400">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="mb-3 flex items-start gap-2 rounded border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 p-3 font-mono text-xs text-[var(--color-warning)]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
                   <div>
                     <strong>Large structure ({atomCount} atoms).</strong>{" "}
                     Calculation may take several minutes. Single-point energy
@@ -344,7 +345,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                 )}
               </div>
 
-              <p className="mt-2 font-mono text-xs text-zinc-600">
+              <p className="mt-2 font-mono text-xs text-[var(--color-text-muted)]">
                 {engine === "weas"
                   ? "WEAS viewer (ml-peg compatible) · Drag to rotate · Scroll to zoom"
                   : "3Dmol.js · Drag to rotate · Scroll to zoom"

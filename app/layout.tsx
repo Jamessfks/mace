@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Fraunces, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 /* Humanist UI sans — clear, warm, excellent for dense scientific data. */
@@ -66,7 +67,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${fraunces.variable} ${geistMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
       >
-        {children}
+        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
         <Analytics />
         <SpeedInsights />
       </body>

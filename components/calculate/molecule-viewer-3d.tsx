@@ -123,7 +123,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
             z: pos[2] + force[2] * scale,
           },
           radius: 0.08,
-          color: "#4A7BF7",
+          color: "#228833", // Paul Tol green — matches "force vectors" legend
         });
       });
       viewer.render();
@@ -147,7 +147,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
       viewerRef.current.innerHTML = "";
       viewerInstance.current = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "#0B0E17",
+        backgroundColor: "#FBFAF7",
       });
       const viewer = viewerInstance.current;
 
@@ -235,7 +235,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       className={`flex h-8 w-8 items-center justify-center rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         active
           ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-          : "border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)] text-zinc-400 hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
+          : "border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
       }`}
     >
       {children}
@@ -255,7 +255,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
           <h3 className="font-mono text-sm font-bold text-[var(--color-accent-primary)]">
             3D STRUCTURE VIEWER
           </h3>
-          <span className="font-mono text-xs text-zinc-500">
+          <span className="font-mono text-xs text-[var(--color-text-muted)]">
             {result.symbols?.length || 0} atoms
           </span>
         </div>
@@ -270,7 +270,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               className={`flex h-8 items-center justify-center rounded-l px-2 font-mono text-[10px] transition-colors ${
                 is3Dmol
                   ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-                  : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
               }`}
             >
               3Dmol
@@ -282,7 +282,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               className={`flex h-8 items-center justify-center rounded-r px-2 font-mono text-[10px] transition-colors ${
                 !is3Dmol
                   ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-                  : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
               }`}
             >
               WEAS
@@ -310,7 +310,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                     className={`flex h-8 w-8 items-center justify-center transition-colors ${
                       representation === key
                         ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
-                        : "text-zinc-400 hover:text-[var(--color-accent-primary)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -399,7 +399,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       </div>
 
       {/* ── Footer help text ── */}
-      <p className="mt-2 font-mono text-xs text-zinc-500">
+      <p className="mt-2 font-mono text-xs text-[var(--color-text-muted)]">
         {is3Dmol ? (
           <>
             Drag to rotate · Scroll to zoom · Right-drag to pan

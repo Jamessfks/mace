@@ -1,30 +1,32 @@
 "use client";
 
 /**
- * FileUploadSection — Drag-and-drop file upload with optional structure preview.
+ * FileUploadSection — structure input.
  *
- * FEATURES:
- *   - Drag & drop or click-to-browse for .xyz, .cif, .poscar, .contcar, .pdb
- *   - Single file upload only (new upload replaces the previous one)
- *   - "Preview Structure" button (click-to-display) that parses the file
- *     client-side and renders a 3D viewer with atom stats and size warnings
- *
- * ARCHITECTURE:
- *   The preview is handled by the StructurePreview child component. It only
- *   activates when the user clicks the button, so it doesn't slow down the
- *   page for users who don't need it.
+ * Three input methods behind a segmented control (Upload / Catalog / SMILES),
+ * plus a selected-structure panel with instant info and an on-demand 3D
+ * preview. Rebuilt on shadcn primitives and the warm light theme.
  *
  * SEE ALSO:
  *   - lib/parse-structure.ts   — client-side XYZ/CIF/PDB/POSCAR parser
- *   - components/calculate/structure-preview.tsx — 3D preview + warnings
+ *   - components/calculate/structure-info.tsx     — instant stats + warnings
+ *   - components/calculate/structure-preview.tsx  — on-demand 3D viewer
  */
 
 import { useCallback } from "react";
-import { Upload, X, File } from "lucide-react";
+import { Upload, X, File as FileIcon } from "lucide-react";
 import { MlPegCatalog } from "./mlpeg-catalog";
 import { SmilesInput } from "./smiles-input";
 import { StructureInfo } from "./structure-info";
 import { StructurePreview } from "./structure-preview";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FileUploadSectionProps {
   files: File[];
@@ -41,16 +43,14 @@ export function FileUploadSection({
   files,
   onFilesChange,
 }: FileUploadSectionProps) {
-  // Only one file at a time — new upload replaces the previous one
+  // Only one file at a time — a new selection replaces the previous one.
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      if (droppedFiles.length > 0) {
-        onFilesChange([droppedFiles[0]]);
-      }
+      const dropped = Array.from(e.dataTransfer.files);
+      if (dropped.length > 0) onFilesChange([dropped[0]]);
     },
-    [onFilesChange]
+    [onFilesChange],
   );
 
   const handleFileInput = useCallback(
@@ -59,215 +59,128 @@ export function FileUploadSection({
         onFilesChange([e.target.files[0]]);
       }
     },
-    [onFilesChange]
+    [onFilesChange],
   );
-
-  const removeFile = () => {
-    onFilesChange([]);
-  };
 
   return (
     <div className="space-y-6">
-      {/* ── Option A: Upload your own file ── */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
-          OPTION A — UPLOAD YOUR FILE
-        </h2>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif text-lg">Structure</CardTitle>
+          <CardDescription>
+            Upload a file, choose a benchmark structure, or generate one from a
+            SMILES string.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="upload">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="upload">Upload</TabsTrigger>
+              <TabsTrigger value="catalog">Catalog</TabsTrigger>
+              <TabsTrigger value="smiles">SMILES</TabsTrigger>
+            </TabsList>
 
-        {/* Drag & Drop Zone */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="group relative cursor-pointer rounded-lg border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-accent-primary)]/10 p-12 text-center transition-colors hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/15"
-        >
-          <input
-            type="file"
-            accept={ACCEPTED_FORMATS.join(",")}
-            onChange={handleFileInput}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
-          <Upload className="mx-auto mb-3 h-12 w-12 text-[var(--color-accent-primary)]/70" />
-          <p className="mb-1 font-mono text-sm text-zinc-300">
-            Drag & drop a structure file here
-          </p>
-          <p className="font-mono text-xs text-zinc-500">
-            or click to browse
-          </p>
-          <p className="mt-2 font-mono text-xs text-zinc-600">
-            Supported: {ACCEPTED_FORMATS.join(", ")}
-          </p>
-        </div>
-      </div>
-
-      {/* ── "OR" divider ── */}
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
-        <span className="font-mono text-xs text-zinc-500">OR</span>
-        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
-      </div>
-
-      {/* ── Option B: Browse ml-peg benchmark structures ── */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
-          OPTION B — BROWSE ML-PEG STRUCTURES
-        </h2>
-        <p className="mb-3 font-mono text-xs text-zinc-500">
-          Select a benchmark structure from the{" "}
-          <a
-            href="https://github.com/ddmms/ml-peg"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-accent-primary)]/70 underline hover:text-[var(--color-accent-primary)]"
-          >
-            ml-peg
-          </a>{" "}
-          catalog — no file needed.
-        </p>
-
-        {/* ml-peg catalog browser */}
-        <MlPegCatalog onSelect={(file) => onFilesChange([file])} />
-      </div>
-
-      {/* ── "OR" divider ── */}
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
-        <span className="font-mono text-xs text-zinc-500">OR</span>
-        <div className="h-px flex-1 bg-[var(--color-border-subtle)]" />
-      </div>
-
-      {/* ── Option C: Enter SMILES string ── */}
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-        <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
-          OPTION C — ENTER SMILES
-        </h2>
-        <p className="mb-3 font-mono text-xs text-zinc-500">
-          Enter a{" "}
-          <a
-            href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-accent-primary)]/70 underline hover:text-[var(--color-accent-primary)]"
-          >
-            SMILES
-          </a>{" "}
-          string to generate a 3D structure with RDKit.
-        </p>
-        <SmilesInput onFilesChange={onFilesChange} />
-      </div>
-
-      {/* ── Selected file + info + preview (shown after upload or catalog selection) ── */}
-      {files.length > 0 && (
-        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
-          <h2 className="mb-4 font-sans text-sm font-bold text-[var(--color-accent-primary)]">
-            SELECTED STRUCTURE
-          </h2>
-
-          {/* File card */}
-          <div className="flex items-center justify-between rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] p-3">
-            <div className="flex items-center gap-3">
-              <File className="h-4 w-4 text-[var(--color-accent-primary)]/70" />
-              <div>
-                <p className="font-mono text-xs text-zinc-300">
-                  {files[0].name}
+            {/* Upload */}
+            <TabsContent value="upload" className="mt-4">
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="group relative cursor-pointer rounded-xl border-2 border-dashed border-[var(--color-border-emphasis)] bg-[var(--color-bg-surface)] p-10 text-center transition-colors hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-soft)]"
+              >
+                <input
+                  type="file"
+                  accept={ACCEPTED_FORMATS.join(",")}
+                  onChange={handleFileInput}
+                  aria-label="Upload a structure file"
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+                <Upload className="mx-auto mb-3 h-9 w-9 text-[var(--color-accent-primary)]" strokeWidth={1.5} />
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  Drag &amp; drop a structure file
                 </p>
-                <p className="font-mono text-xs text-zinc-600">
-                  {(files[0].size / 1024).toFixed(1)} KB
+                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                  or click to browse
+                </p>
+                <p className="mt-3 font-mono text-[11px] text-[var(--color-text-muted)]">
+                  {ACCEPTED_FORMATS.join("  ·  ")}
                 </p>
               </div>
+            </TabsContent>
+
+            {/* Catalog */}
+            <TabsContent value="catalog" className="mt-4">
+              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
+                Select a benchmark structure from the{" "}
+                <a
+                  href="https://github.com/ddmms/ml-peg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--color-accent-strong)] underline-offset-2 hover:underline"
+                >
+                  ml-peg
+                </a>{" "}
+                catalog — no file needed.
+              </p>
+              <MlPegCatalog onSelect={(file) => onFilesChange([file])} />
+            </TabsContent>
+
+            {/* SMILES */}
+            <TabsContent value="smiles" className="mt-4">
+              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
+                Enter a{" "}
+                <a
+                  href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--color-accent-strong)] underline-offset-2 hover:underline"
+                >
+                  SMILES
+                </a>{" "}
+                string to generate a 3D structure with RDKit (auto-selects
+                MACE-OFF).
+              </p>
+              <SmilesInput onFilesChange={onFilesChange} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Selected structure */}
+      {files.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif text-lg">
+              Selected structure
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3">
+              <div className="flex items-center gap-3">
+                <FileIcon className="h-4 w-4 text-[var(--color-accent-primary)]" />
+                <div>
+                  <p className="font-mono text-xs text-[var(--color-text-primary)]">
+                    {files[0].name}
+                  </p>
+                  <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                    {(files[0].size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onFilesChange([])}
+                aria-label="Remove selected structure"
+                className="rounded p-1 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-error)]"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={removeFile}
-              className="text-zinc-500 transition-colors hover:text-red-400"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
 
-          {/* ── Structure Info (auto, shown immediately) ──
-               See: components/calculate/structure-info.tsx */}
-          <StructureInfo file={files[0]} />
-
-          {/* ── Structure Preview (click-to-display 3D viewer) ──
-               See: components/calculate/structure-preview.tsx */}
-          <StructurePreview files={files} />
-        </div>
+            <StructureInfo file={files[0]} />
+            <StructurePreview files={files} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 }
-
-/*
- * ============================================================================
- * DOCUMENTATION: Upload, Info & Preview Pipeline
- * ============================================================================
- *
- * This file orchestrates a two-level inspection system for uploaded structures,
- * directly addressing the MACE founder's feedback about catching huge or
- * unexpected structures before overwhelming the backend.
- *
- * LEVEL 1 — StructureInfo (automatic, instant)
- *   Shown IMMEDIATELY after file upload. No user action needed.
- *   - Atom count (color-coded badge: green / amber / red)
- *   - Element list
- *   - Bounding box size (Angstroms)
- *   - Frame count (multi-frame XYZ)
- *   - Warnings:
- *       >500 atoms   → amber ("calculation may be slow")
- *       >2000 atoms  → red ("may timeout")
- *       >100 A box   → amber ("very large simulation box")
- *   - "Structure looks good" confirmation for normal structures
- *   File: components/calculate/structure-info.tsx
- *
- * LEVEL 2 — StructurePreview (click-to-display, 3D viewer)
- *   Shown only when user clicks "Preview Structure" button.
- *   - WEAS viewer (ml-peg compatible) or 3Dmol.js (toggle)
- *   - Ball-and-stick rendering
- *   - Stats row (duplicates Level 1, but inside the viewer panel)
- *   File: components/calculate/structure-preview.tsx
- *
- * WHY TWO LEVELS:
- *   Level 1 is lightweight (text only, parses in ~10ms for most files).
- *   Level 2 loads a full 3D viewer (WEAS or 3Dmol.js) which is heavier.
- *   Keeping them separate means users always see warnings fast, and only
- *   load the 3D viewer when they want visual inspection.
- *
- * RENDER ORDER (inside the upload card):
- *   1. Drop zone (drag & drop or click to browse)
- *   2. ml-peg Catalog — "Browse ml-peg structures" button → catalog browser
- *   3. Uploaded file card (name, size, remove button)
- *   4. StructureInfo — auto-parsed info + warnings
- *   5. StructurePreview — "Preview Structure" button → 3D viewer
- *
- * SUPPORTED FORMATS:
- *   | Format       | Extensions               | Parser details          |
- *   |-------------|--------------------------|-------------------------|
- *   | XYZ          | .xyz, .extxyz             | Full support, frame 1   |
- *   | CIF          | .cif                      | _atom_site loop parsing |
- *   | PDB          | .pdb                      | ATOM/HETATM records     |
- *   | POSCAR/VASP  | .poscar, .vasp, .contcar  | Direct + Cartesian      |
- *
- * FILES INVOLVED:
- *   - lib/parse-structure.ts              — Client-side file parser
- *   - lib/mlpeg-catalog.ts                — ml-peg structure catalog data
- *   - components/calculate/mlpeg-catalog.tsx     — Catalog browser UI
- *   - components/calculate/structure-info.tsx     — Level 1 (auto info)
- *   - components/calculate/structure-preview.tsx  — Level 2 (3D viewer)
- *   - components/calculate/weas-viewer.tsx        — WEAS iframe wrapper
- *   - components/calculate/file-upload-section.tsx — This file (parent)
- *
- * EXTENDING:
- *   - New file formats: add parser in lib/parse-structure.ts
- *   - New warnings: add conditions in structure-info.tsx
- *   - New viewer features: edit structure-preview.tsx or weas-viewer.tsx
- *   - New catalog structures: add entries in lib/mlpeg-catalog.ts
- *   - New catalog categories: add CatalogCategory in lib/mlpeg-catalog.ts
- *
- * ML-PEG CATALOG:
- *   The "Browse ml-peg structures" button connects this tool to the MACE
- *   team's ml-peg benchmark catalog (https://github.com/ddmms/ml-peg).
- *   Users can pick structures like "Silicon diamond", "Ethanol", or "Water
- *   dimer" and run calculations without uploading any file.
- *   Structures are embedded as XYZ strings in lib/mlpeg-catalog.ts.
- *   See components/calculate/mlpeg-catalog.tsx for the browser UI.
- * ============================================================================
- */

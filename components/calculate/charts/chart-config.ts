@@ -2,39 +2,38 @@
  * Shared Plotly.js configuration for all MACE scientific charts.
  *
  * Styling rules:
- *   - Transparent paper background (integrates with dark card bg)
- *   - Plot background matches --color-bg-secondary (#111827)
+ *   - Transparent paper + plot background (integrates with the warm off-white card bg)
  *   - All text uses Geist Mono for scientific data readability
  *   - Grid/axis colors from the design system border tokens
  *   - Data series use the Paul Tol colorblind-safe palette
  */
 
-/** Standard dark-theme layout for all MACE Plotly charts. */
+/** Standard light-theme layout for all MACE Plotly charts. */
 export const BASE_LAYOUT: Record<string, any> = {
   paper_bgcolor: "rgba(0,0,0,0)",
-  plot_bgcolor: "#111827",
+  plot_bgcolor: "rgba(0,0,0,0)",
   font: {
     family: "Geist Mono, ui-monospace, monospace",
-    color: "#9BA4B8",
+    color: "#5C574E",
     size: 11,
   },
   xaxis: {
-    gridcolor: "#2A3650",
-    zerolinecolor: "#3B4F72",
-    linecolor: "#2A3650",
+    gridcolor: "#EAE6DD",
+    zerolinecolor: "#D8D2C6",
+    linecolor: "#D8D2C6",
     tickfont: { size: 10 },
   },
   yaxis: {
-    gridcolor: "#2A3650",
-    zerolinecolor: "#3B4F72",
-    linecolor: "#2A3650",
+    gridcolor: "#EAE6DD",
+    zerolinecolor: "#D8D2C6",
+    linecolor: "#D8D2C6",
     tickfont: { size: 10 },
   },
   margin: { l: 60, r: 20, t: 40, b: 50 },
   showlegend: true,
   legend: {
     bgcolor: "rgba(0,0,0,0)",
-    font: { color: "#9BA4B8", size: 10 },
+    font: { color: "#5C574E", size: 10 },
   },
 };
 

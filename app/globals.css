@@ -2,14 +2,14 @@
  * SimpleAtom — Global Styles & Design System
  *
  * Design: Warm, humanist, low-contrast scientific interface.
- * A calm off-white canvas with a clay/terracotta accent, generous
- * whitespace, and a serif display face — built to feel human, not
- * "AI-generated." Optimised for readability of scientific data.
+ * A calm off-white canvas with a light-green accent, generous whitespace,
+ * and a serif display face — built to feel human, not "AI-generated."
+ * Optimised for readability of scientific data.
  *
  * Palette:
  *   Canvas tiers:  #FBFAF7 (page) → #F3F0E8 (muted) → #FFFFFF (cards)
  *   Ink:           #262521 (primary) → #5C574E (secondary) → #8A8478 (muted)
- *   Accent:        #C15F3C (clay brand), #A84B2A (interactive/AA-safe)
+ *   Accent:        #4F9A54 (green brand), #3A7A40 (interactive/AA-safe)
  *   Data viz:      Paul Tol colorblind-safe palette (7 colors, unchanged)
  *
  * A full dark theme is preserved under `.dark` (the previous navy identity)
@@ -94,11 +94,11 @@ html {
   --color-text-secondary: #5C574E;
   --color-text-muted: #8A8478;
 
-  /* ── Accent (clay / terracotta) ── */
-  --color-accent-primary: #C15F3C;   /* brand clay — icons, tints, borders */
-  --color-accent-strong: #A84B2A;    /* interactive — links, button fills (AA on white) */
-  --color-accent-hover: #8F3F23;     /* hover / active */
-  --color-accent-soft: #F4E7DF;      /* soft tint background */
+  /* ── Accent (light green) ── */
+  --color-accent-primary: #4F9A54;   /* brand green — icons, tints, borders */
+  --color-accent-strong: #3A7A40;    /* interactive — links, button fills (AA on white) */
+  --color-accent-hover: #2E6533;     /* hover / active */
+  --color-accent-soft: #E9F2E4;      /* soft tint background */
 
   /* ── Status (tuned for a light canvas) ── */
   --color-success: #3F8F5B;
@@ -121,18 +121,18 @@ html {
   --card-foreground: #262521;
   --popover: #FFFFFF;
   --popover-foreground: #262521;
-  --primary: #A84B2A;
+  --primary: #3A7A40;
   --primary-foreground: #FFFFFF;
   --secondary: #F3F0E8;
   --secondary-foreground: #262521;
   --muted: #F3F0E8;
   --muted-foreground: #5C574E;
-  --accent: #F4E7DF;
-  --accent-foreground: #8F3F23;
+  --accent: #E9F2E4;
+  --accent-foreground: #2E6533;
   --destructive: #C0392B;
   --border: #EAE6DD;
   --input: #E4DFD4;
-  --ring: #C15F3C;
+  --ring: #4F9A54;
   --chart-1: #4477AA;
   --chart-2: #228833;
   --chart-3: #CCBB44;
@@ -140,12 +140,12 @@ html {
   --chart-5: #AA3377;
   --sidebar: #F7F4EE;
   --sidebar-foreground: #262521;
-  --sidebar-primary: #A84B2A;
+  --sidebar-primary: #3A7A40;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F4E7DF;
-  --sidebar-accent-foreground: #8F3F23;
+  --sidebar-accent: #E9F2E4;
+  --sidebar-accent-foreground: #2E6533;
   --sidebar-border: #EAE6DD;
-  --sidebar-ring: #C15F3C;
+  --sidebar-ring: #4F9A54;
 }
 
 /* ── Preserved dark identity (previous navy theme) — opt-in via .dark ── */
@@ -159,10 +159,10 @@ html {
   --color-text-primary: #E8ECF4;
   --color-text-secondary: #9BA4B8;
   --color-text-muted: #5D6A82;
-  --color-accent-primary: #C97A5A;
-  --color-accent-strong: #D98C6A;
-  --color-accent-hover: #E19E80;
-  --color-accent-soft: #2A1E17;
+  --color-accent-primary: #7BC47F;
+  --color-accent-strong: #93D196;
+  --color-accent-hover: #A9DDAB;
+  --color-accent-soft: #17241A;
   --color-success: #34D399;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
@@ -173,7 +173,7 @@ html {
   --card-foreground: #E8ECF4;
   --popover: #1A2035;
   --popover-foreground: #E8ECF4;
-  --primary: #C97A5A;
+  --primary: #7BC47F;
   --primary-foreground: #0B0E17;
   --secondary: #1A2035;
   --secondary-foreground: #E8ECF4;
@@ -184,15 +184,15 @@ html {
   --destructive: #EF4444;
   --border: #2A3650;
   --input: #2A3650;
-  --ring: #C97A5A;
+  --ring: #7BC47F;
   --sidebar: #111827;
   --sidebar-foreground: #E8ECF4;
-  --sidebar-primary: #C97A5A;
+  --sidebar-primary: #7BC47F;
   --sidebar-primary-foreground: #0B0E17;
   --sidebar-accent: #1A2035;
   --sidebar-accent-foreground: #E8ECF4;
   --sidebar-border: #2A3650;
-  --sidebar-ring: #C97A5A;
+  --sidebar-ring: #7BC47F;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -216,10 +216,10 @@ html {
    Surface Treatments (light, warm, low-contrast)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Subtle warm page gradient — replaces the old navy `.scientific-bg`. */
+/* Subtle warm page gradient with a faint green cast — replaces old `.scientific-bg`. */
 .warm-bg {
   background:
-    radial-gradient(60rem 40rem at 78% -10%, rgba(193, 95, 60, 0.05), transparent 60%),
+    radial-gradient(60rem 40rem at 78% -10%, rgba(79, 154, 84, 0.06), transparent 60%),
     linear-gradient(180deg, #FDFCFA 0%, #FBFAF7 40%, #F5F1E9 100%);
 }
 

@@ -9,7 +9,7 @@
  *   energy conservation (NVE) or thermostat behavior (NVT/NPT).
  *
  * FEATURES:
- *   - Smooth SVG path with Matrix-green gradient fill
+ *   - Smooth SVG path with Paul Tol blue gradient fill
  *   - Current-frame indicator (vertical line + dot synced with trajectory viewer)
  *   - Hover crosshair showing energy/step at mouse position
  *   - Auto-scaled axes with labeled ticks
@@ -17,7 +17,7 @@
  *
  * DESIGN:
  *   Pure SVG — no charting library dependency. This keeps the bundle small
- *   and gives full control over the Matrix theme aesthetic.
+ *   and gives full control over the warm, light theme aesthetic.
  *
  * PROPS:
  *   - energies: number[]        — energy at each MD step (eV)
@@ -162,10 +162,10 @@ export function EnergyChart({
         style={{ cursor: onFrameSelect ? "crosshair" : "default" }}
       >
         <defs>
-          {/* Gradient fill under the energy line */}
+          {/* Gradient fill under the energy line (Paul Tol blue — data mark) */}
           <linearGradient id="energyFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4A7BF7" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#4A7BF7" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="#4477AA" stopOpacity="0.20" />
+            <stop offset="100%" stopColor="#4477AA" stopOpacity="0.02" />
           </linearGradient>
           {/* Glow filter for the current-frame dot */}
           <filter id="glow">
@@ -185,7 +185,7 @@ export function EnergyChart({
             y1={toY(t)}
             x2={VIEWBOX_WIDTH - PADDING.right}
             y2={toY(t)}
-            stroke="#27272a"
+            stroke="#EAE6DD"
             strokeWidth="0.5"
           />
         ))}
@@ -193,11 +193,11 @@ export function EnergyChart({
         {/* ── Gradient fill under curve ── */}
         <path d={fillPath} fill="url(#energyFill)" />
 
-        {/* ── Energy line ── */}
+        {/* ── Energy line (Paul Tol blue — data mark) ── */}
         <path
           d={linePath}
           fill="none"
-          stroke="#4A7BF7"
+          stroke="#4477AA"
           strokeWidth="1.5"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -209,12 +209,12 @@ export function EnergyChart({
           y1={PADDING.top}
           x2={cfX}
           y2={PADDING.top + plotH}
-          stroke="#4A7BF7"
+          stroke="#4477AA"
           strokeWidth="1"
           strokeDasharray="3,3"
           opacity="0.5"
         />
-        <circle cx={cfX} cy={cfY} r="4" fill="#4A7BF7" filter="url(#glow)" />
+        <circle cx={cfX} cy={cfY} r="4" fill="#4477AA" filter="url(#glow)" />
 
         {/* ── Hover crosshair ── */}
         {hover && (
@@ -224,7 +224,7 @@ export function EnergyChart({
               y1={PADDING.top}
               x2={hover.x}
               y2={PADDING.top + plotH}
-              stroke="#a1a1aa"
+              stroke="#D8D2C6"
               strokeWidth="0.5"
               strokeDasharray="2,2"
             />
@@ -232,15 +232,15 @@ export function EnergyChart({
               cx={hover.x}
               cy={toY(energies[hover.idx])}
               r="3"
-              fill="white"
-              stroke="#4A7BF7"
+              fill="#FFFFFF"
+              stroke="#4477AA"
               strokeWidth="1"
             />
             {/* Hover tooltip */}
             <text
               x={hover.x + 6}
               y={PADDING.top + 10}
-              fill="#a1a1aa"
+              fill="#5C574E"
               fontSize="9"
               fontFamily="monospace"
             >
@@ -255,7 +255,7 @@ export function EnergyChart({
             key={t}
             x={PADDING.left - 6}
             y={toY(t) + 3}
-            fill="#71717a"
+            fill="#5C574E"
             fontSize="8"
             fontFamily="monospace"
             textAnchor="end"
@@ -270,7 +270,7 @@ export function EnergyChart({
             key={i}
             x={toX(steps[i])}
             y={CHART_HEIGHT - 4}
-            fill="#71717a"
+            fill="#5C574E"
             fontSize="8"
             fontFamily="monospace"
             textAnchor="middle"
@@ -283,7 +283,7 @@ export function EnergyChart({
         <text
           x={VIEWBOX_WIDTH / 2}
           y={CHART_HEIGHT - 18}
-          fill="#52525b"
+          fill="#8A8478"
           fontSize="8"
           fontFamily="monospace"
           textAnchor="middle"
@@ -293,7 +293,7 @@ export function EnergyChart({
         <text
           x={12}
           y={CHART_HEIGHT / 2}
-          fill="#52525b"
+          fill="#8A8478"
           fontSize="8"
           fontFamily="monospace"
           textAnchor="middle"

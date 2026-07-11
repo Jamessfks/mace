@@ -9,6 +9,9 @@
 
 import { useState, useCallback } from "react";
 import { Loader2, FlaskConical, Sparkles, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface SmilesInputProps {
   onFilesChange: (files: File[]) => void;
@@ -93,8 +96,15 @@ export function SmilesInput({ onFilesChange }: SmilesInputProps) {
       {/* SMILES text input */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <FlaskConical className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-accent-primary)]/50" />
-          <input
+          <Label htmlFor="smiles-string-input" className="sr-only">
+            SMILES string
+          </Label>
+          <FlaskConical
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]"
+            strokeWidth={1.75}
+          />
+          <Input
+            id="smiles-string-input"
             type="text"
             value={smiles}
             onChange={(e) => {
@@ -104,52 +114,54 @@ export function SmilesInput({ onFilesChange }: SmilesInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Enter SMILES (e.g., CCO for ethanol)"
             disabled={isConverting}
-            className="w-full rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] py-2.5 pl-9 pr-3 font-mono text-sm text-[var(--color-text-primary)] placeholder:text-zinc-600 transition-colors focus:border-[var(--color-accent-primary)] focus:outline-none disabled:opacity-50"
+            className="pl-9 font-mono text-sm"
           />
         </div>
-        <button
+        <Button
+          type="button"
           onClick={handleConvert}
           disabled={isConverting || !smiles.trim()}
-          className="flex shrink-0 items-center gap-2 rounded-md border border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10 px-4 py-2.5 font-mono text-xs font-bold text-[var(--color-accent-primary)] transition-all hover:bg-[var(--color-accent-primary)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[var(--color-accent-primary)]/10 disabled:hover:text-[var(--color-accent-primary)]"
+          className="shrink-0 gap-2 font-mono text-xs"
         >
           {isConverting ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
               Converting...
             </>
           ) : (
             <>
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
               Convert to 3D
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Error display */}
       {error && (
         <div className="flex items-start gap-2 rounded-md border border-[var(--color-error)]/30 bg-[var(--color-error)]/5 px-3 py-2">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-error)]" />
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-error)]" strokeWidth={1.75} />
           <p className="font-mono text-xs text-[var(--color-error)]/90">{error}</p>
         </div>
       )}
 
       {/* Example molecules */}
       <div>
-        <p className="mb-2 font-mono text-xs text-zinc-500">
+        <p className="mb-2 font-mono text-xs text-[var(--color-text-muted)]">
           Common molecules — click to use:
         </p>
         <div className="flex flex-wrap gap-1.5">
           {EXAMPLES.map((mol) => (
             <button
               key={mol.smiles}
+              type="button"
               onClick={() => handleExampleClick(mol)}
               disabled={isConverting}
               title={`SMILES: ${mol.smiles}`}
-              className="rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] px-2 py-1 font-mono text-xs text-zinc-400 transition-colors hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)] disabled:opacity-50"
+              className="rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-2 py-1 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)] disabled:opacity-50"
             >
               <span>{mol.name}</span>
-              <span className="ml-1 text-zinc-600">{mol.formula}</span>
+              <span className="ml-1 text-[var(--color-text-muted)]">{mol.formula}</span>
             </button>
           ))}
         </div>
