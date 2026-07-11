@@ -24,9 +24,8 @@
 
 import { nanoid } from "nanoid";
 import { supabase } from "@/lib/supabase";
+import { getSiteUrl } from "@/lib/site";
 import type { CalculationResult, CalculationParams, SharedResult } from "@/types/mace";
-
-const BASE_URL = "https://mace-lake.vercel.app";
 
 /** Save a calculation result and return its shareable URL. */
 export async function saveResult(
@@ -45,7 +44,7 @@ export async function saveResult(
 
   if (error) throw new Error(`Failed to save result: ${error.message}`);
 
-  return { id, url: `${BASE_URL}/r/${id}` };
+  return { id, url: `${getSiteUrl()}/r/${id}` };
 }
 
 /** Load a previously shared result by ID. Returns null if not found. */

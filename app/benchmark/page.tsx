@@ -11,9 +11,14 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import Link from "next/link";
-import { ArrowLeft, FlaskConical } from "lucide-react";
-import { BenchmarkConfig, type SelectedModel } from "@/components/benchmark/benchmark-config";
+import { FlaskConical } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { Button } from "@/components/ui/button";
+import {
+  BenchmarkConfig,
+  type SelectedModel,
+} from "@/components/benchmark/benchmark-config";
 import { BenchmarkProgress } from "@/components/benchmark/benchmark-progress";
 import { BenchmarkDashboard } from "@/components/benchmark/benchmark-dashboard";
 import { MLPEG_CATALOG } from "@/lib/mlpeg-catalog";
@@ -42,11 +47,12 @@ export default function BenchmarkPage() {
       selectedModels: SelectedModel[],
       selectedIds: string[],
       customModelFile?: File,
-      userStructureFiles?: File[]
+      userStructureFiles?: File[],
     ) => {
       setModels(selectedModels);
       setStructureIds(selectedIds);
-      const structureCount = selectedIds.length + (userStructureFiles?.length ?? 0);
+      const structureCount =
+        selectedIds.length + (userStructureFiles?.length ?? 0);
       setTotal(selectedModels.length * structureCount);
       setPhase("running");
       startTimeRef.current = Date.now();
@@ -58,7 +64,9 @@ export default function BenchmarkPage() {
           calculationType: "single-point",
         };
 
-        const hasFiles = !!customModelFile || (userStructureFiles && userStructureFiles.length > 0);
+        const hasFiles =
+          !!customModelFile ||
+          (userStructureFiles && userStructureFiles.length > 0);
 
         let response: Response;
         if (hasFiles) {
@@ -109,7 +117,7 @@ export default function BenchmarkPage() {
         setPhase("results");
       }
     },
-    []
+    [],
   );
 
   const handleReset = () => {
@@ -118,58 +126,36 @@ export default function BenchmarkPage() {
   };
 
   return (
-    <div className="relative min-h-screen scientific-bg">
-      <div className="ambient-glow pointer-events-none fixed inset-0 z-0" />
-      <div className="dot-grid pointer-events-none fixed inset-0 z-0" />
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <header className="mb-8">
-          <div className="mb-4 flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Home
-            </Link>
-            <span className="text-[var(--color-text-muted)]">/</span>
-            <Link
-              href="/calculate"
-              className="font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
-            >
-              Calculator
-            </Link>
-            <span className="text-[var(--color-text-muted)]">/</span>
-            <span className="font-mono text-xs text-[var(--color-text-secondary)]">Benchmark</span>
-          </div>
-
+      {/* Page sub-header */}
+      <div className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-accent-primary)]/10 border border-[var(--color-accent-primary)]/30">
-              <FlaskConical className="h-6 w-6 text-[var(--color-accent-primary)]" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent-primary)]">
+              <FlaskConical className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h1 className="font-sans text-2xl font-bold text-white sm:text-3xl">
-                Multi-Model <span className="text-[var(--color-accent-primary)] text-shadow-accent">Benchmark</span>
+              <h1 className="font-serif text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+                Benchmark
               </h1>
-              <p className="mt-0.5 font-mono text-xs text-[var(--color-text-muted)]">
-                Compare MACE models across ml-peg benchmark structures
+              <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
+                Compare MACE models across ml-peg reference structures.
               </p>
             </div>
           </div>
-
           {phase === "results" && (
-            <button
-              onClick={handleReset}
-              className="mt-4 rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] px-4 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
-            >
-              ← New Benchmark
-            </button>
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              New benchmark
+            </Button>
           )}
-        </header>
+        </div>
+      </div>
 
-        {/* Content */}
-        <main className="space-y-6">
+      {/* Content */}
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="space-y-6">
           {phase === "config" && (
             <BenchmarkConfig onRun={handleRun} isRunning={false} />
           )}
@@ -184,55 +170,50 @@ export default function BenchmarkPage() {
             />
           )}
 
-          {phase === "results" && result && (
-            <>
-              {result.status === "error" && result.results.length === 0 ? (
-                <div className="rounded-xl border border-[var(--color-error)]/30 bg-[var(--color-error)]/5 p-8 text-center">
-                  <p className="font-sans text-lg font-bold text-[var(--color-error)]">
-                    Benchmark Failed
-                  </p>
-                  <p className="mt-2 font-mono text-sm text-[var(--color-text-muted)]">
-                    All calculations returned errors. Check that the Python backend is running.
-                  </p>
-                  <button
-                    onClick={handleReset}
-                    className="mt-4 rounded bg-[var(--color-accent-primary)] px-5 py-2 font-sans text-sm text-white hover:bg-[var(--color-accent-primary)]/90"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : (
-                <BenchmarkDashboard result={result} />
-              )}
-            </>
-          )}
-        </main>
+          {phase === "results" &&
+            result &&
+            (result.status === "error" && result.results.length === 0 ? (
+              <div className="rounded-2xl border border-[var(--color-error)]/25 bg-[var(--color-error)]/5 p-8 text-center">
+                <p className="font-serif text-lg font-semibold text-[var(--color-error)]">
+                  Benchmark failed
+                </p>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  All calculations returned errors. Check that the Python
+                  backend is running.
+                </p>
+                <Button className="mt-4" onClick={handleReset}>
+                  Try again
+                </Button>
+              </div>
+            ) : (
+              <BenchmarkDashboard result={result} />
+            ))}
+        </div>
 
-        {/* Footer */}
-        <footer className="mt-12 border-t border-[var(--color-border-subtle)] pt-6 text-center">
-          <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
-            Inspired by{" "}
-            <a
-              href="https://ml-peg.stfc.ac.uk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--color-accent-primary)] hover:underline"
-            >
-              ml-peg
-            </a>{" "}
-            and{" "}
-            <a
-              href="https://mlip-testing.stfc.ac.uk:8050"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--color-accent-primary)] hover:underline"
-            >
-              STFC MLIP Testing
-            </a>{" "}
-            — MACE Benchmark Suite
-          </p>
-        </footer>
-      </div>
+        {/* Attribution */}
+        <p className="mt-12 border-t border-[var(--color-border-subtle)] pt-6 text-center font-mono text-[11px] text-[var(--color-text-muted)]">
+          Inspired by{" "}
+          <a
+            href="https://ml-peg.stfc.ac.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--color-accent-strong)] hover:underline"
+          >
+            ml-peg
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://mlip-testing.stfc.ac.uk:8050"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--color-accent-strong)] hover:underline"
+          >
+            STFC MLIP Testing
+          </a>
+        </p>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 }

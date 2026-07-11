@@ -14,6 +14,8 @@
 import { useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
+import { Button } from "@/components/ui/button";
+import { getSiteUrl } from "@/lib/site";
 import type { BenchmarkResult } from "@/types/mace";
 
 const pdfStyles = StyleSheet.create({
@@ -22,11 +24,11 @@ const pdfStyles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     borderBottomWidth: 2,
-    borderBottomColor: "#4A7BF7",
+    borderBottomColor: "#3A7A40",
     paddingBottom: 8,
   },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 12, marginBottom: 8, color: "#4A7BF7" },
+  sectionTitle: { fontSize: 12, marginBottom: 8, color: "#3A7A40" },
   row: { flexDirection: "row", marginBottom: 4 },
   label: { width: 160, color: "#666" },
   value: { flex: 1 },
@@ -39,7 +41,7 @@ const pdfStyles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 2,
-    borderBottomColor: "#4A7BF7",
+    borderBottomColor: "#3A7A40",
     paddingBottom: 5,
     marginBottom: 4,
     fontWeight: "bold",
@@ -189,7 +191,7 @@ function BenchmarkPDF({ result }: { result: BenchmarkResult }) {
         </View>
 
         <Text style={pdfStyles.footer}>
-          MACE Benchmark Suite — Generated from mace-lake.vercel.app
+          MACE Benchmark Suite — Generated from {getSiteUrl()}
         </Text>
       </Page>
     </Document>
@@ -272,26 +274,32 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
+      <Button
         onClick={downloadPDF}
         disabled={pdfLoading}
-        className="flex items-center gap-1.5 rounded border border-[var(--color-accent-primary)]/50 bg-[var(--color-accent-primary)]/10 px-3 py-1.5 font-mono text-xs text-[var(--color-accent-primary)] transition-colors hover:bg-[var(--color-accent-primary)]/15 disabled:opacity-50"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 border-[var(--color-accent-primary)]/50 bg-[var(--color-accent-primary)]/10 font-mono text-xs text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/15 hover:text-[var(--color-accent-primary)]"
       >
         <FileText className="h-3 w-3" />
         {pdfLoading ? "Generating..." : "Export PDF"}
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={downloadCSV}
-        className="flex items-center gap-1.5 rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
       >
         <Download className="h-3 w-3" /> Export CSV
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={downloadJSON}
-        className="flex items-center gap-1.5 rounded border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] px-3 py-1.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
       >
         <Download className="h-3 w-3" /> Export JSON
-      </button>
+      </Button>
     </div>
   );
 }

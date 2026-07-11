@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import type { SelectedModel } from "./benchmark-config";
 
 interface BenchmarkProgressProps {
@@ -38,7 +39,7 @@ export function BenchmarkProgress({
   }, [startTime]);
 
   return (
-    <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] p-6">
+    <Card className="gap-0 rounded-xl bg-[var(--color-bg-secondary)] p-6">
       {/* Overall progress */}
       <div className="mb-5">
         <div className="mb-2 flex items-center justify-between">
@@ -65,9 +66,9 @@ export function BenchmarkProgress({
       {/* Structure grid — all show as "running" */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {structureIds.map((sid) => (
-          <div
+          <Card
             key={sid}
-            className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] px-3 py-2"
+            className="gap-0 rounded-lg bg-[var(--color-bg-elevated)] px-3 py-2"
           >
             <p className="mb-1.5 truncate font-mono text-xs font-semibold text-[var(--color-text-secondary)]">
               {structureNames[sid] || sid}
@@ -85,10 +86,10 @@ export function BenchmarkProgress({
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 

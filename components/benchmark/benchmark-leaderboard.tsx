@@ -13,6 +13,15 @@
 
 import { useState, useMemo, Fragment } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, ChevronRight } from "lucide-react";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { DATA_COLORS } from "@/components/calculate/charts/chart-config";
 import type { BenchmarkResult, BenchmarkStructureResult } from "@/types/mace";
 
@@ -118,51 +127,51 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--color-border-subtle)]">
-      <table className="w-full font-mono text-xs">
-        <thead className="sticky top-0 z-10 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
-          <tr>
-            <th className="w-5 px-2 py-2.5" />
-            <th
-              className="cursor-pointer px-3 py-2.5 text-left hover:text-[var(--color-text-secondary)]"
+      <Table className="font-mono text-xs">
+        <TableHeader className="sticky top-0 z-10 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="h-auto w-5 px-2 py-2.5" />
+            <TableHead
+              className="h-auto cursor-pointer whitespace-normal px-3 py-2.5 text-left text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
               onClick={() => handleSort("structure")}
             >
               Structure <SortIcon k="structure" />
-            </th>
-            <th
-              className="cursor-pointer px-3 py-2.5 text-left hover:text-[var(--color-text-secondary)]"
+            </TableHead>
+            <TableHead
+              className="h-auto cursor-pointer whitespace-normal px-3 py-2.5 text-left text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
               onClick={() => handleSort("category")}
             >
               Category <SortIcon k="category" />
-            </th>
-            <th
-              className="cursor-pointer px-3 py-2.5 text-right hover:text-[var(--color-text-secondary)]"
+            </TableHead>
+            <TableHead
+              className="h-auto cursor-pointer px-3 py-2.5 text-right text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
               onClick={() => handleSort("atoms")}
             >
               Atoms <SortIcon k="atoms" />
-            </th>
-            <th className="px-3 py-2.5 text-right" style={{ color: DATA_COLORS.yellow }}>
+            </TableHead>
+            <TableHead className="h-auto px-3 py-2.5 text-right" style={{ color: DATA_COLORS.yellow }}>
               Ref (eV/atom)
-            </th>
+            </TableHead>
             {modelLabels.map((label, i) => (
-              <th
+              <TableHead
                 key={label}
-                className="cursor-pointer px-3 py-2.5 text-right hover:text-[var(--color-text-secondary)]"
+                className="h-auto cursor-pointer px-3 py-2.5 text-right text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                 onClick={() => handleSort(`model-${i}`)}
               >
                 <span style={{ color: MODEL_COLORS[i] }}>{label}</span>{" "}
                 <span className="text-[var(--color-text-muted)]">(E/atom)</span>{" "}
                 <SortIcon k={`model-${i}`} />
-              </th>
+              </TableHead>
             ))}
-            <th
-              className="cursor-pointer px-3 py-2.5 text-right hover:text-[var(--color-text-secondary)]"
+            <TableHead
+              className="h-auto cursor-pointer px-3 py-2.5 text-right text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
               onClick={() => handleSort("deltaE")}
             >
               ΔE<sub>max</sub> <SortIcon k="deltaE" />
-            </th>
-          </tr>
-        </thead>
-        <tbody className="text-[var(--color-text-secondary)]">
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="text-[var(--color-text-secondary)]">
           {sorted.map((row) => {
             const de = deltaE(row);
             const highDisagreement = de > 10;
@@ -171,58 +180,58 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
 
             return (
               <Fragment key={row.structureId}>
-                <tr
-                  className={`cursor-pointer border-t border-[var(--color-border-subtle)]/60 transition-colors hover:bg-[var(--color-bg-elevated)] ${
+                <TableRow
+                  className={`cursor-pointer border-t border-b-0 border-[var(--color-border-subtle)]/60 transition-colors hover:bg-[var(--color-bg-elevated)] ${
                     highDisagreement ? "bg-[var(--color-error)]/3" : ""
                   }`}
                   onClick={() =>
                     setExpandedRow(isExpanded ? null : row.structureId)
                   }
                 >
-                  <td className="px-2 py-2 text-center text-[var(--color-text-muted)]">
+                  <TableCell className="text-center text-[var(--color-text-muted)]">
                     <ChevronRight
                       className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                     />
-                  </td>
-                  <td className="px-3 py-2 font-semibold text-[var(--color-text-primary)]">
+                  </TableCell>
+                  <TableCell className="whitespace-normal font-semibold text-[var(--color-text-primary)]">
                     {row.structureName}
-                  </td>
-                  <td className="px-3 py-2 text-[var(--color-text-muted)]">
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-[var(--color-text-muted)]">
                     {formatCategoryName(row.category)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{row.atomCount}</td>
-                  <td
-                    className="px-3 py-2 text-right tabular-nums"
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{row.atomCount}</TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
                     style={{ color: DATA_COLORS.yellow }}
                     title={row.reference?.cohesiveEnergy?.source ?? "No reference data"}
                   >
                     {row.reference?.cohesiveEnergy
                       ? `${row.reference.cohesiveEnergy.value.toFixed(2)}`
                       : "—"}
-                  </td>
+                  </TableCell>
                   {row.models.map((m, mi) => {
                     if (m.status === "error") {
                       return (
-                        <td key={mi} className="px-3 py-2 text-right">
+                        <TableCell key={mi} className="text-right">
                           <span className="inline-flex items-center gap-1 text-[var(--color-error)]" title={m.error}>
                             <AlertTriangle className="h-3 w-3" /> Error
                           </span>
-                        </td>
+                        </TableCell>
                       );
                     }
                     const isLowest = m.energyPerAtom != null && lowest != null && m.energyPerAtom === lowest;
                     return (
-                      <td
+                      <TableCell
                         key={mi}
-                        className={`px-3 py-2 text-right tabular-nums ${isLowest ? "bg-[var(--color-success)]/8 text-[var(--color-success)]" : ""}`}
+                        className={`text-right tabular-nums ${isLowest ? "bg-[var(--color-success)]/8 text-[var(--color-success)]" : ""}`}
                         title={m.energy?.toFixed(8) ?? ""}
                       >
                         {m.energyPerAtom?.toFixed(4) ?? "N/A"} eV
-                      </td>
+                      </TableCell>
                     );
                   })}
-                  <td
-                    className={`px-3 py-2 text-right tabular-nums font-bold ${
+                  <TableCell
+                    className={`text-right tabular-nums font-bold ${
                       highDisagreement
                         ? "text-[var(--color-error)]"
                         : de > 5
@@ -231,13 +240,13 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                     }`}
                   >
                     {de.toFixed(1)} meV
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 {isExpanded && (
-                  <tr>
-                    <td
+                  <TableRow className="border-b-0 hover:bg-transparent">
+                    <TableCell
                       colSpan={5 + modelLabels.length + 1}
-                      className="border-t border-[var(--color-border-subtle)]/30 bg-[var(--color-bg-primary)] px-4 py-3"
+                      className="whitespace-normal border-t border-[var(--color-border-subtle)]/30 bg-[var(--color-bg-primary)] px-4 py-3"
                     >
                       {row.reference?.cohesiveEnergy && (
                         <p className="mb-2 font-mono text-[10px] text-[var(--color-data-yellow)]">
@@ -250,38 +259,38 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
                         </p>
                       )}
                       <ExpandedForceDetails row={row} modelColors={MODEL_COLORS} />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </Fragment>
             );
           })}
-        </tbody>
+        </TableBody>
 
         {/* Aggregate footer */}
-        <tfoot className="border-t-2 border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]">
-          <tr>
-            <td className="px-2 py-2.5" />
-            <td className="px-3 py-2.5 font-sans text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+        <TableFooter className="border-t-2 border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]">
+          <TableRow className="hover:bg-transparent">
+            <TableCell />
+            <TableCell className="font-sans text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
               Aggregate
-            </td>
-            <td />
-            <td />
-            <td />
+            </TableCell>
+            <TableCell />
+            <TableCell />
+            <TableCell />
             {aggregates.map((agg, i) => (
-              <td key={i} className="px-3 py-2.5 text-right">
+              <TableCell key={i} className="text-right">
                 <div className="font-mono text-xs tabular-nums text-[var(--color-text-secondary)]">
                   {agg.avgE != null ? `Avg: ${agg.avgE.toFixed(4)} eV` : "N/A"}
                 </div>
                 <div className="font-mono text-[10px] text-[var(--color-text-muted)]">
                   Time: {agg.totalTime.toFixed(1)}s
                 </div>
-              </td>
+              </TableCell>
             ))}
-            <td />
-          </tr>
-        </tfoot>
-      </table>
+            <TableCell />
+          </TableRow>
+        </TableFooter>
+      </Table>
     </div>
   );
 }
@@ -312,41 +321,41 @@ function ExpandedForceDetails({
         Per-Atom Force Magnitudes (eV/Å)
       </p>
       <div className="max-h-48 overflow-auto rounded border border-[var(--color-border-subtle)]">
-        <table className="w-full font-mono text-[11px]">
-          <thead className="sticky top-0 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
-            <tr>
-              <th className="px-2 py-1 text-left">#</th>
-              <th className="px-2 py-1 text-left">Elem</th>
+        <Table className="font-mono text-[11px]">
+          <TableHeader className="sticky top-0 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-auto px-2 py-1 text-left text-[var(--color-text-muted)]">#</TableHead>
+              <TableHead className="h-auto px-2 py-1 text-left text-[var(--color-text-muted)]">Elem</TableHead>
               {row.models.map((m, i) => (
-                <th key={i} className="px-2 py-1 text-right" style={{ color: modelColors[i] }}>
+                <TableHead key={i} className="h-auto px-2 py-1 text-right" style={{ color: modelColors[i] }}>
                   |F| {m.modelLabel.split(" ")[0]}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody className="text-[var(--color-text-secondary)]">
+            </TableRow>
+          </TableHeader>
+          <TableBody className="text-[var(--color-text-secondary)]">
             {Array.from({ length: maxAtoms }).map((_, ai) => {
               const sym = row.models.find((m) => m.symbols?.[ai])?.symbols?.[ai] ?? "—";
               return (
-              <tr key={ai} className="border-t border-[var(--color-border-subtle)]/40">
-                <td className="px-2 py-0.5 text-[var(--color-text-muted)]">{ai + 1}</td>
-                <td className="px-2 py-0.5 font-semibold">{sym}</td>
+              <TableRow key={ai} className="border-t border-b-0 border-[var(--color-border-subtle)]/40">
+                <TableCell className="px-2 py-0.5 text-[var(--color-text-muted)]">{ai + 1}</TableCell>
+                <TableCell className="px-2 py-0.5 font-semibold">{sym}</TableCell>
                 {row.models.map((m, mi) => {
                   const f = m.forces?.[ai];
                   const mag = f
                     ? Math.sqrt(f[0] ** 2 + f[1] ** 2 + f[2] ** 2)
                     : null;
                   return (
-                    <td key={mi} className="px-2 py-0.5 text-right tabular-nums">
+                    <TableCell key={mi} className="px-2 py-0.5 text-right tabular-nums">
                       {mag != null ? mag.toFixed(4) : "—"}
-                    </td>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       {maxAtoms < Math.max(...row.models.map((m) => m.forces?.length ?? 0)) && (
         <p className="mt-1 font-mono text-[10px] text-[var(--color-text-muted)]">
