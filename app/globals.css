@@ -1,13 +1,19 @@
 /**
- * MACE Web Interface — Global Styles & Design System
+ * SimpleAtom — Global Styles & Design System
  *
- * Design: Premium scientific computing aesthetic — deep navy/indigo palette
- * with blue accent. Inspired by Schrodinger.com and MLIP leaders.
+ * Design: Warm, humanist, low-contrast scientific interface.
+ * A calm off-white canvas with a clay/terracotta accent, generous
+ * whitespace, and a serif display face — built to feel human, not
+ * "AI-generated." Optimised for readability of scientific data.
  *
- * Color palette:
- *   Background tiers:  #0B0E17 → #111827 → #1A2035 → #1F2A42
- *   Accent:            #4A7BF7 (primary blue), #00B4D8 (secondary teal)
- *   Data viz:          Paul Tol colorblind-safe palette (7 colors)
+ * Palette:
+ *   Canvas tiers:  #FBFAF7 (page) → #F3F0E8 (muted) → #FFFFFF (cards)
+ *   Ink:           #262521 (primary) → #5C574E (secondary) → #8A8478 (muted)
+ *   Accent:        #C15F3C (clay brand), #A84B2A (interactive/AA-safe)
+ *   Data viz:      Paul Tol colorblind-safe palette (7 colors, unchanged)
+ *
+ * A full dark theme is preserved under `.dark` (the previous navy identity)
+ * for a possible future toggle; the app renders light by default.
  */
 
 @import "tailwindcss";
@@ -18,7 +24,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -59,18 +66,90 @@
 }
 
 html {
-  font-size: 17px;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MACE Scientific Palette — Runtime CSS Custom Properties
-   These are plain CSS vars that var() can resolve in any context.
+   SimpleAtom Palette — Runtime CSS Custom Properties
+   Plain CSS vars that var() can resolve in any context (charts, inline styles).
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* ── MACE palette (always dark — this IS a dark-only scientific app) ── */
+  /* ── Canvas (warm off-white tiers) ── */
+  --color-bg-primary: #FBFAF7;
+  --color-bg-secondary: #F3F0E8;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-surface: #F7F4EE;
+
+  /* ── Borders (warm neutral) ── */
+  --color-border-subtle: #EAE6DD;
+  --color-border-emphasis: #D8D2C6;
+
+  /* ── Ink (warm near-black → muted) ── */
+  --color-text-primary: #262521;
+  --color-text-secondary: #5C574E;
+  --color-text-muted: #8A8478;
+
+  /* ── Accent (clay / terracotta) ── */
+  --color-accent-primary: #C15F3C;   /* brand clay — icons, tints, borders */
+  --color-accent-strong: #A84B2A;    /* interactive — links, button fills (AA on white) */
+  --color-accent-hover: #8F3F23;     /* hover / active */
+  --color-accent-soft: #F4E7DF;      /* soft tint background */
+
+  /* ── Status (tuned for a light canvas) ── */
+  --color-success: #3F8F5B;
+  --color-warning: #B07A1E;
+  --color-error: #C0392B;
+
+  /* ── Paul Tol colorblind-safe data visualization palette (unchanged) ── */
+  --color-data-blue: #4477AA;
+  --color-data-red: #EE6677;
+  --color-data-green: #228833;
+  --color-data-yellow: #CCBB44;
+  --color-data-cyan: #66CCEE;
+  --color-data-purple: #AA3377;
+  --color-data-gray: #BBBBBB;
+
+  /* ── shadcn/ui tokens (light) ── */
+  --background: #FBFAF7;
+  --foreground: #262521;
+  --card: #FFFFFF;
+  --card-foreground: #262521;
+  --popover: #FFFFFF;
+  --popover-foreground: #262521;
+  --primary: #A84B2A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F0E8;
+  --secondary-foreground: #262521;
+  --muted: #F3F0E8;
+  --muted-foreground: #5C574E;
+  --accent: #F4E7DF;
+  --accent-foreground: #8F3F23;
+  --destructive: #C0392B;
+  --border: #EAE6DD;
+  --input: #E4DFD4;
+  --ring: #C15F3C;
+  --chart-1: #4477AA;
+  --chart-2: #228833;
+  --chart-3: #CCBB44;
+  --chart-4: #EE6677;
+  --chart-5: #AA3377;
+  --sidebar: #F7F4EE;
+  --sidebar-foreground: #262521;
+  --sidebar-primary: #A84B2A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F4E7DF;
+  --sidebar-accent-foreground: #8F3F23;
+  --sidebar-border: #EAE6DD;
+  --sidebar-ring: #C15F3C;
+}
+
+/* ── Preserved dark identity (previous navy theme) — opt-in via .dark ── */
+.dark {
   --color-bg-primary: #0B0E17;
   --color-bg-secondary: #111827;
   --color-bg-elevated: #1A2035;
@@ -80,89 +159,40 @@ html {
   --color-text-primary: #E8ECF4;
   --color-text-secondary: #9BA4B8;
   --color-text-muted: #5D6A82;
-  --color-accent-primary: #4A7BF7;
-  --color-accent-secondary: #00B4D8;
-  --color-accent-glow: #6C8EFF;
+  --color-accent-primary: #C97A5A;
+  --color-accent-strong: #D98C6A;
+  --color-accent-hover: #E19E80;
+  --color-accent-soft: #2A1E17;
   --color-success: #34D399;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
 
-  /* ── Paul Tol colorblind-safe data visualization palette ── */
-  --color-data-blue: #4477AA;
-  --color-data-red: #EE6677;
-  --color-data-green: #228833;
-  --color-data-yellow: #CCBB44;
-  --color-data-cyan: #66CCEE;
-  --color-data-purple: #AA3377;
-  --color-data-gray: #BBBBBB;
-
-  /* ── shadcn/ui light mode (unused — app is dark-only, but required) ── */
   --background: #0B0E17;
   --foreground: #E8ECF4;
   --card: #111827;
   --card-foreground: #E8ECF4;
   --popover: #1A2035;
   --popover-foreground: #E8ECF4;
-  --primary: #4A7BF7;
-  --primary-foreground: #ffffff;
+  --primary: #C97A5A;
+  --primary-foreground: #0B0E17;
   --secondary: #1A2035;
   --secondary-foreground: #E8ECF4;
   --muted: #1A2035;
-  --muted-foreground: #5D6A82;
+  --muted-foreground: #9BA4B8;
   --accent: #1F2A42;
   --accent-foreground: #E8ECF4;
   --destructive: #EF4444;
   --border: #2A3650;
   --input: #2A3650;
-  --ring: #4A7BF7;
-  --chart-1: #4477AA;
-  --chart-2: #228833;
-  --chart-3: #CCBB44;
-  --chart-4: #EE6677;
-  --chart-5: #AA3377;
+  --ring: #C97A5A;
   --sidebar: #111827;
   --sidebar-foreground: #E8ECF4;
-  --sidebar-primary: #4A7BF7;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary: #C97A5A;
+  --sidebar-primary-foreground: #0B0E17;
   --sidebar-accent: #1A2035;
   --sidebar-accent-foreground: #E8ECF4;
   --sidebar-border: #2A3650;
-  --sidebar-ring: #4A7BF7;
-}
-
-/* Dark mode uses the same values (app is always dark) */
-.dark {
-  --background: #0B0E17;
-  --foreground: #E8ECF4;
-  --card: #111827;
-  --card-foreground: #E8ECF4;
-  --popover: #1A2035;
-  --popover-foreground: #E8ECF4;
-  --primary: #4A7BF7;
-  --primary-foreground: #ffffff;
-  --secondary: #1A2035;
-  --secondary-foreground: #E8ECF4;
-  --muted: #1A2035;
-  --muted-foreground: #5D6A82;
-  --accent: #1F2A42;
-  --accent-foreground: #E8ECF4;
-  --destructive: #EF4444;
-  --border: #2A3650;
-  --input: #2A3650;
-  --ring: #4A7BF7;
-  --chart-1: #4477AA;
-  --chart-2: #228833;
-  --chart-3: #CCBB44;
-  --chart-4: #EE6677;
-  --chart-5: #AA3377;
-  --sidebar: #111827;
-  --sidebar-foreground: #E8ECF4;
-  --sidebar-primary: #4A7BF7;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1A2035;
-  --sidebar-accent-foreground: #E8ECF4;
-  --sidebar-border: #2A3650;
-  --sidebar-ring: #4A7BF7;
+  --sidebar-ring: #C97A5A;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -176,82 +206,46 @@ html {
   body {
     @apply bg-background text-foreground;
   }
+  /* Serif display face for headings that opt in via `font-serif`. */
+  h1, h2, h3 {
+    letter-spacing: -0.01em;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Scientific UI — Background Treatments
+   Surface Treatments (light, warm, low-contrast)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.scientific-bg {
-  background: linear-gradient(180deg, #0B0E17 0%, #0F1423 50%, #0B0E17 100%);
+/* Subtle warm page gradient — replaces the old navy `.scientific-bg`. */
+.warm-bg {
+  background:
+    radial-gradient(60rem 40rem at 78% -10%, rgba(193, 95, 60, 0.05), transparent 60%),
+    linear-gradient(180deg, #FDFCFA 0%, #FBFAF7 40%, #F5F1E9 100%);
 }
 
+/* Faint dot grid in warm neutral (very low opacity). */
 .dot-grid {
-  background-image: radial-gradient(circle, #2A3650 0.75px, transparent 0.75px);
-  background-size: 24px 24px;
-  opacity: 0.15;
+  background-image: radial-gradient(circle, #C9C3B6 0.7px, transparent 0.7px);
+  background-size: 26px 26px;
+  opacity: 0.35;
 }
 
-.ambient-glow {
-  background: radial-gradient(
-    ellipse at 85% 15%,
-    rgba(74, 123, 247, 0.06) 0%,
-    rgba(0, 180, 216, 0.03) 40%,
-    transparent 70%
-  );
+/* Hairline card that lifts gently on hover. */
+.result-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.result-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(38, 37, 33, 0.06);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Scientific UI — Text & Glow Effects
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.text-shadow-accent {
-  text-shadow:
-    0 0 10px rgba(74, 123, 247, 0.3),
-    0 0 20px rgba(74, 123, 247, 0.2),
-    0 0 40px rgba(74, 123, 247, 0.1);
-}
-
-.text-shadow-accent-strong {
-  text-shadow:
-    0 0 15px rgba(74, 123, 247, 0.6),
-    0 0 30px rgba(74, 123, 247, 0.4),
-    0 0 60px rgba(74, 123, 247, 0.2);
-}
-
-/* ── SimpleAtom hero title ── */
-.simple-atom-title {
-  display: inline-flex;
-  align-items: baseline;
-  letter-spacing: -0.03em;
-}
-
-.simple-atom-simple {
-  color: #E8ECF4;
-  font-weight: 300;
-  text-shadow:
-    0 0 20px rgba(232, 236, 244, 0.15),
-    0 0 40px rgba(232, 236, 244, 0.05);
-}
-
-.simple-atom-atom {
-  color: #4A7BF7;
-  font-weight: 800;
-  text-shadow:
-    0 0 10px rgba(74, 123, 247, 0.6),
-    0 0 25px rgba(74, 123, 247, 0.4),
-    0 0 50px rgba(74, 123, 247, 0.25),
-    0 0 80px rgba(74, 123, 247, 0.15);
-}
-
-.glow-border-accent {
-  box-shadow:
-    0 0 20px rgba(74, 123, 247, 0.2),
-    inset 0 0 20px rgba(74, 123, 247, 0.05);
+/* Soft elevation for elevated surfaces. */
+.elevate {
+  box-shadow: 0 1px 2px rgba(38, 37, 33, 0.04), 0 8px 24px rgba(38, 37, 33, 0.04);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Scientific UI — Animations
+   Animations (theme-neutral)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes shimmer {
@@ -264,11 +258,10 @@ html {
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out both;
+  animation: fadeInUp 0.5s ease-out both;
 }
-
 .animate-stagger {
-  animation: fadeInUp 0.35s ease-out both;
+  animation: fadeInUp 0.45s ease-out both;
 }
 
 @keyframes progressFill {
@@ -278,24 +271,16 @@ html {
   animation: progressFill 0.6s ease-out;
 }
 
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 4px currentColor; }
-  50% { box-shadow: 0 0 12px currentColor; }
-}
-.animate-glow-pulse {
-  animation: glowPulse 2s ease-in-out infinite;
-}
-
-.result-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.result-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-stagger,
+  .animate-progress-fill {
+    animation: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Scientific UI — Form Elements
+   Form Elements
    ═══════════════════════════════════════════════════════════════════════════ */
 
 input[type="number"].no-spinner::-webkit-outer-spin-button,

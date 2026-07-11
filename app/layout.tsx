@@ -1,23 +1,58 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Fraunces, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/* Humanist UI sans — clear, warm, excellent for dense scientific data. */
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
+/* Serif display face — used sparingly for headings to add warmth. */
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+/* Monospace — reserved for numeric readouts, formulae, and code. */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "SimpleAtom | Machine Learning Interatomic Potentials",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://mace-lake.vercel.app",
+  ),
+  title: {
+    default: "SimpleAtom — Quantum-accurate chemistry in your browser",
+    template: "%s · SimpleAtom",
+  },
   description:
-    "MACE (Many-body Atomic Cluster Expansion) — equivariant message-passing neural networks for fast, accurate interatomic potentials. Web-based calculator with 3D visualization, model benchmarking, and scientific analysis.",
+    "SimpleAtom is a free, browser-based interface to MACE machine-learning interatomic potentials. Run single-point energies, geometry optimizations, and molecular dynamics with foundation models (MACE-MP-0, MACE-OFF) — no installation, no command line, no HPC account.",
+  keywords: [
+    "MACE",
+    "machine learning interatomic potentials",
+    "computational chemistry",
+    "molecular dynamics",
+    "geometry optimization",
+    "MACE-MP-0",
+    "MACE-OFF",
+    "foundation models",
+    "ASE",
+  ],
+  authors: [{ name: "Zicheng Zhao", url: "https://github.com/Jamessfks/mace" }],
+  openGraph: {
+    title: "SimpleAtom — Quantum-accurate chemistry in your browser",
+    description:
+      "A free, browser-based interface to MACE machine-learning interatomic potentials. No installation, no command line, no HPC account.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -26,10 +61,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[var(--color-bg-primary)] font-sans antialiased text-[var(--color-text-primary)]`}
+        className={`${inter.variable} ${fraunces.variable} ${geistMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
       >
         {children}
         <Analytics />
