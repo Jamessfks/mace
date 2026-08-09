@@ -256,6 +256,14 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           <span className="font-sans text-sm font-bold text-[var(--color-success)]">
             Calculation Complete
           </span>
+          {/* Name the structure the numbers came from — this banner is also
+              the header of a shared result, where the file is not otherwise
+              visible. */}
+          {filename && (
+            <span className="font-mono text-xs text-muted-foreground">
+              {filename}
+            </span>
+          )}
           {result.timeTaken != null && (
             <span className="font-mono text-xs text-muted-foreground">
               {result.timeTaken.toFixed(1)} s
@@ -292,6 +300,9 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           </Button>
         </div>
       </div>
+
+      {/* ═══ Backend warnings ═══ */}
+      <ResultWarnings warnings={result.warnings} />
 
       {/* ═══ Tabs ═══ */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
@@ -447,22 +458,9 @@ function SummaryTab({
     });
   }
 
-  // MD Trajectory table rows.
-  const trajEnergies = result.trajectory?.energies ?? [];
-  const trajRows: { label: string; value: React.ReactNode }[] =
-    trajEnergies.length > 0
-      ? [
-          { label: "Steps", value: `${trajEnergies.length}` },
-          {
-            label: "Energy range",
-            value: `${Math.min(...trajEnergies).toFixed(EV_DECIMALS)} → ${Math.max(...trajEnergies).toFixed(EV_DECIMALS)} eV`,
-          },
-          {
-            label: "ΔE",
-            value: `${(Math.max(...trajEnergies) - Math.min(...trajEnergies)).toFixed(EV_DECIMALS)} eV`,
-          },
-        ]
-      : [];
+  // Trajectory table rows — energy budget, honestly labelled.
+  const isMD = result.params?.calculationType === "molecular-dynamics";
+  const trajRows = buildTrajectoryRows(result, isMD);
 
   return (
     <div className="space-y-4">
@@ -480,18 +478,6 @@ function SummaryTab({
             </p>
           </CardContent>
         </Card>
-      )}
-
-      {/* D3 dispersion + MACE-OFF double-counts dispersion — flag it (CLAUDE.md pitfall #4) */}
-      {result.params?.dispersion && result.params?.modelType === "MACE-OFF" && (
-        <div className="flex items-start gap-2 rounded-lg border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" strokeWidth={1.75} />
-          <p className="text-xs leading-relaxed text-[var(--color-warning)]">
-            <span className="font-bold">D3 dispersion enabled with MACE-OFF.</span>{" "}
-            MACE-OFF is trained on ωB97M-D3BJ, which already includes D3 dispersion —
-            enabling it again here likely double-counts the dispersion contribution.
-          </p>
-        </div>
       )}
 
       {/* Energy (headline, model-aware) + Properties (dense key/value table) */}
@@ -549,12 +535,12 @@ function SummaryTab({
         </Card>
       )}
 
-      {/* MD trajectory summary */}
+      {/* Trajectory summary — MD energy budget, or optimization progress */}
       {trajRows.length > 0 && (
         <Card className="gap-2 border-l-4 border-l-[var(--color-data-yellow)] py-4">
           <CardHeader className="px-4">
             <CardTitle className="font-serif text-sm font-semibold text-foreground">
-              MD Trajectory
+              {isMD ? "MD Trajectory" : "Optimization Trajectory"}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
@@ -715,6 +701,17 @@ function EnergyTab({
   hasRefEnergy: boolean;
   isMD: boolean;
 }) {
+  const traj = result.trajectory;
+  // `energies` is the potential energy and always has been; `potentialEnergies`
+  // is its explicit alias on newer results. Prefer the explicit key, fall back
+  // to `energies` so results shared before the key existed still plot.
+  const potentialEnergies = traj?.potentialEnergies ?? traj?.energies ?? [];
+  const totalEnergies = traj?.totalEnergies ?? [];
+  const trajSteps =
+    traj?.step && traj.step.length > 0
+      ? traj.step
+      : potentialEnergies.map((_, i) => i);
+
   return (
     <div className="space-y-6">
       {/* Energy parity (if reference) */}
@@ -737,41 +734,77 @@ function EnergyTab({
         </Card>
       )}
 
-      {/* Energy convergence for MD or geometry optimization */}
-      {result.trajectory && result.trajectory.energies.length > 1 && (
+      {/*
+        Total energy vs. step — the quantity NVE conserves, and the only one
+        the docs' conservation claim can be checked against. Only rendered
+        when the backend supplied `totalEnergies`; older shared results
+        (MACE Link) carry potential energy alone and fall through to the
+        chart below, correctly labelled.
+      */}
+      {isMD && totalEnergies.length > 1 && (
         <Card className="gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              Energy vs. Step
+              Total Energy vs. Step
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Potential + kinetic energy. This is the conserved quantity in NVE;
+              under NVT the Langevin thermostat exchanges energy with the bath, so
+              it is expected to drift.
+            </p>
           </CardHeader>
           <CardContent className="px-4">
             <EnergyConvergence
-              energies={result.trajectory.energies}
-              steps={
-                result.trajectory.step.length > 0
-                  ? result.trajectory.step
-                  : result.trajectory.energies.map((_, i) => i)
+              energies={totalEnergies}
+              steps={trajSteps}
+              title="MD Total Energy (potential + kinetic) vs. Step"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Potential energy vs. step — MD and geometry optimization alike */}
+      {potentialEnergies.length > 1 && (
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="font-serif text-base font-semibold text-foreground">
+              Potential Energy vs. Step
+            </CardTitle>
+            {isMD && (
+              <p className="text-xs text-muted-foreground">
+                Potential energy alone is not conserved under any ensemble — it
+                trades against kinetic energy every step. Judge NVE conservation on
+                the total-energy chart{totalEnergies.length > 1 ? " above" : ""}.
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="px-4">
+            <EnergyConvergence
+              energies={potentialEnergies}
+              steps={trajSteps}
+              title={
+                isMD
+                  ? "MD Potential Energy vs. Step"
+                  : "Optimization Potential Energy vs. Step"
               }
-              title={isMD ? "MD Energy vs. Step" : "Optimization Energy"}
             />
           </CardContent>
         </Card>
       )}
 
       {/* Energy distribution for MD */}
-      {isMD && result.trajectory && result.trajectory.energies.length > 2 && (
+      {isMD && potentialEnergies.length > 2 && (
         <Card className="gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              Energy Distribution
+              Potential Energy Distribution
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
             <ErrorHistogram
-              errors={result.trajectory.energies}
-              xLabel="Energy (eV)"
-              title="MD Energy Distribution"
+              errors={potentialEnergies}
+              xLabel="Potential Energy (eV)"
+              title="MD Potential Energy Distribution"
               color={DATA_COLORS.blue}
             />
           </CardContent>
@@ -903,6 +936,60 @@ const ACCENT_MAP: Record<string, { border: string; icon: string }> = {
   "data-purple": { border: "border-l-[var(--color-data-purple)]", icon: "text-[var(--color-data-purple)]" },
   "data-yellow": { border: "border-l-[var(--color-data-yellow)]", icon: "text-[var(--color-data-yellow)]" },
 };
+
+/**
+ * Backend warnings, rendered verbatim.
+ *
+ * These come from `result.warnings` — the backend is the only party that
+ * knows what actually ran, so it is the only party that can say what was
+ * requested but not applied. It reports D3 that was dropped (MACE-OFF
+ * already includes dispersion; upstream's `mace_off()` has no such
+ * parameter), a precision below upstream's recommendation, an optimization
+ * that hit its step ceiling, and any dtype conversion MACE performed on the
+ * checkpoint.
+ *
+ * Deliberately NOT a set of re-derived conditions in the UI. The previous
+ * D3 banner tested `params.dispersion && modelType === "MACE-OFF"`, which
+ * stopped rendering the moment the backend started reporting `dispersion`
+ * honestly — for MACE-OFF it is now always false, because no D3 calculator
+ * is ever built. A UI copy of backend logic goes stale silently; displaying
+ * what the backend said cannot.
+ *
+ * Absent on results produced before this field existed, and on runs with
+ * nothing to report — both render nothing.
+ */
+function ResultWarnings({ warnings }: { warnings?: string[] }) {
+  if (!warnings || warnings.length === 0) return null;
+
+  return (
+    <div
+      role="alert"
+      className="rounded-lg border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-4 py-3"
+    >
+      <div className="flex items-center gap-2">
+        <AlertTriangle
+          className="h-4 w-4 shrink-0 text-[var(--color-warning)]"
+          strokeWidth={1.75}
+        />
+        <h3 className="font-sans text-sm font-bold text-[var(--color-warning)]">
+          {warnings.length === 1
+            ? "1 warning from the calculation"
+            : `${warnings.length} warnings from the calculation`}
+        </h3>
+      </div>
+      <ul className="mt-2 space-y-1.5 pl-6">
+        {warnings.map((warning, i) => (
+          <li
+            key={i}
+            className="list-disc text-xs leading-relaxed text-[var(--color-warning)]"
+          >
+            {warning}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function MetricCard({
   label,
@@ -1071,13 +1158,154 @@ function formatParams(params: Partial<CalculationParams>): string {
   if (params.modelType) parts.push(params.modelType);
   if (params.modelSize) parts.push(`size: ${params.modelSize}`);
   if (params.calculationType) parts.push(params.calculationType);
+  // Precision and device come back resolved: the dtype read off the loaded
+  // model (which may differ from the request — a custom checkpoint keeps its
+  // own, and MACE converts on a mismatch) and the device after the CUDA→CPU
+  // fallback. Showing them is the point of the backend echoing them.
+  if (params.precision) parts.push(params.precision);
+  if (params.device) parts.push(params.device);
   if (params.temperature != null) parts.push(`${params.temperature} K`);
   if (params.pressure != null) parts.push(`${params.pressure} GPa`);
   if (params.timeStep != null) parts.push(`Δt ${params.timeStep} fs`);
   if (params.friction != null) parts.push(`friction ${params.friction} /fs`);
   if (params.mdSteps != null) parts.push(`${params.mdSteps} MD steps`);
   if (params.mdEnsemble) parts.push(params.mdEnsemble);
+  if (params.seed != null) parts.push(`seed ${params.seed}`);
   if (params.forceThreshold != null) parts.push(`fmax ${params.forceThreshold} eV/Å`);
+  if (params.maxOptSteps != null) parts.push(`max ${params.maxOptSteps} steps`);
   if (params.dispersion) parts.push("D3 dispersion");
   return parts.length ? parts.join(" · ") : "Default parameters";
+}
+
+/** Mean of a non-empty numeric array. */
+function meanOf(values: number[]): number {
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+/**
+ * Min/max by reduction, not by `Math.min(...values)`. MD steps go up to
+ * 100 000 in the UI, and spreading an array that large into a call throws
+ * a RangeError.
+ */
+function minOf(values: number[]): number {
+  return values.reduce((m, v) => (v < m ? v : m), Infinity);
+}
+
+function maxOf(values: number[]): number {
+  return values.reduce((m, v) => (v > m ? v : m), -Infinity);
+}
+
+/**
+ * Energy differences are shown in meV once they are small enough for eV to
+ * round them into invisibility — an NVE drift of 2.7 meV reads as "0.0027 eV"
+ * otherwise, which is exactly the number a reader needs to see clearly.
+ */
+function formatEnergyDelta(deltaEv: number, signed = false): string {
+  const sign = signed && deltaEv >= 0 ? "+" : "";
+  return Math.abs(deltaEv) < 1
+    ? `${sign}${(deltaEv * 1000).toFixed(MEV_DECIMALS)} meV`
+    : `${sign}${deltaEv.toFixed(EV_DECIMALS)} eV`;
+}
+
+/**
+ * Trajectory summary rows.
+ *
+ * Potential and total energy are reported as separate quantities because
+ * they are separate quantities: `trajectory.energies` is, and always was,
+ * the potential energy. Only `totalEnergies` (potential + kinetic) is the
+ * conserved quantity in NVE, and it only exists on results produced by a
+ * backend that records it — older shared results degrade to the potential
+ * energy rows alone rather than to a mislabelled "total".
+ */
+function buildTrajectoryRows(
+  result: CalculationResult,
+  isMD: boolean,
+): { label: string; value: React.ReactNode }[] {
+  const traj = result.trajectory;
+  if (!traj) return [];
+
+  const potential = traj.potentialEnergies ?? traj.energies ?? [];
+  if (potential.length === 0) return [];
+
+  const total = traj.totalEnergies ?? [];
+  const kinetic = traj.kineticEnergies ?? [];
+  const temperatures = traj.temperatures ?? [];
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: isMD ? "Frames" : "Steps", value: `${potential.length}` },
+  ];
+
+  if (total.length > 1) {
+    const first = total[0];
+    const last = total[total.length - 1];
+    rows.push({
+      label: "Total energy (potential + kinetic)",
+      value: `${first.toFixed(EV_DECIMALS)} → ${last.toFixed(EV_DECIMALS)} eV`,
+    });
+    rows.push({
+      label: "Total energy drift",
+      value: (
+        <>
+          {formatEnergyDelta(last - first, true)}
+          <span className="text-muted-foreground">
+            {" "}
+            (spread {formatEnergyDelta(maxOf(total) - minOf(total))})
+          </span>
+        </>
+      ),
+    });
+  }
+
+  const pMin = minOf(potential);
+  const pMax = maxOf(potential);
+  rows.push({
+    label: isMD ? "Potential energy range" : "Energy range",
+    value: `${pMin.toFixed(EV_DECIMALS)} → ${pMax.toFixed(EV_DECIMALS)} eV`,
+  });
+  rows.push({
+    label: isMD ? "Potential energy swing" : "ΔE",
+    value: formatEnergyDelta(pMax - pMin),
+  });
+
+  if (kinetic.length > 0) {
+    rows.push({
+      label: "Kinetic energy (mean)",
+      value: `${meanOf(kinetic).toFixed(EV_DECIMALS)} eV`,
+    });
+  }
+
+  if (temperatures.length > 0) {
+    const target = result.params?.temperature;
+    rows.push({
+      label: "Temperature (mean)",
+      value: (
+        <>
+          {meanOf(temperatures).toFixed(1)} K
+          <span className="text-muted-foreground">
+            {" "}
+            ({minOf(temperatures).toFixed(0)}–
+            {maxOf(temperatures).toFixed(0)} K
+            {target != null ? `, target ${target} K` : ""})
+          </span>
+        </>
+      ),
+    });
+  }
+
+  if (!isMD && result.converged != null) {
+    rows.push({
+      label: "Converged",
+      value: result.converged
+        ? "Yes — reached fmax"
+        : "No — stopped at the step limit",
+    });
+    if (result.params?.finalFmax != null) {
+      rows.push({
+        label: "Final max force",
+        value: `${result.params.finalFmax.toFixed(FORCE_DECIMALS)} eV/Å`,
+      });
+    }
+  }
+
+  return rows;
 }

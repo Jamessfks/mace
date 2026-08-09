@@ -100,6 +100,15 @@ const CALC_TYPES: CalcTypeOption[] = [
   },
 ];
 
+/**
+ * Sentinel for the "let upstream decide" precision option. A Radix Select
+ * needs a non-empty string value, but the wire format for this choice is the
+ * ABSENCE of the `precision` key — that is what makes the backend fall back
+ * to `upstream_default_precision()` (mace-api/calculate.py) instead of
+ * honouring an explicit request. Never send this string.
+ */
+const PRECISION_AUTO = "auto";
+
 /** Elements MACE-OFF was trained on (organic chemistry space only). Per
  * CLAUDE.md's Model Selection rules; used to warn when a loaded structure
  * falls outside MACE-OFF's domain. */
@@ -146,12 +155,29 @@ export function ParameterPanel({
   // backend will ignore.
   useEffect(() => {
     if (params.modelType !== "custom") onCustomModelChange(null);
+
+    const next = { ...params };
+    let changed = false;
+
     if (
       (params.modelType === "MACE-OFF" || params.modelType === "custom") &&
       params.dispersion
     ) {
-      onChange({ ...params, dispersion: false });
+      next.dispersion = false;
+      changed = true;
     }
+
+    // A custom checkpoint keeps the dtype it was saved in:
+    // get_custom_calculator() deliberately does not pass `default_dtype` to
+    // MACECalculator, so upstream adopts the checkpoint's own dtype. Sending
+    // an explicit precision would be requested, ignored, and reported back as
+    // a warning — drop it rather than ask for something that cannot happen.
+    if (params.modelType === "custom" && params.precision != null) {
+      next.precision = undefined;
+      changed = true;
+    }
+
+    if (changed) onChange(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.modelType]);
 
@@ -323,22 +349,43 @@ export function ParameterPanel({
           <div className="grid grid-cols-2 gap-4">
             <Field
               label="Precision"
-              tooltip="float64 is required for vibrational / Hessian accuracy."
+              tooltip={
+                isCustom
+                  ? "A custom checkpoint keeps the dtype it was saved in — MACE adopts the checkpoint's own dtype, so this is not selectable."
+                  : "Upstream MACE prints, on every run: float32 is faster but less accurate, recommended for MD; use float64 for geometry optimization. Auto applies exactly that, plus mace_off()'s own float64 default for MACE-OFF."
+              }
             >
               <Select
-                value={params.precision}
+                value={params.precision ?? PRECISION_AUTO}
+                disabled={isCustom}
                 onValueChange={(v) =>
-                  updateParam("precision", v as CalculationParams["precision"])
+                  // "auto" means: send no `precision` key at all, so the
+                  // backend derives upstream's default. JSON.stringify drops
+                  // undefined keys, which is exactly the wire format wanted.
+                  updateParam(
+                    "precision",
+                    v === PRECISION_AUTO
+                      ? undefined
+                      : (v as CalculationParams["precision"]),
+                  )
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={PRECISION_AUTO}>
+                    Auto — match upstream MACE
+                  </SelectItem>
                   <SelectItem value="float32">float32 — faster</SelectItem>
                   <SelectItem value="float64">float64 — precise</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+                {isCustom
+                  ? "Custom checkpoints run in the dtype they were saved in."
+                  : "Auto follows upstream MACE: float64 for MACE-OFF and for geometry optimization, float32 otherwise. An explicit choice is always honoured — the result will say which dtype actually ran."}
+              </p>
             </Field>
 
             <Field label="Device">

@@ -141,7 +141,13 @@ function CalculatePageInner() {
   const [params, setParams] = useState<CalculationParams>({
     modelSize: "medium",
     modelType: "MACE-MP-0",
-    precision: "float32",
+    // `precision` is deliberately absent, not "float32". Omitting the key is
+    // what makes the backend take upstream MACE's own default for the chosen
+    // model and calculation — float64 for MACE-OFF (mace_off() has defaulted
+    // to float64 since v0.3.6) and for geometry optimization (upstream prints
+    // "Use float64 for geometry optimization" on every run), float32
+    // otherwise. Sending "float32" unconditionally, as this used to, silently
+    // overrode both. The user can still pin a dtype in the parameter panel.
     device: "cpu",
     calculationType: "single-point",
     dispersion: false,
@@ -252,6 +258,24 @@ function CalculatePageInner() {
 
   const isCustomModel = params.modelType === "custom";
 
+  /**
+   * Why the Run button is disabled, or null when it is not.
+   *
+   * "custom" with no uploaded checkpoint is a hard backend error now
+   * (`validate_model_type()` in mace-api/calculate.py rejects it rather than
+   * quietly loading MACE-MP-0 medium and labelling the numbers "custom"), so
+   * this is no longer dangerous — but letting the user press Run to discover
+   * it is a wasted round trip and an error where a sentence would do.
+   */
+  const runBlockedReason: string | null =
+    uploadedFiles.length === 0
+      ? "Choose or upload a structure to enable the run button."
+      : isCustomModel && !customModelFile
+        ? "Upload a MACE .model checkpoint to run a custom model — or switch to MACE-MP-0 or MACE-OFF. A foundation-model result labelled “custom” would attribute the numbers to a model that was never loaded."
+        : params.calculationType === "phonon"
+          ? "Phonon spectrum is not implemented. Choose single-point, geometry optimization, or molecular dynamics."
+          : null;
+
   const handleRunFoundation =
     useCallback(async (): Promise<CalculationResult | null> => {
       if (uploadedFiles.length === 0) return null;
@@ -286,14 +310,10 @@ function CalculatePageInner() {
     }, [uploadedFiles, params, customModelFile]);
 
   const handleCalculate = async () => {
-    if (uploadedFiles.length === 0) {
-      setError("Please choose or upload a structure first.");
-      return;
-    }
-    if (params.calculationType === "phonon") {
-      setError(
-        "Phonon spectrum is not yet supported. Please choose another calculation type.",
-      );
+    // Same gate as the Run button, restated here so the check cannot be
+    // bypassed by anything that calls this directly.
+    if (runBlockedReason) {
+      setError(runBlockedReason);
       return;
     }
     setIsCalculating(true);
@@ -323,7 +343,18 @@ function CalculatePageInner() {
 
       const data: CalculationResult = await response.json();
       const timeTaken = Math.round((Date.now() - startTime) / 1000);
-      setResult({ ...data, params, timeTaken });
+      // The backend's params win. It echoes the EFFECTIVE configuration —
+      // defaults resolved, CUDA→CPU fallback applied, `dispersion` true only
+      // if a D3 calculator was really built, `precision` read back off the
+      // loaded model, plus the MD seed and geometry-opt convergence. Spreading
+      // the request over the top (as this used to do) threw all of that away
+      // and re-asserted what was asked for. The request is kept underneath for
+      // the few keys the backend does not echo.
+      setResult({
+        ...data,
+        params: { ...params, ...(data.params ?? {}) },
+        timeTaken,
+      });
 
       // Record a compact summary in local (account-free) history.
       if (data.status === "success") {
@@ -348,7 +379,13 @@ function CalculatePageInner() {
     if (!result || result.status !== "success") return;
     setIsSharing(true);
     try {
-      const { url } = await saveResult(result, params, uploadedFiles[0]?.name);
+      // Share the effective params off the result, not the request — a shared
+      // result should describe the run that happened.
+      const { url } = await saveResult(
+        result,
+        result.params ?? params,
+        uploadedFiles[0]?.name,
+      );
       setShareUrl(url);
       if (lastHistoryId) updateHistoryShareUrl(lastHistoryId, url);
     } catch {
@@ -438,7 +475,7 @@ function CalculatePageInner() {
                 <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-5">
                   <Button
                     onClick={handleCalculate}
-                    disabled={isCalculating || uploadedFiles.length === 0}
+                    disabled={isCalculating || runBlockedReason != null}
                     size="lg"
                     className="w-full text-base"
                   >
@@ -455,9 +492,9 @@ function CalculatePageInner() {
                     )}
                   </Button>
 
-                  {uploadedFiles.length === 0 && !isCalculating && (
-                    <p className="mt-3 text-center text-xs text-[var(--color-text-muted)]">
-                      Choose or upload a structure to enable the run button.
+                  {runBlockedReason && !isCalculating && (
+                    <p className="mt-3 text-center text-xs leading-relaxed text-[var(--color-text-muted)]">
+                      {runBlockedReason}
                     </p>
                   )}
 
