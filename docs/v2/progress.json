@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T07:43:20.836Z",
+  "updated": "2026-08-09T08:01:24.038Z",
   "bars": [
     {
       "name": "Rowan",
@@ -26,10 +26,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Awaiting critic verdict. Specular gloss not matched — 3Dmol shaders are pure diffuse; matching it means forking the library."
     },
     {
       "id": "viewer-interact",
@@ -68,10 +68,10 @@
         "app/page.tsx",
         "components/intro-section.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Header/footer still max-w-6xl while content tightened to max-w-5xl, so edges no longer align. Belongs to the nav piece."
     },
     {
       "id": "config",
@@ -95,10 +95,10 @@
         "components/calculate/metrics-dashboard.tsx",
         "components/calculate/structure-info.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": "Was pointed at results-display.tsx, which has zero importers. Redirected to metrics-dashboard.tsx, the component actually rendered."
+      "gap": null
     },
     {
       "id": "honesty",
@@ -111,10 +111,10 @@
         "app/docs/calculations/page.tsx",
         "CLAUDE.md"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": "calculationType has no allow-list: an unrecognised type (e.g. phonon) silently runs a single-point and returns it as the requested calculation."
+      "gap": "19 stale validate_calculation.py references remain outside the fixed files. main.py returns HTTP 500 instead of 400 for a rejected calculationType."
     },
     {
       "id": "provenance",
@@ -191,6 +191,8 @@
     "Viewer pieces share one file and are serialised, not run in parallel.",
     "Audit found results-display.tsx is dead code; metrics-dashboard.tsx is the live results component.",
     "Audit found FIRE optimizer advertised in docs and landing copy, but BFGS is hardcoded in mace-api/calculate.py. Being corrected.",
-    "Of Rowan's ~30 workflows: 2 already shipped, 18 buildable on MACE, 13 blocked by the absence of any electron-density model."
+    "Of Rowan's ~30 workflows: 2 already shipped, 18 buildable on MACE, 13 blocked by the absence of any electron-density model.",
+    "Measured: both our viewer and Rowan render at exactly devicePixelRatio 2.00. The original DPR-1 premise was wrong — 3Dmol upscales by default when antialias is on.",
+    "Blind label-stripping was not achievable for the qualitative comparison; critics run with fresh context and an adversarial brief instead. Stated rather than claimed otherwise."
   ]
 }
