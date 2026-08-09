@@ -5,7 +5,11 @@
  *
  * Warm, minimal, sticky. Replaces the per-page inline headers so branding
  * and navigation stay consistent across the app. Highlights the active
- * route and collapses to a disclosure menu on small screens.
+ * route, surfaces the calculator as a single solid primary CTA (mirroring
+ * the "one obvious next action" hierarchy from docs/v2/bars/rowan.md
+ * without copying its wording or type), collapses to a disclosure menu on
+ * small screens, and sizes its content column per-route via
+ * `contentWidthClass` so it lines up with the page beneath it.
  */
 
 import Link from "next/link";
@@ -13,14 +17,43 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Atom, Github, Heart, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
+// Secondary links only — the calculator is promoted to the primary CTA
+// button rendered separately below, so it isn't duplicated in this list.
 const NAV = [
-  { href: "/calculate", label: "Calculator" },
   { href: "/benchmark", label: "Benchmark" },
   { href: "/docs", label: "Docs" },
 ];
 
 const GITHUB_URL = "https://github.com/Jamessfks/mace";
+
+/**
+ * Content-column width per route. Mirrors the max-w each page's own <main>
+ * actually renders at, so the sticky header/footer edges line up with the
+ * page beneath instead of floating outside it (the landing page matches
+ * Rowan's measured 1024px column — see docs/v2/bars/rowan.md). The
+ * calculator, benchmark, and shared-result ("MACE Link") views are
+ * data-dense — tables, plots, the 3D viewer — and are deliberately wider
+ * than the marketing/reading pages; that split is intentional, not
+ * accidental drift. Exported so SiteFooter can stay in sync with SiteHeader.
+ */
+function isUnder(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+export function contentWidthClass(pathname: string): string {
+  if (isUnder(pathname, "/calculate") || isUnder(pathname, "/r")) {
+    return "max-w-screen-2xl"; // matches app/calculate, app/r/[id]
+  }
+  if (isUnder(pathname, "/benchmark")) {
+    return "max-w-7xl"; // matches app/benchmark
+  }
+  if (isUnder(pathname, "/support") || isUnder(pathname, "/docs")) {
+    return "max-w-6xl"; // matches app/support, app/docs/*
+  }
+  return "max-w-5xl"; // landing ("/"), /v2, and any future route
+}
 
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -47,12 +80,18 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => isUnder(pathname, href);
+
+  const widthClass = contentWidthClass(pathname);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div
+        className={cn(
+          "mx-auto flex h-16 items-center justify-between px-6",
+          widthClass,
+        )}
+      >
         <Wordmark />
 
         {/* Desktop navigation */}
@@ -92,6 +131,14 @@ export function SiteHeader() {
             <Heart className="h-4 w-4" strokeWidth={2} />
             Support
           </Link>
+          <Button asChild className="ml-2">
+            <Link
+              href="/calculate"
+              aria-current={isActive("/calculate") ? "page" : undefined}
+            >
+              Calculator
+            </Link>
+          </Button>
         </nav>
 
         {/* Mobile menu toggle */}
@@ -113,6 +160,17 @@ export function SiteHeader() {
           aria-label="Primary mobile"
         >
           <ul className="flex flex-col gap-1">
+            <li>
+              <Button asChild className="w-full">
+                <Link
+                  href="/calculate"
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive("/calculate") ? "page" : undefined}
+                >
+                  Calculator
+                </Link>
+              </Button>
+            </li>
             {NAV.map((item) => (
               <li key={item.href}>
                 <Link

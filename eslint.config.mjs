@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Python and docs build artefacts that share this repo root. Without these,
+    // ESLint walks .venv/lib/**/site-packages and lints Jupyter's bundled JS,
+    // which buries real warnings under tens of thousands of vendored ones and
+    // makes `npm run lint` useless as a gate.
+    ".venv/**",
+    "venv/**",
+    "site/**",
+    "**/__pycache__/**",
   ]),
 ]);
 

@@ -1,13 +1,20 @@
+"use client";
+
 /**
  * SiteFooter — shared footer for SimpleAtom.
  *
  * Carries navigation, external references (MACE, ASE), scientific
  * attribution, and the current release. Warm and low-contrast to match
- * the rest of the interface.
+ * the rest of the interface. Sizes its content column per-route with the
+ * same `contentWidthClass` helper SiteHeader uses, so the two stay in sync
+ * and both line up with the page content between them.
  */
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Atom } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { contentWidthClass } from "@/components/site-header";
 
 const APP_VERSION = "1.3.0";
 
@@ -26,9 +33,12 @@ const RESOURCE_LINKS = [
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  const widthClass = contentWidthClass(pathname);
+
   return (
     <footer className="border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-      <div className="mx-auto max-w-6xl px-6 py-12">
+      <div className={cn("mx-auto px-6 py-12", widthClass)}>
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand + tagline */}
           <div className="lg:col-span-2">

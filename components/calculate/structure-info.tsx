@@ -154,6 +154,33 @@ export function StructureInfo({ file }: StructureInfoProps) {
   const hasOverlap = parsed.minNeighborDist < 0.4;
   const hasWarnings = isLarge || isVeryLarge || isHugeBox || parsed.isPlanar || hasOverlap;
 
+  // ── Geometry details — tight key/value rows (Materials-Project style:
+  //    bold label left, value right, hairline rule between rows). Precision
+  //    is picked once per quantity: bounding box to 0.1 Å (a rough extent),
+  //    min distance to 0.001 Å (fine enough to catch near-overlaps) — and
+  //    applied consistently everywhere that quantity is shown, including in
+  //    the "huge box" warning below (which used to round differently).
+  const geometryRows: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Bounding box",
+      value: `${boxSize[0].toFixed(1)} × ${boxSize[1].toFixed(1)} × ${boxSize[2].toFixed(1)} Å`,
+    },
+    {
+      label: "Min distance",
+      value:
+        parsed.minNeighborDist === Infinity ? (
+          "N/A"
+        ) : (
+          <span className={hasOverlap ? "font-bold text-[var(--color-error)]" : undefined}>
+            {parsed.minNeighborDist.toFixed(3)} Å
+          </span>
+        ),
+    },
+  ];
+  if (parsed.frameCount > 1) {
+    geometryRows.push({ label: "Frames", value: `${parsed.frameCount} (first frame used)` });
+  }
+
   return (
     <div className="mt-3 space-y-2">
       {/* ── Structure info card ── */}
@@ -191,32 +218,17 @@ export function StructureInfo({ file }: StructureInfoProps) {
           ))}
         </div>
 
-        {/* Geometry details grid */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-xs">
-          {/* Bounding box */}
-          <span className="text-[var(--color-text-muted)]">Bounding box</span>
-          <span className="text-[var(--color-text-primary)]">
-            {boxSize[0].toFixed(1)} × {boxSize[1].toFixed(1)} ×{" "}
-            {boxSize[2].toFixed(1)} Å
-          </span>
-
-          {/* Shortest interatomic distance */}
-          <span className="text-[var(--color-text-muted)]">Min distance</span>
-          <span className={hasOverlap ? "font-bold text-[var(--color-error)]" : "text-[var(--color-text-primary)]"}>
-            {parsed.minNeighborDist === Infinity
-              ? "N/A"
-              : `${parsed.minNeighborDist.toFixed(3)} Å`}
-          </span>
-
-          {/* Frames (multi-frame files) */}
-          {parsed.frameCount > 1 && (
-            <>
-              <span className="text-[var(--color-text-muted)]">Frames</span>
-              <span className="text-[var(--color-text-primary)]">
-                {parsed.frameCount} (first frame used)
-              </span>
-            </>
-          )}
+        {/* Geometry details — tight key/value rows (bold label left, value right, hairline rule) */}
+        <div className="font-mono text-xs">
+          {geometryRows.map((row) => (
+            <div
+              key={row.label}
+              className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border-subtle)] py-1 first:border-t-0 first:pt-0 last:pb-0"
+            >
+              <span className="font-bold text-[var(--color-text-muted)]">{row.label}</span>
+              <span className="text-right text-[var(--color-text-primary)]">{row.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -276,8 +288,8 @@ export function StructureInfo({ file }: StructureInfoProps) {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
           <div>
             <strong>
-              Very large simulation box ({boxSize[0].toFixed(0)} ×{" "}
-              {boxSize[1].toFixed(0)} × {boxSize[2].toFixed(0)} Å).
+              Very large simulation box ({boxSize[0].toFixed(1)} ×{" "}
+              {boxSize[1].toFixed(1)} × {boxSize[2].toFixed(1)} Å).
             </strong>{" "}
             This may be a periodic system with a large cell. Ensure coordinates
             are correct.

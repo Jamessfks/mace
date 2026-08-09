@@ -15,13 +15,14 @@ Frontend (Next.js 16 / React 19 / TypeScript / Tailwind CSS 4)
   ├── app/r/[id]/          → MACE Link (shared result viewer)
   ├── app/api/calculate/   → Route handler (dual-mode: local subprocess or remote API)
   ├── app/api/benchmark/   → Batch benchmark endpoint
-  └── app/api/generate-surface/ → ASE surface slab generation
+  └── app/api/smiles-to-xyz/ → SMILES → 3D structure conversion
 
 Backend (Python 3.10+)
-  ├── mace-api/calculate_local.py  → Subprocess MACE runner (called by Next.js)
+  ├── mace-api/calculate.py        → Shared calculation engine (all scientific logic)
+  ├── mace-api/calculate_local.py  → Subprocess CLI wrapper (called by Next.js)
   ├── mace-api/main.py             → FastAPI server (cloud deployment)
-  ├── mace-api/generate_surface.py → ASE surface slab generator
-  └── mace-api/validate_calculation.py → Scientific result validator
+  ├── mace-api/smiles_to_xyz.py    → RDKit SMILES → XYZ converter
+  └── test_scripts/validate_calculation.py → Scientific result validator
 ```
 
 **Dual-mode execution:**
@@ -36,7 +37,7 @@ Backend (Python 3.10+)
 |------|-------|
 | **Calculation API** | `app/api/calculate/route.ts`, `app/api/benchmark/route.ts` |
 | **SMILES conversion** | `app/api/smiles-to-xyz/route.ts`, `mace-api/smiles_to_xyz.py` |
-| **Python backend** | `mace-api/calculate_local.py`, `mace-api/main.py` |
+| **Python backend** | `mace-api/calculate.py` (shared engine), `mace-api/calculate_local.py` (CLI), `mace-api/main.py` (FastAPI) |
 | **Calculator UI** | `app/calculate/page.tsx`, `components/calculate/*.tsx` |
 | **SMILES input** | `components/calculate/smiles-input.tsx` |
 | **Molecular editor** | `components/calculate/ketcher-editor.tsx` (Ketcher 2D/3D editor) |
@@ -48,7 +49,7 @@ Backend (Python 3.10+)
 | **Visualization** | `components/calculate/molecule-viewer-3d.tsx` (3Dmol.js), `components/calculate/weas-viewer.tsx` (WEAS CDN) |
 | **Charts** | `components/calculate/charts/*.tsx`, `components/calculate/trajectory/*.tsx` |
 | **PDF export** | `components/calculate/pdf-report.tsx` |
-| **Validation** | `mace-api/validate_calculation.py` |
+| **Validation** | `test_scripts/validate_calculation.py` |
 
 ## Development Commands
 
@@ -63,7 +64,7 @@ cd mace-api && pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 7860
 
 # Validation
-python mace-api/validate_calculation.py --test    # Full scientific validation suite
+python test_scripts/validate_calculation.py --test    # Full scientific validation suite
 
 # Quick calculation test
 python mace-api/calculate_local.py public/demo/ethanol.xyz \
@@ -82,7 +83,7 @@ When spawning subagents or choosing model complexity, follow this tier system:
 
 **Subagent patterns for this project:**
 - **Frontend + Backend in parallel**: When a feature spans both, spawn one agent for TypeScript changes and one for Python changes — they don't share files
-- **Validate after scientific changes**: After any edit to `mace-api/*.py`, spawn a validation agent to run `python mace-api/validate_calculation.py --test`
+- **Validate after scientific changes**: After any edit to `mace-api/*.py`, spawn a validation agent to run `python test_scripts/validate_calculation.py --test`
 - **Build check after frontend changes**: After UI/component changes, run `npm run build` to catch type errors early
 - **Research agents**: Use `Explore` subagent type for codebase questions; use `WebSearch`/`WebFetch` for MACE/ASE documentation lookups
 
@@ -112,11 +113,30 @@ When spawning subagents or choosing model complexity, follow this tier system:
 - **MACE-OFF**: -100 to -600 eV/atom (different reference convention)
 - Catalog reference energies are **EXPERIMENTAL**, not DFT — always note this in comparisons
 
+### Supported Calculation Types
+- Exactly three are implemented: `single-point`, `geometry-opt`, `molecular-dynamics`
+  (`SUPPORTED_CALCULATION_TYPES` in `mace-api/calculate.py`)
+- `phonon` exists in the `CalculationType` TS union and as a disabled UI option, but has
+  **no backend implementation**. It is rejected with an error, not stubbed
+- **Never** let an unrecognised `calculationType` fall through to a default calculation —
+  returning plausible numbers for a calculation that never ran is worse than an error
+- The Python backend is the security boundary (the API can be called directly); the
+  route handler check in `app/api/calculate/route.ts` is a fast mirror, not a substitute
+
 ### Geometry Optimization
-- Default optimizer: BFGS; use FIRE for difficult convergence
+- Optimizer is **BFGS only** — hardcoded in `_run_geometry_opt`, with no optimizer
+  parameter. Do not document or offer FIRE unless it is actually wired up
 - `fmax`: 0.05 eV/Å (general), 0.01 eV/Å (production), 0.005 eV/Å (before frequencies)
 - Always set `maxOptSteps` to prevent infinite loops
 - Only atomic positions optimized (no cell optimization currently)
+- **Use `float64` for geometry optimization**, `float32` for MD. This is upstream's own
+  guidance, printed on every run (`foundations_models.py`, both `mace_mp` and `mace_off`).
+  Note `mace_off()` defaults to `default_dtype="float64"` while `mace_mp()` defaults to
+  float32 — never override either without recording the override in `result["params"]`
+  and `result["warnings"]`
+- `BFGS.run()` returns a convergence bool. **Never discard it.** A run that exhausts
+  `maxOptSteps` without reaching `fmax` is not a relaxed minimum, and reporting it as
+  "completed" is the same class of error as returning a calculation that never ran
 
 ### Molecular Dynamics
 - NVT: Langevin thermostat with friction parameter
@@ -124,9 +144,19 @@ When spawning subagents or choosing model complexity, follow this tier system:
 - NVE: No thermostat (microcanonical)
 - Always initialize velocities with `MaxwellBoltzmannDistribution`
 - Typical timestep: 0.5–2.0 fs (smaller for light elements like H)
+- **Reproducibility**: every stochastic source must be seeded. MD has two —
+  `MaxwellBoltzmannDistribution(rng=...)` and `Langevin(rng=...)` — and both are fed from
+  one `np.random.default_rng(seed)` (`DEFAULT_MD_SEED = 42`, override via `params["seed"]`).
+  NPT and VelocityVerlet have no RNG of their own. An unseeded trajectory cannot be verified
+  by anyone, including its author. The seed used is recorded in `result["params"]` and in
+  `result["message"]` (the message survives PDF export and MACE Link sharing)
 
 ### Vibrational Analysis
-- **MUST** use `float64` precision for Hessian/frequency calculations
+> Not implemented. SimpleAtom rejects `phonon`; these are conventions for if it is ever
+> built, not rules the current code enforces.
+- `float64` for Hessian/frequency work is a **SimpleAtom convention, not an upstream rule**.
+  Upstream states no such requirement, and `MACECalculator.get_hessian()` inherits
+  `self.default_dtype` with no dtype guard. Do not cite it as coming from MACE
 - Structure MUST be at local minimum first (fmax < 0.005 eV/Å)
 - Imaginary frequencies at non-transition-state = incomplete optimization
 - For molecules: expect 3N-6 real frequencies (3N-5 for linear)
@@ -139,6 +169,11 @@ When spawning subagents or choosing model complexity, follow this tier system:
 5. GPU fallback: always handle CUDA unavailable → CPU gracefully
 6. Extended XYZ metadata keys vary: check REF_energy, ref_energy, energy, dft_energy
 7. RMS force formula: `sqrt(Σ|F_i|² / N_atoms)` — not `sqrt(Σf² / 3N)`
+8. Results must be self-describing: `_build_result()` echoes the *effective* parameters
+   (defaults resolved, CUDA→CPU fallback applied, MD seed recorded) into `result["params"]`.
+   The validator picks its model-aware energy bounds from this — without it every result is
+   judged as `modelType: "unknown"` and MACE-OFF's −100 to −600 eV/atom convention never
+   applies. Echo an explicit key allow-list, never the raw request dict
 
 ## Code Style
 
@@ -146,14 +181,14 @@ When spawning subagents or choosing model complexity, follow this tier system:
 - **Backend**: Python 3.10+, type hints, JSON stdout for subprocess communication
 - **Charts**: Plotly.js with Paul Tol colorblind-safe palette
 - **3D Viewers**: 3Dmol.js (npm) + WEAS (CDN iframe)
-- **Theme**: Dark theme with CSS custom properties (`--color-*`)
+- **Theme**: Light by default — warm off-white canvas (`#FBFAF7`) with a green accent (`#4F9A54`), driven by CSS custom properties (`--color-*`) on `:root`. A dark (navy) theme is preserved under `.dark` for a possible future toggle but is not currently reachable in the UI. See `app/globals.css`.
 - **Components**: Use `components/ui/` for shadcn base; domain components in `components/calculate/` or `components/benchmark/`
 - **Imports**: Use `@/` path alias (maps to project root)
 
 ## Testing & Validation
 
 ### Before Merging Any Scientific Code Change
-1. Run `python mace-api/validate_calculation.py --test` — must pass all checks
+1. Run `python test_scripts/validate_calculation.py --test` — must pass all checks
 2. Verify energy bounds, force magnitudes, unit consistency
 3. Check that D3 dispersion is not enabled with MACE-OFF
 

@@ -1,0 +1,290 @@
+{
+  "version": "2.0.0-dev",
+  "branch": "v2.0",
+  "updated": "2026-08-09T14:52:50.954Z",
+  "bars": [
+    {
+      "name": "Rowan",
+      "url": "https://rowansci.com",
+      "role": "Interface quality, 3D viewer",
+      "viewerBar": "https://labs.rowansci.com/iframe2/calculation/c1cd40a2-f781-4be0-8c68-b6b4e681b9b5?auto-rotate=false&no-border=true",
+      "fetchable": "Marketing site + live production viewer are public. App job/results screens require login."
+    },
+    {
+      "name": "Materials Project",
+      "url": "https://next-gen.materialsproject.org/materials/mp-149",
+      "role": "Data density, scientific numbers",
+      "fetchable": "Property data public. Interactive crystal viewer requires login."
+    },
+    {
+      "name": "ACEsuit/mace",
+      "url": "https://github.com/ACEsuit/mace",
+      "role": "Scientific correctness — the reference implementation",
+      "fetchable": "Fully public. Audit in progress; where SimpleAtom disagrees with upstream, SimpleAtom is wrong by definition."
+    }
+  ],
+  "pieces": [
+    {
+      "id": "viewer-render",
+      "name": "3D viewer — render quality",
+      "bar": "Rowan viewer embed",
+      "judge": "Side-by-side render of the same molecule. Sharpness at retina, atom shading, bond geometry, CPK colours.",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "building",
+      "rounds": 3,
+      "verdict": "Round 2: LOST to Rowan",
+      "gap": "Ambient occlusion has never actually run — the WebGL2 guard tests the visible canvas, which holds a bitmaprenderer context because upscale:true renders offscreen. Also: our canvas is an opaque white box on a warm page while Rowan renders with alpha:true straight onto theirs."
+    },
+    {
+      "id": "viewer-interact",
+      "name": "3D viewer — selection & measurement",
+      "bar": "Rowan viewer embed",
+      "judge": "Click an atom, then two/three/four. Does a highlight appear and a bond length / angle / dihedral read out?",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null,
+      "blockedBy": "viewer-render"
+    },
+    {
+      "id": "viewer-chrome",
+      "name": "3D viewer — controls & settings menu",
+      "bar": "Rowan viewer embed",
+      "judge": "Gear / fullscreen / reset controls. Auto-rotate, hide C–H bonds, download PNG.",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null,
+      "blockedBy": "viewer-interact"
+    },
+    {
+      "id": "landing",
+      "name": "Landing page",
+      "bar": "rowansci.com homepage",
+      "judge": "Blind screenshot at 1280 and 375. Which reads as the more credible scientific product?",
+      "files": [
+        "app/page.tsx",
+        "components/intro-section.tsx"
+      ],
+      "status": "building",
+      "rounds": 2,
+      "verdict": "Round 1: LOST to Rowan",
+      "gap": "A hard <br/> in the h1 fights the wrap and renders four staircase lines instead of two, pushing the only proof below the fold. Body copy and the primary CTA are 14px against the bar 16px."
+    },
+    {
+      "id": "config",
+      "name": "Calculation configuration",
+      "bar": "Rowan feature pages + docs",
+      "judge": "Can a chemist set up a run without reading docs? Are units and valid ranges visible at the point of entry?",
+      "files": [
+        "components/calculate/parameter-panel.tsx"
+      ],
+      "status": "judging",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "Built and now wired — guardrails were inert until app/calculate/page.tsx passed the parsed structure down."
+    },
+    {
+      "id": "results",
+      "name": "Results & property display",
+      "bar": "Materials Project mp-149 summary panel",
+      "judge": "Density and legibility of the property table. Every value carries a unit inline.",
+      "files": [
+        "components/calculate/metrics-dashboard.tsx",
+        "components/calculate/structure-info.tsx"
+      ],
+      "status": "judging",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "Built. No critic verdict yet."
+    },
+    {
+      "id": "honesty",
+      "name": "Scientific honesty & input validation",
+      "bar": "The code itself — every claim must survive inspection",
+      "judge": "Does any user-facing claim describe a capability the backend does not have? Does an unsupported calculationType fail loudly instead of silently returning a single-point?",
+      "files": [
+        "mace-api/calculate.py",
+        "app/api/calculate/route.ts",
+        "app/docs/calculations/page.tsx",
+        "CLAUDE.md"
+      ],
+      "status": "judging",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "19 stale validate_calculation.py references remain outside the fixed files. main.py returns HTTP 500 instead of 400 for a rejected calculationType."
+    },
+    {
+      "id": "provenance",
+      "name": "Calculation manifest & audit trail",
+      "bar": "Materials Project 'Property Origins' section",
+      "judge": "Can a third party reproduce and verify any number the app displays, months later?",
+      "files": [
+        "mace-api/",
+        "docs/v2/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "share",
+      "name": "MACE Link shared viewer",
+      "bar": "Rowan iframe2 embed",
+      "judge": "Load both embeds side by side. Which is the better shareable artifact?",
+      "files": [
+        "app/r/[id]/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "nav",
+      "name": "Navigation & information architecture",
+      "bar": "rowansci.com header + site structure",
+      "judge": "Can a first-time visitor find what the product does and start a calculation in two clicks?",
+      "files": [
+        "components/site-header.tsx",
+        "components/site-footer.tsx"
+      ],
+      "status": "building",
+      "rounds": 2,
+      "verdict": "Round 1: LOST to Rowan",
+      "gap": "Per-route chrome widths put the wordmark at three different x positions; clicking our own CTA slides the logo 120px. Rowan uses one width everywhere and accepts the misalignment. Reversing my earlier decision."
+    },
+    {
+      "id": "benchmark",
+      "name": "Benchmark suite vs MP reference values",
+      "bar": "Materials Project published formation energies",
+      "judge": "Numeric. Do SimpleAtom's MACE-MP-0 formation energies agree with MP within a stated tolerance?",
+      "files": [
+        "app/benchmark/",
+        "components/benchmark/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "mobile",
+      "name": "Responsive / mobile",
+      "bar": "rowansci.com at 375px",
+      "judge": "Blind screenshot at 375px. Which survives the phone better?",
+      "files": [
+        "app/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "reference-conformance",
+      "name": "Conformance to the MACE reference implementation",
+      "bar": "ACEsuit/mace v0.3.16",
+      "judge": "Does SimpleAtom use MACE the way upstream says to? Where it differs, is the difference deliberate and documented, or a bug?",
+      "files": [
+        "mace-api/calculate.py",
+        "mace-api/calculate_local.py",
+        "requirements.txt"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "modelType has no allow-list: custom with no uploaded model silently returns MACE-MP-0 results labelled custom, shareable and PDF-exportable. Plus non-converged optimisations reported as completed, dtype inverted vs upstream, and MD potential energy labelled total energy."
+    }
+  ],
+  "notes": [
+    "Scope is MACE-only. No orbitals, partial charges, Fukui indices, pKa, docking, or DFT — MACE is an interatomic potential with no electron density.",
+    "Rowan's typeface Matter is commercially licensed and is not used. SimpleAtom keeps Fraunces + Inter.",
+    "Viewer pieces share one file and are serialised, not run in parallel.",
+    "Audit found results-display.tsx is dead code; metrics-dashboard.tsx is the live results component.",
+    "Audit found FIRE optimizer advertised in docs and landing copy, but BFGS is hardcoded in mace-api/calculate.py. Being corrected.",
+    "Of Rowan's ~30 workflows: 2 already shipped, 18 buildable on MACE, 13 blocked by the absence of any electron-density model.",
+    "Measured: both our viewer and Rowan render at exactly devicePixelRatio 2.00. The original DPR-1 premise was wrong — 3Dmol upscales by default when antialias is on.",
+    "Blind label-stripping was not achievable for the qualitative comparison; critics run with fresh context and an adversarial brief instead. Stated rather than claimed otherwise.",
+    "Critic measured Rowan as having NO specular term either (brightest pixel 242/255, zero >=245). The 3Dmol fork is rejected on measurement, not deferred.",
+    "Critic found our shading objectively beats the bar (117 luminance levels on carbon vs 34; we run SSAO, Rowan has none). We lost purely on scale.",
+    "CIF fractional coordinates were never converted through the unit cell. Silicon loaded with nearest-neighbour 0.433 A instead of 2.3516 A — a factor of 5.4. Fixed and covered by public/demo/silicon.cif.",
+    "Four separate defects in this branch were code that reviews as correct and does nothing at runtime: the validator dead bounds, the phonon fallthrough, the no-op D3 toggle, and the inert structure guardrails.",
+    "Two agents (viewer round-2 critic, guardrail wiring) died on a session limit. The wiring was completed directly; the critic re-run is still outstanding.",
+    "ACEsuit/mace audit: the float64-for-Hessians rule in CLAUDE.md is not sourced from upstream and targets phonon, which SimpleAtom rejects, so it guards nothing. Upstream says use float64 for geometry optimisation, a feature SimpleAtom has.",
+    "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails.",
+    "CORRECTION: the claim that our shading beats the bar does not replicate. AO was never enabled (renderer._AOEnabled === false) and carbon tonality measures 237 distinct luminance levels for both viewers, not 117 vs 34.",
+    "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes."
+  ],
+  "defectsFixed": [
+    {
+      "sev": "CRITICAL",
+      "what": "modelType had no allow-list — selecting a custom model with no checkpoint returned MACE-MP-0 results labelled custom, shareable and PDF-exportable",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "CRITICAL",
+      "what": "calculationType had no allow-list — any unrecognised type (incl. phonon) silently ran a single-point and returned it as the requested calculation",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "CRITICAL",
+      "what": "CIF fractional coordinates were never converted through the unit cell — silicon loaded with nearest-neighbour 0.433 A instead of 2.3516 A",
+      "where": "lib/parse-structure.ts"
+    },
+    {
+      "sev": "HIGH",
+      "what": "The scientific validator has never run: the documented path does not exist, and its model-aware energy bounds were dead code",
+      "where": "test_scripts/, mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "BFGS convergence was discarded — an optimisation that exhausted maxOptSteps was reported as completed",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MD recorded potential energy but called it total energy and told users to check NVE conservation — impossible, KE was never recorded",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MACE-OFF forced to float32, inverting upstream default_dtype=float64, with the downcast warning suppressed",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MD was unreproducible — velocities and thermostat both drew from global np.random",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "Docs and landing copy advertised a FIRE optimizer that does not exist; BFGS is hardcoded",
+      "where": "app/docs/, components/intro-section.tsx"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "D3 toggle was live but a silent no-op for custom models, whose loader takes no dispersion argument",
+      "where": "components/calculate/parameter-panel.tsx"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "npm run lint reported 42,891 problems from a linted virtualenv, making the no-new-warnings gate meaningless",
+      "where": "eslint.config.mjs"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "result.params reported requested rather than effective values for dispersion and precision",
+      "where": "mace-api/calculate.py"
+    }
+  ]
+}

@@ -13,6 +13,17 @@
  *   3. Energy    — energy convergence, distribution, parity plot
  *   4. Structure — 3D viewer + trajectory animation
  *   5. Raw Data  — forces table, JSON/CSV/PDF export
+ *
+ * UNITS & PRECISION (see "Display precision" below):
+ *   Every rendered number carries its unit inline (eV, eV/Å, eV/atom, Å³,
+ *   meV/Å, meV/atom — never a bare number), at a fixed, sane precision per
+ *   quantity. MACE's own accuracy floor is roughly 10-30 meV/atom for
+ *   MACE-MP-0 and a few meV/atom for MACE-OFF, so float64's full digit
+ *   string is never meaningful on screen. Raw JSON/CSV exports keep full
+ *   precision for downstream reuse; only the rendered UI is rounded.
+ *   Total Energy is always shown next to the model that produced it, because
+ *   MACE-MP-0 and MACE-OFF use different, non-comparable reference
+ *   conventions (CLAUDE.md, "Energy Reference Conventions").
  */
 
 import { useState, useMemo } from "react";
@@ -20,8 +31,7 @@ import {
   BarChart3,
   Zap,
   ArrowRightLeft,
-  TrendingUp,
-  Activity,
+  AlertTriangle,
   Download,
   Eye,
   Table2,
@@ -57,6 +67,35 @@ interface Tab {
   label: string;
   icon: React.ReactNode;
 }
+
+// ---------------------------------------------------------------------------
+// Display precision & model reference conventions
+// ---------------------------------------------------------------------------
+
+/**
+ * Decimal places shown per physical quantity — chosen once here and used
+ * everywhere that quantity is rendered, per CLAUDE.md's "Precision honesty"
+ * rule. MACE's own accuracy is roughly 10-30 meV/atom for MACE-MP-0 and a
+ * few meV/atom for MACE-OFF, so float64's ~15 significant digits are never
+ * meaningful on screen. Raw JSON/CSV exports intentionally keep full
+ * precision for downstream reuse — only the rendered UI is rounded.
+ */
+const EV_DECIMALS = 4; // eV — total energy, energy differences/errors
+const EV_PER_ATOM_DECIMALS = 4; // eV/atom
+const FORCE_DECIMALS = 4; // eV/Å — per-atom, RMS, and max force
+const VOLUME_DECIMALS = 2; // Å³
+const MEV_DECIMALS = 1; // meV, meV/Å, meV/atom — accuracy metrics
+
+/**
+ * MACE foundation models are fit to different DFT/DFT-like references, so a
+ * raw total energy is meaningless without knowing which model produced it
+ * (CLAUDE.md, "Energy Reference Conventions"). Ranges are typical orders of
+ * magnitude, not hard bounds — flag, don't block.
+ */
+const ENERGY_CONVENTIONS: Record<string, { method: string; range: [number, number] }> = {
+  "MACE-MP-0": { method: "PBE(+U) DFT reference", range: [-15, -1] },
+  "MACE-OFF": { method: "ωB97M-D3BJ reference", range: [-600, -100] },
+};
 
 // ---------------------------------------------------------------------------
 // Accuracy metric computation
@@ -152,7 +191,7 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
   const atomCount = result.symbols?.length ?? 0;
   const ePerAtom =
     result.energy != null && atomCount > 0
-      ? (result.energy / atomCount).toFixed(4)
+      ? (result.energy / atomCount).toFixed(EV_PER_ATOM_DECIMALS)
       : "N/A";
   const rmsForce = computeRmsForce(result.forces);
 
@@ -217,9 +256,17 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           <span className="font-sans text-sm font-bold text-[var(--color-success)]">
             Calculation Complete
           </span>
+          {/* Name the structure the numbers came from — this banner is also
+              the header of a shared result, where the file is not otherwise
+              visible. */}
+          {filename && (
+            <span className="font-mono text-xs text-muted-foreground">
+              {filename}
+            </span>
+          )}
           {result.timeTaken != null && (
             <span className="font-mono text-xs text-muted-foreground">
-              {result.timeTaken}s
+              {result.timeTaken.toFixed(1)} s
             </span>
           )}
           {hasRef && (
@@ -253,6 +300,9 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           </Button>
         </div>
       </div>
+
+      {/* ═══ Backend warnings ═══ */}
+      <ResultWarnings warnings={result.warnings} />
 
       {/* ═══ Tabs ═══ */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
@@ -336,6 +386,82 @@ function SummaryTab({
   accuracy: AccuracyMetrics;
   hasRef: boolean;
 }) {
+  const modelType = result.params?.modelType;
+  const modelSize = result.params?.modelSize;
+  const convention = modelType ? ENERGY_CONVENTIONS[modelType] : undefined;
+  const ePerAtomNum = result.energy != null && atomCount > 0 ? result.energy / atomCount : null;
+  const energyInRange =
+    convention && ePerAtomNum != null
+      ? ePerAtomNum >= convention.range[0] && ePerAtomNum <= convention.range[1]
+      : null;
+
+  // Dense "Properties" table — computed (output) quantities only, MP-style
+  // rows. Run-time inputs (model, thresholds, ensemble) stay in Run
+  // Configuration above; this table is strictly what MACE actually produced.
+  const propertyRows: { label: string; value: React.ReactNode }[] = [];
+  if (rmsForce != null) {
+    propertyRows.push({ label: "RMS Force", value: `${rmsForce.toFixed(FORCE_DECIMALS)} eV/Å` });
+  }
+  if (result.forces && result.forces.length > 0) {
+    propertyRows.push({
+      label: "Max Force",
+      value: (
+        <>
+          {maxForce.toFixed(FORCE_DECIMALS)} eV/Å{" "}
+          <span className="text-muted-foreground">
+            (#{maxForceIdx + 1} {result.symbols?.[maxForceIdx] ?? "?"})
+          </span>
+        </>
+      ),
+    });
+  }
+  if (result.properties?.volume != null) {
+    propertyRows.push({
+      label: "Cell Volume",
+      value: `${result.properties.volume.toFixed(VOLUME_DECIMALS)} Å³`,
+    });
+  }
+  if (atomCount > 0) {
+    const uniqueElements = result.symbols ? Array.from(new Set(result.symbols)).sort() : [];
+    propertyRows.push({ label: "Atoms", value: `${atomCount} (${uniqueElements.join(", ")})` });
+  }
+
+  // Model Accuracy table rows — only meaningful when reference data exists.
+  const accuracyRows: { label: string; value: React.ReactNode }[] = [];
+  if (accuracy.forceMAE != null) {
+    accuracyRows.push({ label: "Force MAE", value: `${accuracy.forceMAE.toFixed(MEV_DECIMALS)} meV/Å` });
+  }
+  if (accuracy.forceRMSE != null) {
+    accuracyRows.push({ label: "Force RMSE", value: `${accuracy.forceRMSE.toFixed(MEV_DECIMALS)} meV/Å` });
+  }
+  if (accuracy.energyMAE != null) {
+    accuracyRows.push({ label: "Energy MAE", value: `${accuracy.energyMAE.toFixed(MEV_DECIMALS)} meV/atom` });
+  }
+  if (accuracy.energyR2 != null) {
+    accuracyRows.push({ label: "Energy R²", value: accuracy.energyR2.toFixed(4) });
+  } else if (accuracy.energyError != null) {
+    accuracyRows.push({
+      label: "Energy error vs. reference",
+      value: (
+        <>
+          {accuracy.energyError >= 0 ? "+" : ""}
+          {accuracy.energyError.toFixed(EV_DECIMALS)} eV
+          {accuracy.energyErrorPerAtom != null && (
+            <span className="text-muted-foreground">
+              {" "}
+              ({accuracy.energyErrorPerAtom >= 0 ? "+" : ""}
+              {accuracy.energyErrorPerAtom.toFixed(EV_PER_ATOM_DECIMALS)} eV/atom)
+            </span>
+          )}
+        </>
+      ),
+    });
+  }
+
+  // Trajectory table rows — energy budget, honestly labelled.
+  const isMD = result.params?.calculationType === "molecular-dynamics";
+  const trajRows = buildTrajectoryRows(result, isMD);
+
   return (
     <div className="space-y-4">
       {/* Run config */}
@@ -354,152 +480,71 @@ function SummaryTab({
         </Card>
       )}
 
-      {/* Property cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Energy (headline, model-aware) + Properties (dense key/value table) */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <MetricCard
           label="Total Energy"
-          value={result.energy != null ? `${result.energy.toFixed(6)} eV` : "N/A"}
-          sub={`${ePerAtom} eV/atom`}
+          value={result.energy != null ? `${result.energy.toFixed(EV_DECIMALS)} eV` : "N/A"}
+          sub={
+            <>
+              <div>{ePerAtom} eV/atom</div>
+              {modelType && (
+                <div className={energyInRange === false ? "text-[var(--color-warning)]" : undefined}>
+                  {modelType === "custom" ? "Custom model" : modelType}
+                  {modelSize ? ` (${modelSize})` : ""} &middot;{" "}
+                  {convention?.method ?? "reference convention unknown"}
+                  {energyInRange === false &&
+                    convention &&
+                    ` — outside typical ${convention.range[0]} to ${convention.range[1]} eV/atom`}
+                </div>
+              )}
+            </>
+          }
           color="data-blue"
           icon={<Zap className="h-4 w-4" strokeWidth={1.75} />}
         />
-        <MetricCard
-          label="RMS Force"
-          value={rmsForce != null ? `${rmsForce.toFixed(4)} eV/A` : "N/A"}
-          sub={`${atomCount} atoms`}
-          color="data-cyan"
-          icon={<ArrowRightLeft className="h-4 w-4" strokeWidth={1.75} />}
-        />
-        {result.forces && result.forces.length > 0 && (
-          <MetricCard
-            label="Max Force"
-            value={`${maxForce.toFixed(4)} eV/A`}
-            sub={`Atom #${maxForceIdx + 1} (${result.symbols?.[maxForceIdx] ?? "?"})`}
-            color="data-red"
-            icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} />}
-          />
-        )}
-        {result.properties?.volume != null && (
-          <MetricCard
-            label="Cell Volume"
-            value={`${result.properties.volume.toFixed(2)} Å³`}
-            sub="Periodic cell"
-            color="data-purple"
-            icon={<Activity className="h-4 w-4" strokeWidth={1.75} />}
-          />
+
+        {propertyRows.length > 0 && (
+          <Card className="gap-2 border-l-4 border-l-[var(--color-data-gray)] py-4">
+            <CardHeader className="px-4">
+              <CardTitle className="font-serif text-sm font-semibold text-foreground">
+                Properties
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4">
+              <PropertyRows rows={propertyRows} />
+            </CardContent>
+          </Card>
         )}
       </div>
 
-      {/* Energy context note */}
-      <div className="rounded-lg border border-border bg-muted px-4 py-3">
-        <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-          <span className="font-bold text-[var(--color-text-secondary)]">Note:</span>{" "}
-          Energy shown is the <span className="text-[var(--color-text-secondary)]">total electronic energy</span> (including all-electron atomic contributions)
-          from the MACE model. For solids, cohesive energy = E(bulk)/N &minus; E(isolated atom);
-          subtract isolated atom energies for your elements. For molecules, relative energies
-          between conformers are physically meaningful; absolute values depend on the DFT reference
-          (ωB97M-D3BJ for MACE-OFF, PBE for MACE-MP-0).
-        </p>
-      </div>
+      {/* Energy context note — model-aware */}
+      <EnergyReferenceNote result={result} />
 
       {/* Accuracy metrics (when reference data is present) */}
-      {hasRef && (
-        <Card className="gap-3 border-l-4 border-l-[var(--color-accent-primary)] py-5">
-          <CardHeader className="px-5">
-            <CardTitle className="font-serif text-base font-semibold text-[var(--color-accent-strong)]">
+      {hasRef && accuracyRows.length > 0 && (
+        <Card className="gap-2 border-l-4 border-l-[var(--color-accent-primary)] py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="font-serif text-sm font-semibold text-[var(--color-accent-strong)]">
               Model Accuracy
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-5">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {accuracy.forceMAE != null && (
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground">Force MAE</p>
-                  <p className="font-mono text-lg font-bold text-foreground">
-                    {accuracy.forceMAE.toFixed(1)} <span className="text-xs text-muted-foreground">meV/A</span>
-                  </p>
-                </div>
-              )}
-              {accuracy.forceRMSE != null && (
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground">Force RMSE</p>
-                  <p className="font-mono text-lg font-bold text-foreground">
-                    {accuracy.forceRMSE.toFixed(1)} <span className="text-xs text-muted-foreground">meV/A</span>
-                  </p>
-                </div>
-              )}
-              {accuracy.energyMAE != null && (
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground">Energy MAE</p>
-                  <p className="font-mono text-lg font-bold text-foreground">
-                    {accuracy.energyMAE.toFixed(1)} <span className="text-xs text-muted-foreground">meV/atom</span>
-                  </p>
-                </div>
-              )}
-              {accuracy.energyR2 != null ? (
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground">Energy R&sup2;</p>
-                  <p className="font-mono text-lg font-bold text-foreground">
-                    {accuracy.energyR2.toFixed(4)}
-                  </p>
-                </div>
-              ) : (
-                accuracy.energyError != null && (
-                  <div>
-                    <p className="font-mono text-xs text-muted-foreground">Energy error vs. reference</p>
-                    <p className="font-mono text-lg font-bold text-foreground">
-                      {accuracy.energyError >= 0 ? "+" : ""}
-                      {accuracy.energyError.toFixed(4)}{" "}
-                      <span className="text-xs text-muted-foreground">eV</span>
-                    </p>
-                    {accuracy.energyErrorPerAtom != null && (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {accuracy.energyErrorPerAtom >= 0 ? "+" : ""}
-                        {accuracy.energyErrorPerAtom.toFixed(4)} eV/atom
-                      </p>
-                    )}
-                  </div>
-                )
-              )}
-            </div>
+          <CardContent className="px-4">
+            <PropertyRows rows={accuracyRows} />
           </CardContent>
         </Card>
       )}
 
-      {/* MD trajectory summary */}
-      {result.trajectory && result.trajectory.energies.length > 0 && (
-        <Card className="gap-3 border-l-4 border-l-[var(--color-data-yellow)] py-5">
-          <CardHeader className="px-5">
-            <CardTitle className="font-serif text-base font-semibold text-foreground">
-              MD Trajectory
+      {/* Trajectory summary — MD energy budget, or optimization progress */}
+      {trajRows.length > 0 && (
+        <Card className="gap-2 border-l-4 border-l-[var(--color-data-yellow)] py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="font-serif text-sm font-semibold text-foreground">
+              {isMD ? "MD Trajectory" : "Optimization Trajectory"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-5">
-            <div className="grid gap-4 sm:grid-cols-3 font-mono text-xs">
-              <div>
-                <span className="text-muted-foreground">Steps</span>
-                <p className="text-lg font-bold text-foreground">
-                  {result.trajectory.energies.length}
-                </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">E range</span>
-                <p className="text-lg font-bold text-foreground">
-                  {Math.min(...result.trajectory.energies).toFixed(3)} &rarr;{" "}
-                  {Math.max(...result.trajectory.energies).toFixed(3)} eV
-                </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">&Delta;E</span>
-                <p className="text-lg font-bold text-foreground">
-                  {(
-                    Math.max(...result.trajectory.energies) -
-                    Math.min(...result.trajectory.energies)
-                  ).toFixed(4)}{" "}
-                  eV
-                </p>
-              </div>
-            </div>
+          <CardContent className="px-4">
+            <PropertyRows rows={trajRows} />
           </CardContent>
         </Card>
       )}
@@ -582,8 +627,8 @@ function ForcesTab({
               reference={refFlat}
               predicted={predFlat}
               elements={elemFlat}
-              xLabel="Reference Force (eV/A)"
-              yLabel="Predicted Force (eV/A)"
+              xLabel="Reference Force (eV/Å)"
+              yLabel="Predicted Force (eV/Å)"
               title="Forces: Predicted vs. Reference"
             />
           </CardContent>
@@ -598,7 +643,7 @@ function ForcesTab({
           <CardContent className="px-4">
             <ErrorHistogram
               errors={errFlat}
-              xLabel="Force Error (eV/A)"
+              xLabel="Force Error (eV/Å)"
               title="Force Error Distribution"
             />
           </CardContent>
@@ -625,7 +670,7 @@ function ForcesTab({
       <Card className="gap-2 py-4">
         <CardHeader className="px-4">
           <CardTitle className="font-serif text-base font-semibold text-foreground">
-            Per-Atom Force Magnitudes
+            Per-Atom Force Magnitudes (eV/Å)
           </CardTitle>
           <p className="text-xs text-muted-foreground">
             Upload a structure with reference forces (REF_forces in extxyz) for parity plots and error analysis.
@@ -656,6 +701,17 @@ function EnergyTab({
   hasRefEnergy: boolean;
   isMD: boolean;
 }) {
+  const traj = result.trajectory;
+  // `energies` is the potential energy and always has been; `potentialEnergies`
+  // is its explicit alias on newer results. Prefer the explicit key, fall back
+  // to `energies` so results shared before the key existed still plot.
+  const potentialEnergies = traj?.potentialEnergies ?? traj?.energies ?? [];
+  const totalEnergies = traj?.totalEnergies ?? [];
+  const trajSteps =
+    traj?.step && traj.step.length > 0
+      ? traj.step
+      : potentialEnergies.map((_, i) => i);
+
   return (
     <div className="space-y-6">
       {/* Energy parity (if reference) */}
@@ -678,41 +734,77 @@ function EnergyTab({
         </Card>
       )}
 
-      {/* Energy convergence for MD or geometry optimization */}
-      {result.trajectory && result.trajectory.energies.length > 1 && (
+      {/*
+        Total energy vs. step — the quantity NVE conserves, and the only one
+        the docs' conservation claim can be checked against. Only rendered
+        when the backend supplied `totalEnergies`; older shared results
+        (MACE Link) carry potential energy alone and fall through to the
+        chart below, correctly labelled.
+      */}
+      {isMD && totalEnergies.length > 1 && (
         <Card className="gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              Energy vs. Step
+              Total Energy vs. Step
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Potential + kinetic energy. This is the conserved quantity in NVE;
+              under NVT the Langevin thermostat exchanges energy with the bath, so
+              it is expected to drift.
+            </p>
           </CardHeader>
           <CardContent className="px-4">
             <EnergyConvergence
-              energies={result.trajectory.energies}
-              steps={
-                result.trajectory.step.length > 0
-                  ? result.trajectory.step
-                  : result.trajectory.energies.map((_, i) => i)
+              energies={totalEnergies}
+              steps={trajSteps}
+              title="MD Total Energy (potential + kinetic) vs. Step"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Potential energy vs. step — MD and geometry optimization alike */}
+      {potentialEnergies.length > 1 && (
+        <Card className="gap-2 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="font-serif text-base font-semibold text-foreground">
+              Potential Energy vs. Step
+            </CardTitle>
+            {isMD && (
+              <p className="text-xs text-muted-foreground">
+                Potential energy alone is not conserved under any ensemble — it
+                trades against kinetic energy every step. Judge NVE conservation on
+                the total-energy chart{totalEnergies.length > 1 ? " above" : ""}.
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="px-4">
+            <EnergyConvergence
+              energies={potentialEnergies}
+              steps={trajSteps}
+              title={
+                isMD
+                  ? "MD Potential Energy vs. Step"
+                  : "Optimization Potential Energy vs. Step"
               }
-              title={isMD ? "MD Energy vs. Step" : "Optimization Energy"}
             />
           </CardContent>
         </Card>
       )}
 
       {/* Energy distribution for MD */}
-      {isMD && result.trajectory && result.trajectory.energies.length > 2 && (
+      {isMD && potentialEnergies.length > 2 && (
         <Card className="gap-2 py-4">
           <CardHeader className="px-4">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              Energy Distribution
+              Potential Energy Distribution
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
             <ErrorHistogram
-              errors={result.trajectory.energies}
-              xLabel="Energy (eV)"
-              title="MD Energy Distribution"
+              errors={potentialEnergies}
+              xLabel="Potential Energy (eV)"
+              title="MD Potential Energy Distribution"
               color={DATA_COLORS.blue}
             />
           </CardContent>
@@ -816,7 +908,7 @@ function RawDataTab({
         <Card className="gap-3 border-l-4 border-l-[var(--color-data-green)] py-5">
           <CardHeader className="px-5">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              Atomic Forces (eV/A)
+              Atomic Forces (eV/Å)
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5">
@@ -845,6 +937,60 @@ const ACCENT_MAP: Record<string, { border: string; icon: string }> = {
   "data-yellow": { border: "border-l-[var(--color-data-yellow)]", icon: "text-[var(--color-data-yellow)]" },
 };
 
+/**
+ * Backend warnings, rendered verbatim.
+ *
+ * These come from `result.warnings` — the backend is the only party that
+ * knows what actually ran, so it is the only party that can say what was
+ * requested but not applied. It reports D3 that was dropped (MACE-OFF
+ * already includes dispersion; upstream's `mace_off()` has no such
+ * parameter), a precision below upstream's recommendation, an optimization
+ * that hit its step ceiling, and any dtype conversion MACE performed on the
+ * checkpoint.
+ *
+ * Deliberately NOT a set of re-derived conditions in the UI. The previous
+ * D3 banner tested `params.dispersion && modelType === "MACE-OFF"`, which
+ * stopped rendering the moment the backend started reporting `dispersion`
+ * honestly — for MACE-OFF it is now always false, because no D3 calculator
+ * is ever built. A UI copy of backend logic goes stale silently; displaying
+ * what the backend said cannot.
+ *
+ * Absent on results produced before this field existed, and on runs with
+ * nothing to report — both render nothing.
+ */
+function ResultWarnings({ warnings }: { warnings?: string[] }) {
+  if (!warnings || warnings.length === 0) return null;
+
+  return (
+    <div
+      role="alert"
+      className="rounded-lg border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-4 py-3"
+    >
+      <div className="flex items-center gap-2">
+        <AlertTriangle
+          className="h-4 w-4 shrink-0 text-[var(--color-warning)]"
+          strokeWidth={1.75}
+        />
+        <h3 className="font-sans text-sm font-bold text-[var(--color-warning)]">
+          {warnings.length === 1
+            ? "1 warning from the calculation"
+            : `${warnings.length} warnings from the calculation`}
+        </h3>
+      </div>
+      <ul className="mt-2 space-y-1.5 pl-6">
+        {warnings.map((warning, i) => (
+          <li
+            key={i}
+            className="list-disc text-xs leading-relaxed text-[var(--color-warning)]"
+          >
+            {warning}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -854,7 +1000,7 @@ function MetricCard({
 }: {
   label: string;
   value: string;
-  sub?: string;
+  sub?: React.ReactNode;
   color: string;
   icon: React.ReactNode;
 }) {
@@ -869,9 +1015,84 @@ function MetricCard({
           </h3>
         </div>
         <p className="font-mono text-xl font-bold text-foreground">{value}</p>
-        {sub && <p className="mt-1 font-mono text-xs text-muted-foreground">{sub}</p>}
+        {sub && (
+          <div className="mt-1 space-y-0.5 font-mono text-xs text-muted-foreground">{sub}</div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Tight Materials-Project-style key/value row: bold label left, value right,
+ * hairline rule between rows, minimal vertical padding.
+ */
+function PropertyRows({ rows }: { rows: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <div>
+      {rows.map((row, i) => (
+        <div
+          key={i}
+          className="flex items-baseline justify-between gap-4 border-t border-border py-2 first:border-t-0 first:pt-0 last:pb-0"
+        >
+          <span className="font-sans text-sm font-semibold text-foreground">{row.label}</span>
+          <span className="font-mono text-sm tabular-nums text-right text-[var(--color-accent-strong)]">
+            {row.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Model-aware energy footnote: names the model that produced the number and
+ * its DFT/reference convention, and explains why raw totals aren't portable
+ * across models (CLAUDE.md, "Energy Reference Conventions").
+ */
+function EnergyReferenceNote({ result }: { result: CalculationResult }) {
+  const modelType = result.params?.modelType;
+  const modelSize = result.params?.modelSize;
+  const conv = modelType ? ENERGY_CONVENTIONS[modelType] : undefined;
+
+  return (
+    <div className="rounded-lg border border-border bg-muted px-4 py-3">
+      <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+        <span className="font-bold text-[var(--color-text-secondary)]">
+          Note{modelType ? ` (${modelType}${modelSize ? `, ${modelSize}` : ""})` : ""}:
+        </span>{" "}
+        Energy is the total electronic energy from the MACE model (including all-electron
+        atomic contributions) &mdash; not a directly measurable quantity.{" "}
+        {conv ? (
+          <>
+            This model is referenced to{" "}
+            <span className="text-[var(--color-text-secondary)]">{conv.method}</span>; typical
+            values fall between {conv.range[0]} and {conv.range[1]} eV/atom for {modelType}.
+          </>
+        ) : modelType === "custom" ? (
+          <>
+            This is a custom checkpoint &mdash; its reference convention depends on how it was
+            trained and is not necessarily comparable to MACE-MP-0 or MACE-OFF energies.
+          </>
+        ) : (
+          <>Absolute values depend on the reference used to train the model that produced them.</>
+        )}{" "}
+        Totals from a different model or reference state are never directly comparable &mdash;
+        only compare energies produced by the same model.{" "}
+        {modelType === "MACE-MP-0" && (
+          <>
+            For solids, cohesive energy = E(bulk)/N &minus; E(isolated atom); subtract
+            isolated-atom energies for your elements to get a physically comparable number.
+          </>
+        )}
+        {modelType === "MACE-OFF" && (
+          <>
+            For molecules, relative energies between conformers of the same composition are
+            physically meaningful; absolute totals are not.
+          </>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -909,11 +1130,11 @@ function ForcesTable({
                 >
                   <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-1.5 font-bold">{symbols[i]}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{force[0].toFixed(4)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{force[1].toFixed(4)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{force[2].toFixed(4)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{force[0].toFixed(FORCE_DECIMALS)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{force[1].toFixed(FORCE_DECIMALS)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{force[2].toFixed(FORCE_DECIMALS)}</td>
                   <td className={`px-3 py-1.5 text-right tabular-nums font-bold ${isMax ? "text-[var(--color-data-red)]" : "text-[var(--color-accent-strong)]"}`}>
-                    {mag.toFixed(4)}
+                    {mag.toFixed(FORCE_DECIMALS)}
                   </td>
                 </tr>
               );
@@ -937,12 +1158,154 @@ function formatParams(params: Partial<CalculationParams>): string {
   if (params.modelType) parts.push(params.modelType);
   if (params.modelSize) parts.push(`size: ${params.modelSize}`);
   if (params.calculationType) parts.push(params.calculationType);
+  // Precision and device come back resolved: the dtype read off the loaded
+  // model (which may differ from the request — a custom checkpoint keeps its
+  // own, and MACE converts on a mismatch) and the device after the CUDA→CPU
+  // fallback. Showing them is the point of the backend echoing them.
+  if (params.precision) parts.push(params.precision);
+  if (params.device) parts.push(params.device);
   if (params.temperature != null) parts.push(`${params.temperature} K`);
   if (params.pressure != null) parts.push(`${params.pressure} GPa`);
   if (params.timeStep != null) parts.push(`Δt ${params.timeStep} fs`);
+  if (params.friction != null) parts.push(`friction ${params.friction} /fs`);
   if (params.mdSteps != null) parts.push(`${params.mdSteps} MD steps`);
   if (params.mdEnsemble) parts.push(params.mdEnsemble);
-  if (params.forceThreshold != null) parts.push(`fmax ${params.forceThreshold}`);
+  if (params.seed != null) parts.push(`seed ${params.seed}`);
+  if (params.forceThreshold != null) parts.push(`fmax ${params.forceThreshold} eV/Å`);
+  if (params.maxOptSteps != null) parts.push(`max ${params.maxOptSteps} steps`);
   if (params.dispersion) parts.push("D3 dispersion");
   return parts.length ? parts.join(" · ") : "Default parameters";
+}
+
+/** Mean of a non-empty numeric array. */
+function meanOf(values: number[]): number {
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+/**
+ * Min/max by reduction, not by `Math.min(...values)`. MD steps go up to
+ * 100 000 in the UI, and spreading an array that large into a call throws
+ * a RangeError.
+ */
+function minOf(values: number[]): number {
+  return values.reduce((m, v) => (v < m ? v : m), Infinity);
+}
+
+function maxOf(values: number[]): number {
+  return values.reduce((m, v) => (v > m ? v : m), -Infinity);
+}
+
+/**
+ * Energy differences are shown in meV once they are small enough for eV to
+ * round them into invisibility — an NVE drift of 2.7 meV reads as "0.0027 eV"
+ * otherwise, which is exactly the number a reader needs to see clearly.
+ */
+function formatEnergyDelta(deltaEv: number, signed = false): string {
+  const sign = signed && deltaEv >= 0 ? "+" : "";
+  return Math.abs(deltaEv) < 1
+    ? `${sign}${(deltaEv * 1000).toFixed(MEV_DECIMALS)} meV`
+    : `${sign}${deltaEv.toFixed(EV_DECIMALS)} eV`;
+}
+
+/**
+ * Trajectory summary rows.
+ *
+ * Potential and total energy are reported as separate quantities because
+ * they are separate quantities: `trajectory.energies` is, and always was,
+ * the potential energy. Only `totalEnergies` (potential + kinetic) is the
+ * conserved quantity in NVE, and it only exists on results produced by a
+ * backend that records it — older shared results degrade to the potential
+ * energy rows alone rather than to a mislabelled "total".
+ */
+function buildTrajectoryRows(
+  result: CalculationResult,
+  isMD: boolean,
+): { label: string; value: React.ReactNode }[] {
+  const traj = result.trajectory;
+  if (!traj) return [];
+
+  const potential = traj.potentialEnergies ?? traj.energies ?? [];
+  if (potential.length === 0) return [];
+
+  const total = traj.totalEnergies ?? [];
+  const kinetic = traj.kineticEnergies ?? [];
+  const temperatures = traj.temperatures ?? [];
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: isMD ? "Frames" : "Steps", value: `${potential.length}` },
+  ];
+
+  if (total.length > 1) {
+    const first = total[0];
+    const last = total[total.length - 1];
+    rows.push({
+      label: "Total energy (potential + kinetic)",
+      value: `${first.toFixed(EV_DECIMALS)} → ${last.toFixed(EV_DECIMALS)} eV`,
+    });
+    rows.push({
+      label: "Total energy drift",
+      value: (
+        <>
+          {formatEnergyDelta(last - first, true)}
+          <span className="text-muted-foreground">
+            {" "}
+            (spread {formatEnergyDelta(maxOf(total) - minOf(total))})
+          </span>
+        </>
+      ),
+    });
+  }
+
+  const pMin = minOf(potential);
+  const pMax = maxOf(potential);
+  rows.push({
+    label: isMD ? "Potential energy range" : "Energy range",
+    value: `${pMin.toFixed(EV_DECIMALS)} → ${pMax.toFixed(EV_DECIMALS)} eV`,
+  });
+  rows.push({
+    label: isMD ? "Potential energy swing" : "ΔE",
+    value: formatEnergyDelta(pMax - pMin),
+  });
+
+  if (kinetic.length > 0) {
+    rows.push({
+      label: "Kinetic energy (mean)",
+      value: `${meanOf(kinetic).toFixed(EV_DECIMALS)} eV`,
+    });
+  }
+
+  if (temperatures.length > 0) {
+    const target = result.params?.temperature;
+    rows.push({
+      label: "Temperature (mean)",
+      value: (
+        <>
+          {meanOf(temperatures).toFixed(1)} K
+          <span className="text-muted-foreground">
+            {" "}
+            ({minOf(temperatures).toFixed(0)}–
+            {maxOf(temperatures).toFixed(0)} K
+            {target != null ? `, target ${target} K` : ""})
+          </span>
+        </>
+      ),
+    });
+  }
+
+  if (!isMD && result.converged != null) {
+    rows.push({
+      label: "Converged",
+      value: result.converged
+        ? "Yes — reached fmax"
+        : "No — stopped at the step limit",
+    });
+    if (result.params?.finalFmax != null) {
+      rows.push({
+        label: "Final max force",
+        value: `${result.params.finalFmax.toFixed(FORCE_DECIMALS)} eV/Å`,
+      });
+    }
+  }
+
+  return rows;
 }

@@ -26,12 +26,25 @@
  *
  * DATA SOURCE:
  *   - result.trajectory.positions[frame][atom][xyz] — coordinates per frame
- *   - result.trajectory.energies[frame] — total energy per frame
+ *   - result.trajectory.potentialEnergies[frame] — potential energy (eV)
+ *   - result.trajectory.kineticEnergies[frame]   — kinetic energy (eV)
+ *   - result.trajectory.totalEnergies[frame]     — potential + kinetic (eV)
+ *   - result.trajectory.temperatures[frame]      — instantaneous T (K)
+ *   - result.trajectory.energies[frame] — potential energy; the original key,
+ *     kept for results shared before the explicit keys existed. It was never
+ *     the total energy, though this file used to call it that.
  *   - result.trajectory.step[frame] — step indices
  *   - result.symbols — element symbols (same for all frames)
  *
+ * WHICH ENERGY IS SHOWN:
+ *   Total energy where the backend supplied it, because that is the quantity
+ *   an NVE run conserves and the one the docs tell users to check. Potential
+ *   energy is plotted alongside it, named. When `totalEnergies` is absent
+ *   (an older shared result) the chart shows potential energy alone and says
+ *   so, rather than relabelling it.
+ *
  * SHOWN ONLY WHEN:
- *   The parent (results-display.tsx) renders this component only when
+ *   The parent (metrics-dashboard.tsx, Structure tab) renders this only when
  *   calculationType === "molecular-dynamics" AND trajectory data exists.
  *
  * DEPENDENCIES:
@@ -50,8 +63,10 @@ import {
   Maximize,
   Minimize,
 } from "lucide-react";
+import type { GLViewer } from "3dmol";
 import type { CalculationResult } from "@/types/mace";
 import { EnergyChart } from "@/components/calculate/trajectory/energy-chart";
+import { DATA_COLORS } from "@/components/calculate/charts/chart-config";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -80,18 +95,30 @@ const BASE_INTERVAL_MS = 150;
  * Concatenate all trajectory frames into a single multi-frame XYZ string.
  * 3Dmol.js `addModelsAsFrames` expects this format: each frame is a
  * complete XYZ block (atom count + comment + atom lines) back-to-back.
+ *
+ * The comment line names the quantity it carries (`E_pot=` / `E_tot=`)
+ * rather than a bare `E =`, because these frames are the same bytes a user
+ * can copy out of the viewer.
  */
 function buildTrajectoryXYZ(
   symbols: string[],
   positions: number[][][],
-  energies: number[]
+  potentialEnergies: number[],
+  totalEnergies: number[]
 ): string {
   const atomCount = symbols.length;
   let xyz = "";
 
   for (let f = 0; f < positions.length; f++) {
+    const parts: string[] = [`Frame ${f}`];
+    if (potentialEnergies[f] != null) {
+      parts.push(`E_pot=${potentialEnergies[f].toFixed(6)} eV`);
+    }
+    if (totalEnergies[f] != null) {
+      parts.push(`E_tot=${totalEnergies[f].toFixed(6)} eV`);
+    }
     xyz += `${atomCount}\n`;
-    xyz += `Frame ${f} | E = ${energies[f]?.toFixed(6) ?? "N/A"} eV\n`;
+    xyz += `${parts.join(" | ")}\n`;
     for (let a = 0; a < atomCount; a++) {
       const [x, y, z] = positions[f][a];
       xyz += `${symbols[a]} ${x.toFixed(6)} ${y.toFixed(6)} ${z.toFixed(6)}\n`;
@@ -105,14 +132,50 @@ function buildTrajectoryXYZ(
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Guard only. The player's hooks live one level down so that this early
+ * return cannot make them conditional — an early return ahead of
+ * useState/useRef/useEffect puts every subsequent hook behind a data check,
+ * which is what react-hooks/rules-of-hooks was flagging here.
+ */
 export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
-  // FIX: guard against null trajectory/symbols → parent should prevent this, but crash-proof here
   if (!result.trajectory || !result.symbols) {
     return <div className="p-4 text-sm text-[var(--color-text-muted)]">No trajectory data available.</div>;
   }
-  const traj = result.trajectory;
-  const symbols = result.symbols;
+  return (
+    <TrajectoryPlayer
+      traj={result.trajectory}
+      symbols={result.symbols}
+      targetTemperature={result.params?.temperature}
+    />
+  );
+}
+
+type Trajectory = NonNullable<CalculationResult["trajectory"]>;
+
+function TrajectoryPlayer({
+  traj,
+  symbols,
+  targetTemperature,
+}: {
+  traj: Trajectory;
+  symbols: string[];
+  /** MD target temperature (K), for the NVT "fluctuates around target" note. */
+  targetTemperature?: number;
+}) {
   const totalFrames = traj.positions.length;
+
+  // `energies` is the potential energy — that is what the backend records
+  // into it, and what it has always contained. `potentialEnergies` is the
+  // explicit alias on newer results; prefer it, fall back to `energies` so
+  // results shared before these keys existed still animate and still plot.
+  const potentialEnergies = traj.potentialEnergies ?? traj.energies ?? [];
+  const totalEnergies = traj.totalEnergies ?? [];
+  const kineticEnergies = traj.kineticEnergies ?? [];
+  const temperatures = traj.temperatures ?? [];
+  const hasTotal = totalEnergies.length > 0;
+  const steps =
+    traj.step.length > 0 ? traj.step : potentialEnergies.map((_, i) => i);
 
   // ── State ──
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -124,8 +187,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
   // ── Refs ──
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
-  const viewerInstance = useRef<any>(null);
-  const modelRef = useRef<any>(null);
+  const viewerInstance = useRef<GLViewer | null>(null);
   const animFrameRef = useRef<number>(0);
   const lastTickRef = useRef<number>(0);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -136,7 +198,8 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
     xyzDataRef.current = buildTrajectoryXYZ(
       symbols,
       traj.positions,
-      traj.energies
+      potentialEnergies,
+      totalEnergies
     );
   }
 
@@ -159,8 +222,7 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
       viewerInstance.current = viewer;
 
       // Load all frames at once — 3Dmol manages frame switching internally
-      const model = viewer.addModelsAsFrames(xyzDataRef.current, "xyz");
-      modelRef.current = model;
+      viewer.addModelsAsFrames(xyzDataRef.current, "xyz");
 
       viewer.setStyle(
         {},
@@ -270,8 +332,32 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
   }, []);
 
   // ── Derived display values ──
-  const currentEnergy = traj.energies[currentFrame];
   const speed = SPEEDS[speedIdx];
+
+  // Plot total energy where it exists, with potential alongside it for
+  // contrast — on a real 20-step NVE run of ethanol the potential swings
+  // 161 meV while the total holds to 6 meV, which is the whole point of
+  // showing both. Kinetic energy is deliberately not a series here: it is
+  // O(0.1 eV) against totals of O(10³ eV) and would be a flat line on this
+  // axis. It is in the readout and in the Summary tab's energy budget.
+  const energySeries = [
+    ...(hasTotal
+      ? [
+          {
+            label: "Total (potential + kinetic)",
+            values: totalEnergies,
+            color: DATA_COLORS.blue,
+          },
+        ]
+      : []),
+    {
+      label: "Potential",
+      values: potentialEnergies,
+      color: hasTotal ? DATA_COLORS.purple : DATA_COLORS.blue,
+      dashed: hasTotal,
+      fill: !hasTotal,
+    },
+  ];
 
   return (
     <div
@@ -364,11 +450,12 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
               className="flex-1 accent-[var(--color-accent-primary)]"
               title={`Frame ${currentFrame + 1}`}
             />
-            <div className="shrink-0 text-right font-mono text-xs">
-              <span className="text-[var(--color-text-muted)]">E = </span>
-              <span className="text-[var(--color-text-primary)]">{currentEnergy?.toFixed(4)}</span>
-              <span className="text-[var(--color-text-muted)]"> eV</span>
-            </div>
+            <FrameReadout
+              potential={potentialEnergies[currentFrame]}
+              total={totalEnergies[currentFrame]}
+              kinetic={kineticEnergies[currentFrame]}
+              temperature={temperatures[currentFrame]}
+            />
           </div>
         )}
       </div>
@@ -416,29 +503,72 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
             className="flex-1 accent-[var(--color-accent-primary)]"
             title={`Frame ${currentFrame + 1}`}
           />
-          <div className="shrink-0 text-right font-mono text-xs">
-            <span className="text-[var(--color-text-muted)]">E = </span>
-            <span className="text-[var(--color-text-primary)]">{currentEnergy?.toFixed(4)}</span>
-            <span className="text-[var(--color-text-muted)]"> eV</span>
-          </div>
+          <FrameReadout
+            potential={potentialEnergies[currentFrame]}
+            total={totalEnergies[currentFrame]}
+            kinetic={kineticEnergies[currentFrame]}
+            temperature={temperatures[currentFrame]}
+          />
         </div>
       )}
 
       {/* ── Energy vs Step Chart (hidden in fullscreen) ── */}
       {!fullscreen && (
-        <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3">
-          <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-primary)]">
-            Energy vs. MD Step
-          </h4>
-          <EnergyChart
-            energies={traj.energies}
-            steps={traj.step.length > 0 ? traj.step : traj.energies.map((_, i) => i)}
-            currentFrame={currentFrame}
-            onFrameSelect={(i) => {
-              setPlaying(false);
-              setCurrentFrame(i);
-            }}
-          />
+        <div className="space-y-4 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3">
+          <div>
+            <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-primary)]">
+              Energy vs. MD Step
+            </h4>
+            <EnergyChart
+              series={energySeries}
+              steps={steps}
+              currentFrame={currentFrame}
+              onFrameSelect={(i) => {
+                setPlaying(false);
+                setCurrentFrame(i);
+              }}
+              yLabel="Energy (eV)"
+              unit="eV"
+              decimals={3}
+            />
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+              {hasTotal
+                ? "Total energy (potential + kinetic) is what NVE conserves — judge conservation on the solid line. Potential energy alone is not conserved under any ensemble."
+                : "Only potential energy was recorded for this trajectory, so energy conservation cannot be checked here. Re-run the calculation to record kinetic and total energy per frame."}
+            </p>
+          </div>
+
+          {temperatures.length > 0 && (
+            <div>
+              <h4 className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-primary)]">
+                Temperature vs. MD Step
+              </h4>
+              <EnergyChart
+                series={[
+                  {
+                    label: "Temperature",
+                    values: temperatures,
+                    color: DATA_COLORS.red,
+                    fill: true,
+                  },
+                ]}
+                steps={steps}
+                currentFrame={currentFrame}
+                onFrameSelect={(i) => {
+                  setPlaying(false);
+                  setCurrentFrame(i);
+                }}
+                yLabel="Temperature (K)"
+                unit="K"
+                decimals={0}
+              />
+              <p className="mt-1 text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+                Under NVT this should fluctuate around the target temperature
+                {targetTemperature != null ? ` (${targetTemperature} K)` : ""}
+                ; under NVE it is unconstrained and free to drift.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -448,6 +578,75 @@ export function TrajectoryViewer({ result }: TrajectoryViewerProps) {
           Drag to rotate · Scroll to zoom · Click chart to jump to frame ·
           Keyboard: Space = play/pause
         </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Frame readout — the per-frame numbers, each named
+// ---------------------------------------------------------------------------
+
+/**
+ * Every quantity is labelled (`E_tot`, `E_pot`, `E_kin`, `T`). The bare
+ * "E = …" this replaced was the potential energy shown next to a chart
+ * captioned "total energy", which is the kind of thing that turns into a
+ * wrong conclusion in someone's notebook.
+ */
+function FrameReadout({
+  potential,
+  total,
+  kinetic,
+  temperature,
+}: {
+  potential?: number;
+  total?: number;
+  kinetic?: number;
+  temperature?: number;
+}) {
+  return (
+    <div className="shrink-0 text-right font-mono text-[11px] leading-tight">
+      {total != null && (
+        <div>
+          <span className="text-[var(--color-text-muted)]">E_tot = </span>
+          <span className="text-[var(--color-text-primary)]">
+            {total.toFixed(4)}
+          </span>
+          <span className="text-[var(--color-text-muted)]"> eV</span>
+        </div>
+      )}
+      {potential != null && (
+        <div>
+          <span className="text-[var(--color-text-muted)]">E_pot = </span>
+          <span
+            className={
+              total != null
+                ? "text-[var(--color-text-secondary)]"
+                : "text-[var(--color-text-primary)]"
+            }
+          >
+            {potential.toFixed(4)}
+          </span>
+          <span className="text-[var(--color-text-muted)]"> eV</span>
+        </div>
+      )}
+      {kinetic != null && (
+        <div>
+          <span className="text-[var(--color-text-muted)]">E_kin = </span>
+          <span className="text-[var(--color-text-secondary)]">
+            {kinetic.toFixed(4)}
+          </span>
+          <span className="text-[var(--color-text-muted)]"> eV</span>
+        </div>
+      )}
+      {temperature != null && (
+        <div>
+          <span className="text-[var(--color-text-muted)]">T = </span>
+          <span className="text-[var(--color-text-secondary)]">
+            {temperature.toFixed(0)}
+          </span>
+          <span className="text-[var(--color-text-muted)]"> K</span>
+        </div>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import { DocsPager } from "@/components/docs/docs-nav";
 export const metadata: Metadata = {
   title: "Calculations & parameters",
   description:
-    "Single-point energy, geometry optimization (BFGS/FIRE, fmax), and molecular dynamics (NVE/NVT/NPT) in SimpleAtom — parameters, precision, device, D3 dispersion, and the Web UI to MACE parameter mapping.",
+    "Single-point energy, geometry optimization (BFGS, fmax), and molecular dynamics (NVE/NVT/NPT) in SimpleAtom — parameters, precision, device, D3 dispersion, and the Web UI to MACE parameter mapping.",
 };
 
 export default function CalculationsPage() {
@@ -56,7 +56,12 @@ export default function CalculationsPage() {
             <tr>
               <td>Optimizer</td>
               <td>BFGS</td>
-              <td>Switch to FIRE if BFGS struggles to converge.</td>
+              <td>
+                Fixed &mdash; BFGS is the only optimizer, and it is not
+                selectable. If it struggles to converge, loosen{" "}
+                <code>fmax</code>, raise <code>maxOptSteps</code>, or start
+                from a cleaner geometry.
+              </td>
             </tr>
             <tr>
               <td>
@@ -64,8 +69,8 @@ export default function CalculationsPage() {
               </td>
               <td>0.05</td>
               <td>
-                0.01 for production results; 0.005 before running a
-                vibrational/frequency analysis.
+                0.01 for production results; 0.005 if the relaxed geometry will
+                be handed to an external vibrational analysis.
               </td>
             </tr>
             <tr>
@@ -104,14 +109,18 @@ export default function CalculationsPage() {
             <tr>
               <td>NVE</td>
               <td>None (microcanonical)</td>
-              <td>Any system. Total energy should stay conserved.</td>
+              <td>
+                Any system. Total energy (potential + kinetic) should stay
+                conserved; potential energy alone should not, and does not.
+              </td>
             </tr>
             <tr>
               <td>NVT</td>
               <td>Langevin thermostat (friction parameter)</td>
               <td>
-                Target temperature (K). Energy fluctuates around the target
-                temperature rather than staying fixed.
+                Target temperature (K). The thermostat exchanges energy with a
+                heat bath, so temperature fluctuates around the target rather
+                than holding fixed, and total energy is not conserved.
               </td>
             </tr>
             <tr>
@@ -147,6 +156,24 @@ export default function CalculationsPage() {
             entered in GPa and converted internally — see{" "}
             <Link href="/docs/units">Units &amp; conventions</Link>.
           </li>
+          <li>
+            <strong>Random seed:</strong> MD has two stochastic sources — the
+            initial Maxwell&ndash;Boltzmann velocities and the Langevin random
+            forces. Both are driven by a single seed, which defaults to{" "}
+            <code>42</code>, so a run is reproducible bit-for-bit. The seed
+            used is recorded in the result message and parameters, so a shared
+            trajectory can always be re-run exactly. Change it to generate
+            independent replicas of the same system.
+          </li>
+          <li>
+            <strong>What a trajectory records:</strong> potential energy,
+            kinetic energy, total energy and the instantaneous temperature at
+            every frame. The Energy tab plots total energy and potential energy
+            as separate, named series, so the NVE claim above is one you can
+            check on the chart rather than take on trust; the Summary tab
+            reports the total-energy drift over the run and the mean
+            temperature against your target.
+          </li>
         </ul>
         <Callout type="note" title="Phonon spectrum — planned">
           Phonon spectrum calculation is on the roadmap but not yet
@@ -172,20 +199,44 @@ export default function CalculationsPage() {
 
         <h2 id="precision">Precision</h2>
         <p>
-          Two floating-point precisions are available:
+          Precision is the <code>default_dtype</code> handed to MACE. The
+          default setting is <strong>Auto</strong>, which applies upstream
+          MACE&rsquo;s own choice rather than a SimpleAtom opinion:
         </p>
         <ul>
           <li>
-            <strong>float32</strong> — the default. Fast, and sufficient for
-            energies, forces, and standard optimization or MD.
+            <strong>float32</strong> — faster, less accurate. Upstream
+            recommends it for molecular dynamics.
           </li>
           <li>
-            <strong>float64</strong> — required for Hessian and vibrational
-            frequency calculations, and recommended when preparing a
-            structure for such an analysis (converge to{" "}
-            <code>fmax</code> &lt; 0.005 eV/Å first).
+            <strong>float64</strong> — slower, more accurate. Upstream
+            recommends it for geometry optimization, and{" "}
+            <code>mace_off()</code> defaults to it for the whole MACE-OFF
+            family.
           </li>
         </ul>
+        <p>
+          Both <code>mace_mp()</code> and <code>mace_off()</code> print this
+          guidance at construction time, on every run:{" "}
+          <em>
+            float32 &hellip; faster but less accurate. Recommended for MD. Use
+            float64 for geometry optimization.
+          </em>{" "}
+          Auto follows it: float64 for MACE-OFF and for geometry optimization,
+          float32 otherwise.
+        </p>
+        <Callout type="note" title="An explicit choice is honoured, and reported">
+          Picking float32 or float64 explicitly overrides Auto — upstream
+          honours whatever <code>default_dtype</code> it is handed, and so does
+          SimpleAtom. When the choice lands below upstream&rsquo;s
+          recommendation, the result carries a warning saying so. A custom
+          <code>.model</code> checkpoint is a special case: it keeps the dtype
+          it was saved in, because MACE adopts the checkpoint&rsquo;s own dtype
+          when no <code>default_dtype</code> is passed. Either way, the
+          precision shown in a result is the dtype the loaded model was
+          actually running in, read back off the model — not the dtype that was
+          requested.
+        </Callout>
 
         <h2 id="device">Device</h2>
         <p>
@@ -236,7 +287,9 @@ export default function CalculationsPage() {
               </td>
               <td>
                 <code>&quot;float32&quot;</code> or{" "}
-                <code>&quot;float64&quot;</code>.
+                <code>&quot;float64&quot;</code>. Auto passes no{" "}
+                <code>default_dtype</code>, so upstream&rsquo;s own default
+                applies.
               </td>
             </tr>
             <tr>

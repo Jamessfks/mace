@@ -113,7 +113,16 @@ For MD calculations, the response includes a `trajectory` field:
 
 Models download and cache automatically on first use (~30s initial download).
 
-**Important:** MACE-OFF already includes dispersion in its training data. Do not enable D3 dispersion correction with MACE-OFF (double-counting).
+### D3 dispersion (`"dispersion": true`)
+
+Only MACE-MP-0 applies it. The correction is computed by `TorchDFTD3Calculator`,
+which ships in **`torch-dftd`** — a separate distribution from `mace-torch`, listed
+in `requirements.txt`. Without it the request is rejected up front, before the
+checkpoint is downloaded, with an error naming the package; it is not silently
+skipped. `torch-dftd` pulls in `pymatgen` (imported at module scope), which is the
+bulk of its ~130 MB installed footprint.
+
+**Important:** MACE-OFF already includes dispersion in its training data. Do not enable D3 dispersion correction with MACE-OFF (double-counting). Requesting it there is not an error — the flag is dropped, `result["params"]["dispersion"]` reports `false`, and a warning records that it was dropped and why. The same applies to custom checkpoints, which never build a D3 calculator.
 
 ---
 
@@ -182,3 +191,4 @@ python validate_calculation.py result.json         # Validate from file
 - PyTorch 2.0+ (2.6+ supported with patched `torch.load`)
 - mace-torch >= 0.3.0
 - ASE >= 3.22.0
+- torch-dftd >= 0.5.1 (D3 dispersion backend for MACE-MP-0; not pulled in by mace-torch)
