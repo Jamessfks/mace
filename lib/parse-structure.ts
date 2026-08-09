@@ -44,6 +44,19 @@ export interface ParsedStructure {
   minNeighborDist: number;
   /** Whether all atoms lie in a single plane (z-range < 0.01 Å) */
   isPlanar: boolean;
+  /**
+   * Unit-cell vectors as a 3x3 row-major matrix (Å), when the source format
+   * declares one: extended-XYZ `Lattice="..."`, CIF `_cell_length_*`, or the
+   * POSCAR header. Undefined for isolated molecules.
+   */
+  lattice?: number[][];
+  /**
+   * Whether this structure can be treated as periodic. True only when a cell
+   * is present AND encloses a positive volume — CLAUDE.md's validation rules
+   * require positive cell volume, and a degenerate cell is not periodic.
+   * Gates NPT, which cannot run without a cell.
+   */
+  isPeriodic: boolean;
   /** Number of frames detected (for multi-frame XYZ); we parse only frame 1 */
   frameCount: number;
   /** Original filename */
@@ -72,6 +85,7 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
 
   let referenceEnergy: number | undefined;
   let referenceForces: number[][] | undefined;
+  let lattice: number[][] | undefined;
 
   if (ext === "xyz" || ext === "extxyz") {
     const xyzResult = parseXYZ(text);
@@ -80,15 +94,16 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
     frameCount = xyzResult.frameCount;
     referenceEnergy = xyzResult.referenceEnergy;
     referenceForces = xyzResult.referenceForces;
+    lattice = xyzResult.lattice;
   } else if (ext === "cif") {
-    ({ symbols, positions } = parseCIF(text));
+    ({ symbols, positions, lattice } = parseCIF(text));
   } else if (ext === "pdb") {
     ({ symbols, positions } = parsePDB(text));
   } else if (["poscar", "vasp", "contcar"].includes(ext)) {
-    ({ symbols, positions } = parsePOSCAR(text));
+    ({ symbols, positions, lattice } = parsePOSCAR(text));
   } else {
     // Fallback: try XYZ
-    ({ symbols, positions, frameCount } = parseXYZ(text));
+    ({ symbols, positions, frameCount, lattice } = parseXYZ(text));
   }
 
   const elements = [...new Set(symbols)].sort();
@@ -108,11 +123,34 @@ export async function parseStructureFile(file: File): Promise<ParsedStructure> {
     boundingBox,
     minNeighborDist,
     isPlanar,
+    lattice,
+    isPeriodic: hasPositiveVolume(lattice),
     frameCount,
     filename: file.name,
     referenceEnergy,
     referenceForces,
   };
+}
+
+/**
+ * A cell only makes a structure periodic if it encloses real space. Guards
+ * against the degenerate cases seen in the wild: a missing cell, an all-zero
+ * `Lattice="0 0 0 ..."` header, or coplanar vectors. Uses |det| so a
+ * left-handed cell still counts as periodic rather than being rejected for
+ * vector ordering.
+ */
+function hasPositiveVolume(lattice?: number[][]): boolean {
+  if (!lattice || lattice.length !== 3) return false;
+  if (lattice.some((row) => row.length !== 3 || row.some((v) => !isFinite(v)))) {
+    return false;
+  }
+  const [a, b, c] = lattice;
+  const det =
+    a[0] * (b[1] * c[2] - b[2] * c[1]) -
+    a[1] * (b[0] * c[2] - b[2] * c[0]) +
+    a[2] * (b[0] * c[1] - b[1] * c[0]);
+  // 1e-6 Å³ is far below any physical cell and well above float noise.
+  return Math.abs(det) > 1e-6;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +167,7 @@ function parseXYZ(text: string): {
   frameCount: number;
   referenceEnergy?: number;
   referenceForces?: number[][];
+  lattice?: number[][];
 } {
   const lines = text.split("\n").map((l) => l.trim());
   const symbols: string[] = [];
@@ -149,6 +188,21 @@ function parseXYZ(text: string): {
   if (energyMatch) {
     const val = parseFloat(energyMatch[1]);
     if (!isNaN(val)) referenceEnergy = val;
+  }
+
+  // Extended XYZ declares the cell on the comment line as
+  // Lattice="ax ay az bx by bz cx cy cz" (row-major, Å).
+  let lattice: number[][] | undefined;
+  const latticeMatch = commentLine.match(/Lattice\s*=\s*"([^"]*)"/i);
+  if (latticeMatch) {
+    const v = latticeMatch[1]
+      .trim()
+      .split(/\s+/)
+      .map(parseFloat)
+      .filter((n) => !isNaN(n));
+    if (v.length === 9) {
+      lattice = [v.slice(0, 3), v.slice(3, 6), v.slice(6, 9)];
+    }
   }
 
   // Detect if the comment line defines per-atom property columns
@@ -205,6 +259,7 @@ function parseXYZ(text: string): {
     frameCount,
     referenceEnergy,
     referenceForces: referenceForces.length > 0 ? referenceForces : undefined,
+    lattice,
   };
 }
 
@@ -212,10 +267,28 @@ function parseXYZ(text: string): {
  * Parse basic CIF: extract _atom_site_type_symbol and fract/Cartn coords.
  * This handles common CIF output from materials databases.
  */
-function parseCIF(text: string): { symbols: string[]; positions: number[][] } {
+function parseCIF(text: string): {
+  symbols: string[];
+  positions: number[][];
+  lattice?: number[][];
+} {
   const symbols: string[] = [];
   const positions: number[][] = [];
   const lines = text.split("\n");
+
+  // Cell parameters. CIF values may carry an uncertainty suffix, e.g.
+  // "5.4309(5)" — strip it before parsing.
+  const cell: Record<string, number> = {};
+  const cellRe =
+    /^_cell_(length_a|length_b|length_c|angle_alpha|angle_beta|angle_gamma)\s+([-\d.eE+]+)/i;
+  for (const line of lines) {
+    const m = line.trim().replace(/\(\d+\)/g, "").match(cellRe);
+    if (m) {
+      const v = parseFloat(m[2]);
+      if (!isNaN(v)) cell[m[1].toLowerCase()] = v;
+    }
+  }
+  const lattice = buildLatticeFromCell(cell);
 
   // Find _atom_site loop
   let inLoop = false;
@@ -224,6 +297,9 @@ function parseCIF(text: string): { symbols: string[]; positions: number[][] } {
   let xIdx = -1;
   let yIdx = -1;
   let zIdx = -1;
+  // CIF may give either fractional or Cartesian coordinates. Fractional must
+  // be multiplied through the cell or every distance is meaningless.
+  let coordsAreFractional = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -242,7 +318,10 @@ function parseCIF(text: string): { symbols: string[]; positions: number[][] } {
       if (h === "_atom_site_type_symbol" || h === "_atom_site_label") {
         if (symIdx === -1) symIdx = idx;
       }
-      if (h.includes("fract_x") || h.includes("cartn_x")) xIdx = idx;
+      if (h.includes("fract_x") || h.includes("cartn_x")) {
+        xIdx = idx;
+        coordsAreFractional = h.includes("fract_x");
+      }
       if (h.includes("fract_y") || h.includes("cartn_y")) yIdx = idx;
       if (h.includes("fract_z") || h.includes("cartn_z")) zIdx = idx;
       continue;
@@ -266,13 +345,68 @@ function parseCIF(text: string): { symbols: string[]; positions: number[][] } {
         const z = parseFloat(parts[zIdx]);
         if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
           symbols.push(sym);
-          positions.push([x, y, z]);
+          if (coordsAreFractional && lattice) {
+            // r_cart = f_a * a + f_b * b + f_c * c
+            positions.push([
+              x * lattice[0][0] + y * lattice[1][0] + z * lattice[2][0],
+              x * lattice[0][1] + y * lattice[1][1] + z * lattice[2][1],
+              x * lattice[0][2] + y * lattice[1][2] + z * lattice[2][2],
+            ]);
+          } else {
+            positions.push([x, y, z]);
+          }
         }
       }
     }
   }
 
-  return { symbols, positions };
+  if (coordsAreFractional && !lattice) {
+    throw new Error(
+      "CIF declares fractional coordinates but no readable unit cell " +
+        "(_cell_length_a/b/c, _cell_angle_alpha/beta/gamma). Without the cell " +
+        "the coordinates cannot be converted to Ångströms."
+    );
+  }
+
+  return { symbols, positions, lattice };
+}
+
+/**
+ * Build 3x3 cell vectors (Å) from CIF lengths and angles, using the standard
+ * crystallographic setting: a along x, b in the xy-plane, c completing it.
+ * Returns undefined unless all six parameters are present and physical.
+ */
+function buildLatticeFromCell(
+  cell: Record<string, number>
+): number[][] | undefined {
+  const a = cell["length_a"];
+  const b = cell["length_b"];
+  const c = cell["length_c"];
+  const alpha = cell["angle_alpha"];
+  const beta = cell["angle_beta"];
+  const gamma = cell["angle_gamma"];
+  if ([a, b, c, alpha, beta, gamma].some((v) => v === undefined || isNaN(v))) {
+    return undefined;
+  }
+  if (a <= 0 || b <= 0 || c <= 0) return undefined;
+
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const ca = Math.cos(rad(alpha));
+  const cb = Math.cos(rad(beta));
+  const cg = Math.cos(rad(gamma));
+  const sg = Math.sin(rad(gamma));
+  if (Math.abs(sg) < 1e-9) return undefined; // degenerate gamma
+
+  const cx = c * cb;
+  const cy = (c * (ca - cb * cg)) / sg;
+  const czSq = c * c - cx * cx - cy * cy;
+  if (czSq <= 0) return undefined; // angles do not close a real cell
+
+  return [
+    [a, 0, 0],
+    [b * cg, b * sg, 0],
+    [cx, cy, Math.sqrt(czSq)],
+  ];
 }
 
 /**
@@ -312,6 +446,7 @@ function parsePDB(text: string): { symbols: string[]; positions: number[][] } {
 function parsePOSCAR(text: string): {
   symbols: string[];
   positions: number[][];
+  lattice?: number[][];
 } {
   const lines = text.split("\n").map((l) => l.trim());
   const symbols: string[] = [];
@@ -371,7 +506,7 @@ function parsePOSCAR(text: string): {
     positions.push([x, y, z]);
   }
 
-  return { symbols, positions };
+  return { symbols, positions, lattice };
 }
 
 // ---------------------------------------------------------------------------

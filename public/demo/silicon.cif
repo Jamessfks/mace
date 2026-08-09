@@ -1,0 +1,32 @@
+# Silicon, diamond cubic (Fd-3m), conventional 8-atom cell.
+# Lattice constant 5.4309 A is the experimental value, NOT a DFT-relaxed one --
+# Materials Project's PBE cell for mp-149 is slightly larger. Do not treat
+# agreement with this cell as agreement with MP's reference data.
+#
+# Also serves as the fractional-coordinate test fixture: every position below
+# is fractional, so a parser that fails to multiply through the cell will place
+# all 8 atoms inside a 1 A box. Correct nearest-neighbour distance is
+# a*sqrt(3)/4 = 2.3517 A.
+data_Si
+_symmetry_space_group_name_H-M   'F d -3 m'
+_cell_length_a                   5.4309
+_cell_length_b                   5.4309
+_cell_length_c                   5.4309
+_cell_angle_alpha                90.0
+_cell_angle_beta                 90.0
+_cell_angle_gamma                90.0
+_chemical_formula_structural     Si
+_chemical_formula_sum            'Si8'
+loop_
+ _atom_site_type_symbol
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ Si  0.00000  0.00000  0.00000
+ Si  0.50000  0.50000  0.00000
+ Si  0.50000  0.00000  0.50000
+ Si  0.00000  0.50000  0.50000
+ Si  0.25000  0.25000  0.25000
+ Si  0.75000  0.75000  0.25000
+ Si  0.75000  0.25000  0.75000
+ Si  0.25000  0.75000  0.75000

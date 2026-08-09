@@ -21,6 +21,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import {
+  parseStructureFile,
+  type ParsedStructure,
+} from "@/lib/parse-structure";
 import { FileUploadSection } from "@/components/calculate/file-upload-section";
 import { ParameterPanel } from "@/components/calculate/parameter-panel";
 import { MetricsDashboard } from "@/components/calculate/metrics-dashboard";
@@ -126,6 +130,14 @@ export default function CalculatePage() {
 
 function CalculatePageInner() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  /**
+   * Parsed form of the first uploaded structure. Feeds the parameter panel's
+   * scientific guardrails — the MACE-OFF element check and the NPT
+   * periodicity gate — which stay inert while this is null, so nothing warns
+   * before a structure is loaded.
+   */
+  const [parsedStructure, setParsedStructure] =
+    useState<ParsedStructure | null>(null);
   const [params, setParams] = useState<CalculationParams>({
     modelSize: "medium",
     modelType: "MACE-MP-0",
@@ -158,6 +170,29 @@ function CalculatePageInner() {
   // Demo mode — guided overlay steps
   const [demoStep, setDemoStep] = useState<number | null>(null);
   const searchParams = useSearchParams();
+
+  // Keep the parsed structure in step with the uploaded file. Parse failures
+  // clear it rather than surfacing here — the upload/preview components already
+  // report malformed structures, and a guardrail that fires on a parse error
+  // would be worse than one that stays quiet.
+  useEffect(() => {
+    const file = uploadedFiles[0];
+    if (!file) {
+      setParsedStructure(null);
+      return;
+    }
+    let cancelled = false;
+    parseStructureFile(file)
+      .then((s) => {
+        if (!cancelled) setParsedStructure(s);
+      })
+      .catch(() => {
+        if (!cancelled) setParsedStructure(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadedFiles]);
 
   const handleFilesChange = useCallback(
     (files: File[]) => {
@@ -392,6 +427,8 @@ function CalculatePageInner() {
                   onChange={setParams}
                   customModelFile={customModelFile}
                   onCustomModelChange={setCustomModelFile}
+                  structureElements={parsedStructure?.elements}
+                  isPeriodic={parsedStructure?.isPeriodic}
                 />
               </aside>
 
