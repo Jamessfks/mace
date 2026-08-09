@@ -26,12 +26,16 @@
  *      changes only — so we additionally watch devicePixelRatio itself
  *      (see watchPixelRatio) and re-resize when it changes with no relayout
  *      (browser zoom, dragging the window to a display of different density).
- *   2. Shading — renderer-level dark contact outline + screen-space ambient
+ *   2. Framing — the structure is measured in screen space and fitted to
+ *      TARGET_FILL of the canvas short axis. 3Dmol's own zoomTo() leaves a
+ *      small molecule at ~28% and cannot be corrected with a constant (see the
+ *      framing block below).
+ *   3. Shading — renderer-level dark contact outline + screen-space ambient
  *      occlusion, so overlapping atoms separate and contacts darken.
- *   3. Colours — Jmol CPK (C grey, H white, N blue, O red). 3Dmol's built-in
- *      default is the washed-out RasMol table (C #C8C8C8, N #8F8FFF), which
- *      disappears against a white canvas.
- *   4. Background — the canvas uses the theme's elevated surface (pure white
+ *   4. Colours — Jmol CPK (C grey, H off-white, N blue, O red), with a
+ *      luminance ceiling so nothing renders at the background colour. 3Dmol's
+ *      built-in default is the washed-out RasMol table (C #C8C8C8, N #8F8FFF).
+ *   5. Background — the canvas uses the theme's elevated surface (pure white
  *      in the light theme) rather than the warm off-white page tint.
  *
  * DEPENDENCIES:
@@ -63,6 +67,12 @@ import { WeasViewer } from "./weas-viewer";
 type Representation = "ball-and-stick" | "stick" | "spacefill";
 type ViewerEngine = "3dmol" | "weas";
 
+interface Point3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 interface MoleculeViewer3DProps {
   result: CalculationResult;
 }
@@ -72,11 +82,22 @@ interface MoleculeViewer3DProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Jmol CPK: C #909090 grey, H #FFFFFF white, N #3050F8 blue, O #FF0D0D red.
- * 3Dmol's *default* table is RasMol (C #C8C8C8, N #8F8FFF, O #F00000) — both
- * carbon and nitrogen read as washed-out pastels on a white canvas.
+ * Ceiling on rendered luminance, in 0-255. The canvas is white (255), and the
+ * only light in a 3Dmol scene is a single white directional light with no
+ * ambient term, so a fragment's maximum output is exactly its base colour.
+ * Jmol's hydrogen is #FFFFFF, which means every hydrogen's lit cap renders at
+ * literally the background colour and the atom dissolves into it — it survives
+ * only on its outline. The bar never exceeds ~242 anywhere in the molecule.
+ *
+ * Capping *luminance* (not per channel) darkens only the near-white entries and
+ * leaves saturated colours alone: a red oxygen pixel at (255,13,13) has
+ * luminance 64 and can never be confused with the background. Over the whole
+ * 204-entry Jmol table this touches exactly four elements —
+ *   H  #FFFFFF -> #F0F0F0     He #D9FFFF -> #D3F8F8
+ *   Ce #FFFFC7 -> #F4F4BE     Pr #D9FFC7 -> #D6FCC5
+ * C, N, O, F, P, S, Cl and every metal are unchanged.
  */
-const CPK_SCHEME = "Jmol";
+const WHITE_CEILING = 240;
 
 /**
  * Ball-and-stick proportions. 3Dmol's `sphere.scale` multiplies the element's
@@ -91,20 +112,23 @@ const CPK_SCHEME = "Jmol";
  */
 const SPHERE_SCALE = 0.22;
 const BOND_RADIUS = 0.15;
+const LICORICE_RADIUS = 0.18;
+const SPACEFILL_SCALE = 1.0;
 
-const REP_STYLES: Record<Representation, AtomStyleSpec> = {
-  "ball-and-stick": {
-    stick: { radius: BOND_RADIUS, colorscheme: CPK_SCHEME },
-    sphere: { scale: SPHERE_SCALE, colorscheme: CPK_SCHEME },
-  },
-  // Licorice. showNonBonded keeps isolated atoms visible when 3Dmol's
-  // distance-based bond perception finds no neighbours (ions, gas-phase atoms).
-  stick: {
-    stick: { radius: 0.18, colorscheme: CPK_SCHEME, showNonBonded: true },
-  },
-  // True van der Waals spacefill (scale 1.0). Was 0.6, which is not spacefill.
-  spacefill: { sphere: { scale: 1.0, colorscheme: CPK_SCHEME } },
-};
+/**
+ * Jmol CPK with the white cap applied — C grey, H off-white, N blue, O red.
+ * 3Dmol's *default* table is RasMol (C #C8C8C8, N #8F8FFF, O #F00000), whose
+ * carbon and nitrogen read as washed-out pastels on a white canvas.
+ *
+ * Built lazily because the source table lives on the dynamically imported
+ * module. `{ prop, map }` is the shape 3Dmol uses for its own built-in schemes
+ * (see getColorFromStyle in 3dmol/src/utilities.ts).
+ */
+type ElementScheme = { prop: "elem"; map: Record<string, number> };
+let cpkScheme: ElementScheme | null = null;
+
+/** van der Waals radii, cached off the imported module for framing maths. */
+let vdwRadii: Record<string, number | undefined> | null = null;
 
 /**
  * Dark contact outline — what separates overlapping atoms and keeps white
@@ -122,19 +146,57 @@ const OUTLINE = { width: 0.05, color: "#14171C", maxpixels: 2 };
 /**
  * Screen-space ambient occlusion — soft contact shading where atoms meet.
  * `radius` is the occlusion sampling ray length in Angstroms (view space, not
- * pixels). 3Dmol's default 5.0 A is longer than a whole small molecule, so it
- * produces flat overall dimming instead of contact shadow; ~1.5x a C-C bond
- * keeps the darkening local to where a sphere meets a stick. strength 1.0
- * (the default) crushes those crevices to black. WebGL2 only; also gated on
- * atom count below.
+ * pixels), so the width of the rim band ON SCREEN scales with radius x the
+ * current pixels-per-Angstrom. Framing now fills the canvas ~2.7x more than it
+ * used to, which would have widened the rim by the same factor and turned the
+ * shading into an embossed vignette around every atom; 0.9 A holds the band at
+ * roughly its previous absolute pixel width while the atoms themselves grew,
+ * so it reads as contact shading rather than an outline glow. It also shrinks
+ * the SSAO halo that leaks around silhouette edges (the depth-discontinuity
+ * artifact behind occluded bonds). 3Dmol's default 5.0 A is longer than a whole
+ * small molecule; strength 1.0 (also the default) crushes crevices to black.
+ * WebGL2 only; also gated on atom count below.
  */
-const AMBIENT_OCCLUSION = { strength: 0.6, radius: 2.5 };
+const AMBIENT_OCCLUSION = { strength: 0.6, radius: 0.9 };
 
 /** Above this many atoms the SSAO depth pre-pass costs more than it buys. */
 const AO_MAX_ATOMS = 600;
 
-/** zoomTo() fits tight to the bounding sphere; back off for framing margin. */
-const FRAMING_ZOOM = 0.88;
+// ── Framing ────────────────────────────────────────────────────────────────
+//
+// 3Dmol's zoomTo() is badly under-zoomed for small structures. It sets the
+// camera so the viewport half-height equals the largest centre-to-atom distance
+// (3dmol/src/GLViewer.ts, zoomTo) — a 3D bounding-sphere radius, floored at
+// `minimumZoomToDistance` = 5 A. Ethanol's atoms all sit within ~2.2 A of the
+// centroid, so the floor wins outright and the molecule occupies ~28% of the
+// short axis. It also ignores orientation: a flat molecule seen face-on gets
+// the same fit as edge-on.
+//
+// Rather than multiplying by a constant (right for 9 atoms, clips at 75), the
+// framing below measures the actual projected silhouette and solves for the
+// zoom that lands it at TARGET_FILL, then re-measures. Cropping is impossible
+// by construction for any structure size.
+
+/** Fraction of the short axis the silhouette should span. Bar measures 0.739. */
+const TARGET_FILL = 0.76;
+
+/** Extra screen-pixel allowance for the outline, which sits outside the atom. */
+const OUTLINE_PAD_PX = 3;
+
+/** Measure/correct passes. Two is normally enough; the third is insurance. */
+const FRAMING_PASSES = 3;
+
+/** Stop once the correction is this close to 1. */
+const FRAMING_TOLERANCE = 0.02;
+
+/** Hard ceiling on total zoom applied after zoomTo(), against runaway fits. */
+const MAX_TOTAL_FRAMING_ZOOM = 8;
+
+/** Floor, so a structure that would crop can always be pulled back. */
+const MIN_TOTAL_FRAMING_ZOOM = 0.2;
+
+/** Angstroms drawn per eV/A of force. Shared by the arrows and the framing. */
+const FORCE_ARROW_SCALE = 5;
 
 /** Fallback canvas background if the theme token cannot be resolved. */
 const FALLBACK_BACKGROUND = "#FFFFFF";
@@ -182,14 +244,231 @@ function rendersWithWebGL2(viewer: GLViewer): boolean {
 }
 
 /**
- * Fit the structure to the canvas with a little margin. zoomTo() fits tight to
- * the bounding sphere, which crops atoms against the border; the bar frames the
- * molecule with visible breathing room. Used on load and on "reset view" so
- * both produce the same framing.
+ * Scale a packed 0xRRGGBB colour down until its Rec.709 luminance is at most
+ * WHITE_CEILING. Hue and saturation are preserved because all three channels
+ * are scaled by the same factor.
  */
-function frameView(viewer: GLViewer): void {
+function capLuminance(hex: number): number {
+  const r = (hex >> 16) & 0xff;
+  const g = (hex >> 8) & 0xff;
+  const b = hex & 0xff;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (luminance <= WHITE_CEILING) return hex;
+  const k = WHITE_CEILING / luminance;
+  return (
+    (Math.round(r * k) << 16) | (Math.round(g * k) << 8) | Math.round(b * k)
+  );
+}
+
+/**
+ * Cache the Jmol table (white-capped) and the vdW radii off the imported
+ * module. Both are static data on a singleton module, so building once is safe.
+ */
+function cacheColourTables($3Dmol: typeof import("3dmol")): void {
+  if (!cpkScheme) {
+    const jmol = $3Dmol.elementColors?.Jmol as
+      | Record<string, number>
+      | undefined;
+    const map: Record<string, number> = {};
+    for (const [element, colour] of Object.entries(jmol ?? {})) {
+      if (typeof colour === "number") map[element] = capLuminance(colour);
+    }
+    cpkScheme = { prop: "elem", map };
+  }
+  if (!vdwRadii) {
+    vdwRadii = $3Dmol.GLModel?.vdwRadii as
+      | Record<string, number | undefined>
+      | null;
+  }
+}
+
+/** Style spec for a representation, using the white-capped CPK scheme. */
+function repStyle(rep: Representation): AtomStyleSpec {
+  // Falls back to the built-in scheme name if the module has not loaded yet;
+  // in practice applyView only runs after cacheColourTables().
+  const scheme = cpkScheme ?? "Jmol";
+  switch (rep) {
+    case "spacefill":
+      // True van der Waals spacefill. Was 0.6, which is not spacefill.
+      return { sphere: { scale: SPACEFILL_SCALE, colorscheme: scheme } };
+    case "stick":
+      // Licorice. showNonBonded keeps isolated atoms visible when 3Dmol's
+      // distance-based bond perception finds no neighbours (ions, lone atoms).
+      return {
+        stick: {
+          radius: LICORICE_RADIUS,
+          colorscheme: scheme,
+          showNonBonded: true,
+        },
+      };
+    default:
+      return {
+        stick: { radius: BOND_RADIUS, colorscheme: scheme },
+        sphere: { scale: SPHERE_SCALE, colorscheme: scheme },
+      };
+  }
+}
+
+/** Largest drawn sphere radius in Angstroms for the elements actually present. */
+function maxDrawnRadius(elements: Iterable<string>, rep: Representation): number {
+  if (rep === "stick") return LICORICE_RADIUS;
+  let maxVdw = 1.2;
+  for (const element of elements) {
+    const r =
+      vdwRadii?.[element] ??
+      vdwRadii?.[element.charAt(0).toUpperCase() + element.slice(1).toLowerCase()];
+    if (typeof r === "number" && r > maxVdw) maxVdw = r;
+  }
+  return maxVdw * (rep === "spacefill" ? SPACEFILL_SCALE : SPHERE_SCALE);
+}
+
+/**
+ * Half-extent of the rendered silhouette and of the viewport, both in CSS
+ * pixels, measured through 3Dmol's own projection. Returns null when the
+ * viewer is not in a measurable state.
+ */
+interface ProjectedExtent {
+  halfWidth: number;
+  halfHeight: number;
+  viewHalfWidth: number;
+  viewHalfHeight: number;
+}
+
+function measureProjectedExtent(
+  viewer: GLViewer,
+  rep: Representation,
+  extra: Point3[]
+): ProjectedExtent | null {
+  const canvas = viewer.getRenderer()?.getCanvas() as
+    | HTMLCanvasElement
+    | undefined;
+  if (!canvas) return null;
+
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+
+  const atoms = viewer.selectedAtoms({});
+  const points = atoms
+    .filter(
+      (a) =>
+        Number.isFinite(a.x) && Number.isFinite(a.y) && Number.isFinite(a.z)
+    )
+    .map((a) => ({ x: a.x as number, y: a.y as number, z: a.z as number }));
+  if (points.length === 0) return null;
+
+  // Centroid — the point zoomTo() puts at the viewport centre (getExtent
+  // returns the mean, not the bounding-box midpoint).
+  const centroid = points.reduce(
+    (acc, p) => ({
+      x: acc.x + p.x / points.length,
+      y: acc.y + p.y / points.length,
+      z: acc.z + p.z / points.length,
+    }),
+    { x: 0, y: 0, z: 0 }
+  );
+
+  // Probe the projection: centroid plus one unit step along each model axis.
+  // For a rotation R followed by a drop of the depth component, the projected
+  // lengths of an orthonormal basis satisfy sum|P R e_i|^2 = 2, so the scale
+  // factor is sqrt(sum / 2) — no assumption about how the model is rotated.
+  const probes = [
+    centroid,
+    { x: centroid.x + 1, y: centroid.y, z: centroid.z },
+    { x: centroid.x, y: centroid.y + 1, z: centroid.z },
+    { x: centroid.x, y: centroid.y, z: centroid.z + 1 },
+    ...points,
+    // Force arrows are shapes, not atoms, so selectedAtoms() misses them. On an
+    // unrelaxed structure they can be tens of Angstroms long; zoomTo() folds
+    // shapes into its own fit, and the correction below has to as well or it
+    // zooms in until the arrows are cropped.
+    ...extra,
+  ];
+  const screen = viewer.modelToScreen(probes) as Array<{
+    x: number;
+    y: number;
+  }>;
+  if (!Array.isArray(screen) || screen.length !== probes.length) return null;
+
+  const origin = screen[0];
+  let sumSquares = 0;
+  for (let i = 1; i <= 3; i++) {
+    const dx = screen[i].x - origin.x;
+    const dy = screen[i].y - origin.y;
+    sumSquares += dx * dx + dy * dy;
+  }
+  const pxPerAngstrom = Math.sqrt(sumSquares / 2);
+  if (!Number.isFinite(pxPerAngstrom) || pxPerAngstrom <= 0) return null;
+
+  // modelToScreen returns page coordinates, so build the viewport centre the
+  // same way 3Dmol's canvasOffset() does.
+  const doc = canvas.ownerDocument.documentElement;
+  const left = rect.left + window.scrollX - doc.clientLeft;
+  const top = rect.top + window.scrollY - doc.clientTop;
+  const centreX = left + rect.width / 2;
+  const centreY = top + rect.height / 2;
+
+  const pad =
+    maxDrawnRadius(
+      atoms.map((a) => a.elem ?? "C"),
+      rep
+    ) *
+      pxPerAngstrom +
+    OUTLINE_PAD_PX;
+
+  let halfWidth = 0;
+  let halfHeight = 0;
+  for (let i = 4; i < screen.length; i++) {
+    halfWidth = Math.max(halfWidth, Math.abs(screen[i].x - centreX));
+    halfHeight = Math.max(halfHeight, Math.abs(screen[i].y - centreY));
+  }
+
+  return {
+    halfWidth: halfWidth + pad,
+    halfHeight: halfHeight + pad,
+    viewHalfWidth: rect.width / 2,
+    viewHalfHeight: rect.height / 2,
+  };
+}
+
+/**
+ * Fit the structure to TARGET_FILL of the canvas. zoomTo() first (it centres
+ * the model and sets the slab), then measure the projected silhouette and
+ * correct. Measuring after each correction absorbs perspective non-linearity,
+ * force-arrow overhang and representation changes, so the same code frames a
+ * 9-atom molecule and a 300-atom slab without clipping either. Used on load,
+ * on representation change and on "reset view" so framing never differs.
+ */
+function frameView(
+  viewer: GLViewer,
+  rep: Representation,
+  extra: Point3[] = []
+): void {
   viewer.zoomTo();
-  viewer.zoom(FRAMING_ZOOM);
+
+  let applied = 1;
+  for (let pass = 0; pass < FRAMING_PASSES; pass++) {
+    const extent = measureProjectedExtent(viewer, rep, extra);
+    if (!extent) break;
+    if (extent.halfWidth <= 0 || extent.halfHeight <= 0) break;
+
+    const wanted = Math.min(
+      (extent.viewHalfWidth * TARGET_FILL) / extent.halfWidth,
+      (extent.viewHalfHeight * TARGET_FILL) / extent.halfHeight
+    );
+    if (!Number.isFinite(wanted) || wanted <= 0) break;
+
+    // Clamp the cumulative zoom, not just this step, so repeated passes can
+    // never compound into a runaway.
+    const step = Math.min(
+      Math.max(wanted, MIN_TOTAL_FRAMING_ZOOM / applied),
+      MAX_TOTAL_FRAMING_ZOOM / applied
+    );
+    if (Math.abs(step - 1) < FRAMING_TOLERANCE) break;
+
+    viewer.zoom(step);
+    applied *= step;
+  }
+
   viewer.render();
 }
 
@@ -242,6 +521,22 @@ function watchPixelRatio(onChange: () => void): () => void {
 // Helper: build XYZ string from CalculationResult
 // ---------------------------------------------------------------------------
 
+/** Tip coordinates of the drawn force arrows, for framing. Empty when hidden. */
+function forceArrowTips(
+  result: CalculationResult,
+  forcesVisible: boolean
+): Point3[] {
+  if (!forcesVisible || !result.forces || !result.positions) return [];
+  return result.forces.map((force, i) => {
+    const pos = result.positions![i];
+    return {
+      x: pos[0] + force[0] * FORCE_ARROW_SCALE,
+      y: pos[1] + force[1] * FORCE_ARROW_SCALE,
+      z: pos[2] + force[2] * FORCE_ARROW_SCALE,
+    };
+  });
+}
+
 function buildXYZ(result: CalculationResult): string {
   if (!result.symbols || !result.positions) return "";
   const atomCount = result.symbols.length;
@@ -287,19 +582,18 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
     if (!result.symbols || !result.positions) return;
 
     viewer.removeAllShapes();
-    viewer.setStyle({}, REP_STYLES[rep]);
+    viewer.setStyle({}, repStyle(rep));
     viewer.render();
 
     if (result.forces && forcesVisible) {
       result.forces.forEach((force, i) => {
         const pos = result.positions![i];
-        const scale = 5;
         viewer.addArrow({
           start: { x: pos[0], y: pos[1], z: pos[2] },
           end: {
-            x: pos[0] + force[0] * scale,
-            y: pos[1] + force[1] * scale,
-            z: pos[2] + force[2] * scale,
+            x: pos[0] + force[0] * FORCE_ARROW_SCALE,
+            y: pos[1] + force[1] * FORCE_ARROW_SCALE,
+            z: pos[2] + force[2] * FORCE_ARROW_SCALE,
           },
           radius: 0.08,
           color: "#228833", // Paul Tol green — matches "force vectors" legend
@@ -334,6 +628,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       if (cancelled || !host || !result.symbols || !result.positions) return;
 
       host.innerHTML = "";
+      cacheColourTables($3Dmol);
 
       const atomCount = result.symbols.length;
       const viewer = $3Dmol.createViewer(host, {
@@ -359,7 +654,11 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       viewer.addModel(xyzData, "xyz");
       viewer.enableFog(false);
       applyView(viewer, representation, showForces);
-      frameView(viewer);
+      frameView(
+        viewer,
+        representation,
+        forceArrowTips(result, showForces)
+      );
 
       resize();
       resizeObserverRef.current = new ResizeObserver(resize);
@@ -380,11 +679,15 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   }, [result, engine]);
 
   // ── 3Dmol.js: update representation / forces ──
+  // Re-frames as well as re-styles: spacefill spheres are ~4.5x the radius of
+  // ball-and-stick ones and force arrows extend past the atoms, so a fit made
+  // for one representation crops in the other.
   useEffect(() => {
     if (engine !== "3dmol") return;
     const v = viewerInstance.current;
     if (!v || !result.symbols) return;
     applyView(v, representation, showForces);
+    frameView(v, representation, forceArrowTips(result, showForces));
   }, [representation, showForces]);
 
   // ── 3Dmol.js: spin toggle ──
@@ -398,7 +701,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
     if (engine !== "3dmol") return;
     const v = viewerInstance.current;
     if (!v) return;
-    frameView(v);
+    frameView(v, representation, forceArrowTips(result, showForces));
   };
 
   // ── Fullscreen ──
@@ -666,16 +969,25 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
  * RENDER SETTINGS — DO NOT DROP WHEN ADDING FEATURES:
  *   The ViewerSpec passed to createViewer() carries four deliberate options:
  *   `antialias` + `upscale` (>= 2x backing store), `outline` (dark contact
- *   outline), and `ambientOcclusion` (soft contact shading). Together with the
- *   Jmol colourscheme in REP_STYLES and the theme-derived background, these are
- *   the render-quality bar from docs/v2/bars/rowan.md. Selection highlighting
- *   and measurement overlays should be layered on top of this config, not by
- *   re-creating the viewer with a different one.
+ *   outline), and `ambientOcclusion` (soft contact shading). Together with
+ *   frameView(), repStyle()'s white-capped CPK scheme and the theme-derived
+ *   background, these are the render-quality bar from docs/v2/bars/rowan.md.
+ *   Selection highlighting and measurement overlays should be layered on top of
+ *   this config, not by re-creating the viewer with a different one.
  *
- *   KNOWN GAP vs the bar: no specular highlight. 3Dmol 2.5.4 ships Lambert-only
- *   shaders — there is no specular term anywhere in src/WebGL/shaders, and the
- *   package entry point does not export ShaderLib, so gloss cannot be added
- *   without forking the library. Outline + SSAO are the closest available.
+ * SPECULAR HIGHLIGHTS — SETTLED, DO NOT RE-OPEN:
+ *   An earlier round listed "no gloss" as a gap needing a 3Dmol fork. It is
+ *   not a gap. The bar was measured pixel-by-pixel and has no specular term
+ *   either: its brightest pixel anywhere in the molecule is 242/255 and zero
+ *   pixels reach 245. What reads as gloss there is a hard dark contour over a
+ *   flat mid-grey fill — a graphic-design effect, not a shading model. Our
+ *   render is already the more strongly lit of the two (carbon spans ~117
+ *   luminance levels against the bar's ~34).
+ *
+ *   Forking 3Dmol to add a specular term would therefore buy no visible
+ *   quality AND would actively regress the white-ceiling fix above, since a
+ *   specular lobe adds exactly the blown-out near-background pixels that
+ *   WHITE_CEILING exists to prevent. Rejected on measurement, not on effort.
  *
  * FUTURE ml-peg INTEGRATION:
  *   Using the same WEAS viewer as ml-peg means structures will look identical
