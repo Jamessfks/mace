@@ -6,3 +6,7 @@ matplotlib
 pandas
 numpy
 scipy
+# D3 dispersion backend for MACE-MP-0 — see mace-api/requirements.txt. Local
+# subprocess mode runs the same engine (mace-api/calculate.py), so a dev
+# environment without this cannot exercise the dispersion toggle either.
+torch-dftd

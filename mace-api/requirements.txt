@@ -9,3 +9,13 @@ mace-torch>=0.3.0
 numpy>=1.24.0
 rdkit>=2023.09.1
 pydantic>=2.0.0
+
+# D3 dispersion backend for MACE-MP-0. NOT a dependency of mace-torch: without
+# it, mace_mp(dispersion=True) raises "Please install torch-dftd to use
+# dispersion corrections" (foundations_models.py:176-180), so the UI's
+# dispersion toggle could never work on a fresh install. Verified with 0.5.3.
+# Footprint: 19 new packages, ~18 MB of wheels / ~130 MB installed, dominated
+# by torch-dftd's own pymatgen requirement (pymatgen -> plotly, lxml, spglib).
+# torch-dftd itself is <1 MB; it imports pymatgen.core at module scope in
+# functions/edge_extraction.py, so --no-deps is not an option.
+torch-dftd>=0.5.1

@@ -264,6 +264,37 @@ def detect_calculator_dtype(calc) -> str | None:
     return None
 
 
+def require_dispersion_backend() -> None:
+    """
+    Fail early, and by name, when D3 was asked for but its backend is missing.
+
+    `mace_mp(dispersion=True)` builds a `TorchDFTD3Calculator`, which lives in
+    the separate `torch-dftd` distribution — it is not a dependency of
+    mace-torch. Upstream raises
+    "Please install torch-dftd to use dispersion corrections"
+    (foundations_models.py:176-180), but only *after* the MACE checkpoint has
+    been downloaded and loaded, and the message names neither the requested
+    option nor the fact that the rest of the run was thrown away.
+
+    `torch-dftd` is now in requirements.txt, so a deployment built from it has
+    the backend. This guard is for the environment that was built before that
+    line existed: it turns a late RuntimeError from inside a third-party
+    package into an immediate, actionable error.
+    """
+    try:
+        import torch_dftd.torch_dftd3_calculator  # noqa: F401
+    except Exception as exc:
+        raise ValueError(
+            "D3 dispersion was requested but the torch-dftd package is not "
+            f"installed in this environment ({type(exc).__name__}: {exc}). "
+            "D3 corrections come from torch-dftd, which is a separate "
+            "distribution from mace-torch. Install it "
+            "(`pip install torch-dftd`, or rebuild from mace-api/"
+            "requirements.txt, where it is listed), or turn dispersion off. "
+            "Nothing was computed."
+        ) from exc
+
+
 def dispersion_is_active(calc) -> bool:
     """
     True only when D3 was actually added to the calculator.
@@ -477,6 +508,14 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
                 f"checkpoint keeps the dtype it was saved in."
             )
     else:
+        # Checked before the checkpoint is fetched and loaded: a missing D3
+        # backend is a property of the environment, not of this structure, and
+        # there is no reason to spend a model download to discover it. Only
+        # MACE-MP-0 reaches torch-dftd — the MACE-OFF and custom paths drop the
+        # flag with a warning a few lines below, which is the right physics.
+        if dispersion_requested and model_type == "MACE-MP-0":
+            require_dispersion_backend()
+
         recommended = upstream_default_precision(model_type, calc_type)
         if precision_requested and precision == "float32" and recommended == "float64":
             # Honoured, not overridden — upstream honours whatever default_dtype
@@ -637,7 +676,7 @@ def _run_md(atoms, params, filename, calc_start, ref_data, effective_params, see
             warnings=None):
     import numpy as np
     from ase import units
-    from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+    from ase.md.velocitydistribution import MaxwellBoltzmannDistribution, Stationary
 
     temp_K = float(params.get("temperature", 300))
     dt_fs = float(params.get("timeStep", 1.0))
@@ -681,6 +720,44 @@ def _run_md(atoms, params, filename, calc_start, ref_data, effective_params, see
 
     # Initialize velocities at target temperature to avoid equilibration transient
     MaxwellBoltzmannDistribution(atoms, temperature_K=temp_K, rng=rng)
+
+    # Drawing per-atom velocities independently leaves the system with a random
+    # net linear momentum — for ethanol at seed 42 it was |p| = 1.45, carrying
+    # 10.4% of the total kinetic energy as a rigid translation of the whole
+    # system. That translation is not a thermal degree of freedom: it inflates
+    # every reported temperature and, in NVE, it is a conserved lump of kinetic
+    # energy that has nothing to do with the physics being measured.
+    #
+    # preserve_temperature is ASE's default (True) and is deliberately turned
+    # OFF here. With it on, ASE zeroes the momentum and then rescales every
+    # remaining velocity to restore the pre-removal temperature — the spurious
+    # translational energy is not removed, it is redistributed into the 3N-3
+    # internal modes, leaving them ~3N/(3N-3) hotter than the Maxwell-Boltzmann
+    # draw asked for (12.5% for a 9-atom molecule). That would defeat the point
+    # of the call. Off, the internal modes keep exactly the energy they were
+    # drawn with, which is also the kinetic energy a zero-total-momentum system
+    # should have at this temperature (3N-3 halves of kB*T).
+    #
+    # Consequence to be aware of when reading `trajectory.temperatures`:
+    # `atoms.get_temperature()` divides by 3N degrees of freedom regardless
+    # (ase/atoms.py get_number_of_degrees_of_freedom), so with the momentum
+    # pinned at zero it reads low by a factor (3N-3)/3N — 11% for a 9-atom
+    # molecule, 1% for a 100-atom one. Left as-is: it is ASE's own convention,
+    # it applies uniformly, and under Langevin the thermostat re-excites the
+    # centre-of-mass mode anyway, so 3N is the correct divisor there.
+    #
+    # Applied for every ensemble. Zero total momentum is right for a periodic
+    # cell too; ASE's NPT already does this for itself and logs it.
+    Stationary(atoms, preserve_temperature=False)
+    # NOT ZeroRotation(): net angular momentum is real physics for an isolated
+    # molecule (a molecule at 300 K genuinely rotates), it does not translate
+    # the system out of the viewing box, and it does not accumulate. Zeroing it
+    # would silently remove 3 thermal degrees of freedom the user asked for.
+    # It is also meaningless for a periodic cell — the cell fixes the frame, so
+    # subtracting a rigid rotation from the contents is not a symmetry
+    # operation — and this backend cannot tell the two cases apart from the
+    # ensemble alone.
+    effective_params["comMomentumRemoved"] = True
 
     if ensemble == "NVT":
         from ase.md.langevin import Langevin
