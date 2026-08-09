@@ -6,7 +6,7 @@ import { DocsPager } from "@/components/docs/docs-nav";
 export const metadata: Metadata = {
   title: "Calculations & parameters",
   description:
-    "Single-point energy, geometry optimization (BFGS/FIRE, fmax), and molecular dynamics (NVE/NVT/NPT) in SimpleAtom — parameters, precision, device, D3 dispersion, and the Web UI to MACE parameter mapping.",
+    "Single-point energy, geometry optimization (BFGS, fmax), and molecular dynamics (NVE/NVT/NPT) in SimpleAtom — parameters, precision, device, D3 dispersion, and the Web UI to MACE parameter mapping.",
 };
 
 export default function CalculationsPage() {
@@ -56,7 +56,12 @@ export default function CalculationsPage() {
             <tr>
               <td>Optimizer</td>
               <td>BFGS</td>
-              <td>Switch to FIRE if BFGS struggles to converge.</td>
+              <td>
+                Fixed &mdash; BFGS is the only optimizer, and it is not
+                selectable. If it struggles to converge, loosen{" "}
+                <code>fmax</code>, raise <code>maxOptSteps</code>, or start
+                from a cleaner geometry.
+              </td>
             </tr>
             <tr>
               <td>
@@ -146,6 +151,15 @@ export default function CalculationsPage() {
             <strong>Pressure (GPa):</strong> the NPT target pressure,
             entered in GPa and converted internally — see{" "}
             <Link href="/docs/units">Units &amp; conventions</Link>.
+          </li>
+          <li>
+            <strong>Random seed:</strong> MD has two stochastic sources — the
+            initial Maxwell&ndash;Boltzmann velocities and the Langevin random
+            forces. Both are driven by a single seed, which defaults to{" "}
+            <code>42</code>, so a run is reproducible bit-for-bit. The seed
+            used is recorded in the result message and parameters, so a shared
+            trajectory can always be re-run exactly. Change it to generate
+            independent replicas of the same system.
           </li>
         </ul>
         <Callout type="note" title="Phonon spectrum — planned">

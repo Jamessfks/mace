@@ -9,6 +9,77 @@ geometry optimization, molecular dynamics). Both the CLI wrapper
 import time
 from pathlib import Path
 
+# Calculation types that have a real implementation below. This is the
+# security boundary: the API can be POSTed to directly, so the frontend check
+# is not sufficient. Anything outside this set MUST fail loudly — silently
+# falling back to a single-point run would return a plausible-looking energy
+# for a calculation that never happened.
+SUPPORTED_CALCULATION_TYPES = ("single-point", "geometry-opt", "molecular-dynamics")
+
+# Types the UI/type system knows about but the backend cannot compute.
+# Rejecting these honestly is the correct behaviour; a stub returning numbers
+# would be worse than an error.
+_UNIMPLEMENTED_HINTS = {
+    "phonon": (
+        "Phonon/vibrational analysis is not implemented in SimpleAtom. "
+        "It must be run through an external workflow on a fully converged geometry."
+    ),
+}
+
+# Default RNG seed for molecular dynamics. MD draws initial velocities from a
+# Maxwell-Boltzmann distribution and the Langevin thermostat applies random
+# forces at every step; without a seed no trajectory can ever be reproduced,
+# including one a user shares via MACE Link. Fixed by default so results are
+# verifiable; override with params["seed"] to generate independent replicas.
+# (Matches the seeding convention in smiles_to_xyz.py.)
+DEFAULT_MD_SEED = 42
+
+
+def resolve_seed(raw) -> int:
+    """Normalise and validate an RNG seed. Missing/empty -> DEFAULT_MD_SEED."""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return DEFAULT_MD_SEED
+    if isinstance(raw, bool):  # bool is an int subclass — reject explicitly
+        raise ValueError("Invalid seed: expected a non-negative integer, got a boolean.")
+    try:
+        seed = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid seed: expected a non-negative integer, got {raw!r}.")
+    if seed < 0:
+        raise ValueError(f"Invalid seed: must be non-negative, got {seed}.")
+    return seed
+
+
+def validate_calculation_type(raw) -> str:
+    """
+    Normalise and validate the requested calculation type.
+
+    A missing/empty value defaults to "single-point" (the documented default).
+    Any value that is present but not implemented raises ValueError rather
+    than quietly running something else.
+    """
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return "single-point"
+
+    if not isinstance(raw, str):
+        raise ValueError(
+            f"Invalid calculationType: expected a string, got {type(raw).__name__}. "
+            f"Supported types: {', '.join(SUPPORTED_CALCULATION_TYPES)}."
+        )
+
+    calc_type = raw.strip()
+    if calc_type in SUPPORTED_CALCULATION_TYPES:
+        return calc_type
+
+    msg = (
+        f"Unsupported calculationType '{calc_type}'. "
+        f"Supported types: {', '.join(SUPPORTED_CALCULATION_TYPES)}."
+    )
+    hint = _UNIMPLEMENTED_HINTS.get(calc_type.lower())
+    if hint:
+        msg = f"{msg} {hint}"
+    raise ValueError(msg)
+
 
 def detect_format(filename: str) -> str:
     """Detect ASE file format from extension."""
@@ -90,8 +161,16 @@ def extract_reference_data(atoms) -> dict:
 
 
 def _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                  trajectory=None):
-    """Assemble the standard JSON result dict."""
+                  effective_params, trajectory=None):
+    """
+    Assemble the standard JSON result dict.
+
+    `effective_params` records what was ACTUALLY run (defaults filled in,
+    device fallback applied, RNG seed used). It is echoed as result["params"]
+    — declared on CalculationResult in types/mace.ts — so that a result is
+    self-describing: the validator selects model-aware energy bounds from it,
+    and a shared result carries enough information to be re-run.
+    """
     symbols = [a.symbol for a in atoms]
     lattice = atoms.get_cell().tolist() if atoms.pbc.any() else None
 
@@ -103,6 +182,7 @@ def _build_result(atoms, energy, forces, msg, calc_start, ref_data,
         "symbols": symbols,
         "lattice": lattice,
         "properties": {"volume": float(atoms.get_volume()) if atoms.pbc.any() else None},
+        "params": dict(effective_params),
         "message": msg,
         "timeTaken": round(time.time() - calc_start, 3),
     }
@@ -123,7 +203,16 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
 
     Returns:
         Result dict with energy, forces, positions, trajectory, etc.
+
+    Raises:
+        ValueError: if calculationType is not one of SUPPORTED_CALCULATION_TYPES,
+            or if the RNG seed is not a non-negative integer.
     """
+    # Validate first, before any expensive work (file I/O, model download and
+    # load), so an unsupported request fails immediately and unambiguously.
+    calc_type = validate_calculation_type(params.get("calculationType"))
+    seed = resolve_seed(params.get("seed"))
+
     from ase.io import read
 
     fmt = detect_format(filepath)
@@ -136,7 +225,6 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
     model_size = params.get("modelSize", "medium")
     device = resolve_device(params.get("device", "cpu"))
     dispersion = params.get("dispersion", False)
-    calc_type = params.get("calculationType", "single-point")
     precision = params.get("precision", "float32")
 
     if model_path:
@@ -145,28 +233,54 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         calc = get_mace_calculator(model_type, model_size, device, dispersion, precision)
     atoms.calc = calc
 
+    # Record what actually ran, not what was requested: defaults are filled in
+    # and `device` reflects the CUDA->CPU fallback. Only these known scientific
+    # keys are echoed — the raw request dict is never reflected back, so an
+    # arbitrary client payload cannot ride along in the result.
+    effective_params = {
+        "calculationType": calc_type,
+        "modelType": "custom" if model_path else model_type,
+        "modelSize": model_size,
+        "precision": precision,
+        "device": device,
+        "dispersion": bool(dispersion),
+    }
+    if model_path:
+        # Basename only — never echo the server-side temp path.
+        effective_params["customModelName"] = Path(model_path).name
+
     calc_start = time.time()
 
     if calc_type == "geometry-opt":
-        return _run_geometry_opt(atoms, params, filename, calc_start, ref_data)
-    elif calc_type == "molecular-dynamics":
-        return _run_md(atoms, params, filename, calc_start, ref_data)
-    else:
-        return _run_single_point(atoms, filename, calc_start, ref_data)
+        return _run_geometry_opt(atoms, params, filename, calc_start, ref_data,
+                                 effective_params)
+    if calc_type == "molecular-dynamics":
+        return _run_md(atoms, params, filename, calc_start, ref_data,
+                       effective_params, seed)
+    if calc_type == "single-point":
+        return _run_single_point(atoms, filename, calc_start, ref_data,
+                                 effective_params)
+
+    # Unreachable — validate_calculation_type() gates this above. Kept as a
+    # guard so that adding a type to SUPPORTED_CALCULATION_TYPES without a
+    # handler fails loudly instead of silently returning a single-point result.
+    raise ValueError(f"No handler implemented for calculationType '{calc_type}'")
 
 
-def _run_single_point(atoms, filename, calc_start, ref_data):
+def _run_single_point(atoms, filename, calc_start, ref_data, effective_params):
     energy = atoms.get_potential_energy()
     forces = atoms.get_forces()
     msg = f"Calculation completed for {filename} using MACE"
-    return _build_result(atoms, energy, forces, msg, calc_start, ref_data)
+    return _build_result(atoms, energy, forces, msg, calc_start, ref_data,
+                         effective_params)
 
 
-def _run_geometry_opt(atoms, params, filename, calc_start, ref_data):
+def _run_geometry_opt(atoms, params, filename, calc_start, ref_data, effective_params):
     from ase.optimize import BFGS
 
     fmax = float(params.get("forceThreshold", 0.05))
     max_steps = int(params.get("maxOptSteps", 500))
+    effective_params.update({"forceThreshold": fmax, "maxOptSteps": max_steps})
 
     opt_energies = []
     opt_positions = []
@@ -192,10 +306,11 @@ def _run_geometry_opt(atoms, params, filename, calc_start, ref_data):
         "step": opt_steps,
     }
     return _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                         trajectory=trajectory)
+                         effective_params, trajectory=trajectory)
 
 
-def _run_md(atoms, params, filename, calc_start, ref_data):
+def _run_md(atoms, params, filename, calc_start, ref_data, effective_params, seed):
+    import numpy as np
     from ase import units
     from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
@@ -204,6 +319,20 @@ def _run_md(atoms, params, filename, calc_start, ref_data):
     friction = float(params.get("friction", 0.005))
     md_steps = int(params.get("mdSteps", 100))
     ensemble = params.get("mdEnsemble", "NVT")
+
+    effective_params.update({
+        "temperature": temp_K,
+        "timeStep": dt_fs,
+        "friction": friction,
+        "mdSteps": md_steps,
+        "mdEnsemble": ensemble,
+        "seed": seed,
+    })
+
+    # Dedicated RNG stream so the run does not depend on (or disturb) numpy's
+    # global random state. Feeds both stochastic sources in an MD run: the
+    # initial Maxwell-Boltzmann velocities and the Langevin random forces.
+    rng = np.random.default_rng(seed)
 
     traj_energies = []
     traj_positions = []
@@ -215,12 +344,12 @@ def _run_md(atoms, params, filename, calc_start, ref_data):
         traj_steps.append(dyn.get_number_of_steps())
 
     # Initialize velocities at target temperature to avoid equilibration transient
-    MaxwellBoltzmannDistribution(atoms, temperature_K=temp_K)
+    MaxwellBoltzmannDistribution(atoms, temperature_K=temp_K, rng=rng)
 
     if ensemble == "NVT":
         from ase.md.langevin import Langevin
         dyn = Langevin(atoms, dt_fs * units.fs, temperature_K=temp_K,
-                       friction=friction / units.fs)
+                       friction=friction / units.fs, rng=rng)
     elif ensemble == "NPT":
         from ase.md.npt import NPT
         pressure_eVA3 = float(params.get("pressure", 0)) * units.GPa
@@ -236,7 +365,11 @@ def _run_md(atoms, params, filename, calc_start, ref_data):
 
     energy = atoms.get_potential_energy()
     forces = atoms.get_forces()
-    msg = f"MD ({ensemble}) completed for {filename} ({md_steps} steps)"
+    # The seed is stated in the message as well as in result["params"] because
+    # the message survives everywhere a result travels (UI, PDF export, MACE
+    # Link), so a shared trajectory always carries what is needed to re-run it.
+    msg = (f"MD ({ensemble}) completed for {filename} "
+           f"({md_steps} steps, seed={seed})")
 
     trajectory = {
         "energies": traj_energies,
@@ -244,4 +377,4 @@ def _run_md(atoms, params, filename, calc_start, ref_data):
         "step": traj_steps,
     }
     return _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                         trajectory=trajectory)
+                         effective_params, trajectory=trajectory)

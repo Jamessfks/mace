@@ -11,6 +11,64 @@ const MACE_API_URL = (() => {
 })();
 
 /**
+ * Calculation types the Python backend actually implements.
+ * Kept in sync with SUPPORTED_CALCULATION_TYPES in mace-api/calculate.py.
+ *
+ * This check is a fast, friendly mirror — NOT the security boundary. The
+ * backend validates independently, because /api/calculate and the hosted MACE
+ * API can both be called directly without going through this route.
+ */
+const SUPPORTED_CALCULATION_TYPES = [
+  "single-point",
+  "geometry-opt",
+  "molecular-dynamics",
+] as const;
+
+/** Types the UI type system knows about but the backend cannot compute. */
+const UNIMPLEMENTED_HINTS: Record<string, string> = {
+  phonon:
+    "Phonon/vibrational analysis is not implemented in SimpleAtom. It must be run through an external workflow on a fully converged geometry.",
+};
+
+/**
+ * Returns an error message if the requested calculation type is not
+ * implemented, or null if the request may proceed. An absent params payload
+ * is allowed — the backend defaults to a single-point calculation.
+ */
+function validateCalculationParams(paramsStr: unknown): string | null {
+  if (typeof paramsStr !== "string" || paramsStr.trim() === "") return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(paramsStr);
+  } catch {
+    return "Invalid params: expected a JSON object.";
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    return "Invalid params: expected a JSON object.";
+  }
+
+  const raw = (parsed as { calculationType?: unknown }).calculationType;
+  if (raw === undefined || raw === null || raw === "") return null;
+
+  const supported = SUPPORTED_CALCULATION_TYPES.join(", ");
+  if (typeof raw !== "string") {
+    return `Invalid calculationType: expected a string. Supported types: ${supported}.`;
+  }
+
+  const calcType = raw.trim();
+  if ((SUPPORTED_CALCULATION_TYPES as readonly string[]).includes(calcType)) {
+    return null;
+  }
+
+  const hint = UNIMPLEMENTED_HINTS[calcType.toLowerCase()];
+  return (
+    `Unsupported calculationType '${calcType}'. Supported types: ${supported}.` +
+    (hint ? ` ${hint}` : "")
+  );
+}
+
+/**
  * MACE Calculation API
  * POST /api/calculate
  *
@@ -34,6 +92,14 @@ export async function POST(request: NextRequest) {
         { error: "No files provided" },
         { status: 400 }
       );
+    }
+
+    // Reject unimplemented calculation types before spending any time on
+    // subprocesses or model loading. Silently running something else would
+    // return a plausible-looking result for a calculation that never ran.
+    const paramsError = validateCalculationParams(paramsStr);
+    if (paramsError) {
+      return NextResponse.json({ error: paramsError }, { status: 400 });
     }
 
     const modelFile = formData.get("model") as File | null;
