@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T07:35:32.352Z",
+  "updated": "2026-08-09T07:43:20.836Z",
   "bars": [
     {
       "name": "Rowan",
@@ -92,13 +92,29 @@
       "bar": "Materials Project mp-149 summary panel",
       "judge": "Density and legibility of the property table. Every value carries a unit inline.",
       "files": [
-        "components/calculate/results-display.tsx",
+        "components/calculate/metrics-dashboard.tsx",
         "components/calculate/structure-info.tsx"
       ],
       "status": "building",
       "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Was pointed at results-display.tsx, which has zero importers. Redirected to metrics-dashboard.tsx, the component actually rendered."
+    },
+    {
+      "id": "honesty",
+      "name": "Scientific honesty & input validation",
+      "bar": "The code itself — every claim must survive inspection",
+      "judge": "Does any user-facing claim describe a capability the backend does not have? Does an unsupported calculationType fail loudly instead of silently returning a single-point?",
+      "files": [
+        "mace-api/calculate.py",
+        "app/api/calculate/route.ts",
+        "app/docs/calculations/page.tsx",
+        "CLAUDE.md"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "calculationType has no allow-list: an unrecognised type (e.g. phonon) silently runs a single-point and returns it as the requested calculation."
     },
     {
       "id": "provenance",
@@ -172,6 +188,9 @@
   "notes": [
     "Scope is MACE-only. No orbitals, partial charges, Fukui indices, pKa, docking, or DFT — MACE is an interatomic potential with no electron density.",
     "Rowan's typeface Matter is commercially licensed and is not used. SimpleAtom keeps Fraunces + Inter.",
-    "Viewer pieces share one file and are serialised, not run in parallel."
+    "Viewer pieces share one file and are serialised, not run in parallel.",
+    "Audit found results-display.tsx is dead code; metrics-dashboard.tsx is the live results component.",
+    "Audit found FIRE optimizer advertised in docs and landing copy, but BFGS is hardcoded in mace-api/calculate.py. Being corrected.",
+    "Of Rowan's ~30 workflows: 2 already shipped, 18 buildable on MACE, 13 blocked by the absence of any electron-density model."
   ]
 }
