@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T08:19:34.504Z",
+  "updated": "2026-08-09T13:41:16.933Z",
   "bars": [
     {
       "name": "Rowan",
@@ -15,6 +15,12 @@
       "url": "https://next-gen.materialsproject.org/materials/mp-149",
       "role": "Data density, scientific numbers",
       "fetchable": "Property data public. Interactive crystal viewer requires login."
+    },
+    {
+      "name": "ACEsuit/mace",
+      "url": "https://github.com/ACEsuit/mace",
+      "role": "Scientific correctness — the reference implementation",
+      "fetchable": "Fully public. Audit in progress; where SimpleAtom disagrees with upstream, SimpleAtom is wrong by definition."
     }
   ],
   "pieces": [
@@ -26,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 2,
-      "verdict": "LOST — critic picked Rowan",
-      "gap": "Auto-fit zoom leaves the molecule at 28.5% of the frame vs Rowan 73.9%; counting chrome they give the molecule 6.8x more screen. Raise the zoom multiplier. Secondary: white hydrogens blow out to exactly the background colour (108px at 255,255,255)."
+      "verdict": "Round 1: LOST to Rowan. Round 2 built; re-judgment interrupted by a session limit and not yet complete.",
+      "gap": "Frame fill measured 0.705 vs the bar 0.739, up from 0.285. Zero pixels at background white, down from 108. Unjudged."
     },
     {
       "id": "viewer-interact",
@@ -71,7 +77,7 @@
       "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": "Header/footer still max-w-6xl while content tightened to max-w-5xl, so edges no longer align. Belongs to the nav piece."
+      "gap": "Built. No critic verdict yet."
     },
     {
       "id": "config",
@@ -81,10 +87,10 @@
       "files": [
         "components/calculate/parameter-panel.tsx"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "judging",
+      "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Built and now wired — guardrails were inert until app/calculate/page.tsx passed the parsed structure down."
     },
     {
       "id": "results",
@@ -98,7 +104,7 @@
       "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Built. No critic verdict yet."
     },
     {
       "id": "honesty",
@@ -152,10 +158,10 @@
         "components/site-header.tsx",
         "components/site-footer.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 1,
       "verdict": null,
-      "gap": "Header/footer still max-w-6xl while content tightened to max-w-5xl — edges no longer align."
+      "gap": "Built. /support and /docs still render at 6xl against the landing page bar-matched 5xl."
     },
     {
       "id": "benchmark",
@@ -195,6 +201,9 @@
     "Measured: both our viewer and Rowan render at exactly devicePixelRatio 2.00. The original DPR-1 premise was wrong — 3Dmol upscales by default when antialias is on.",
     "Blind label-stripping was not achievable for the qualitative comparison; critics run with fresh context and an adversarial brief instead. Stated rather than claimed otherwise.",
     "Critic measured Rowan as having NO specular term either (brightest pixel 242/255, zero >=245). The 3Dmol fork is rejected on measurement, not deferred.",
-    "Critic found our shading objectively beats the bar (117 luminance levels on carbon vs 34; we run SSAO, Rowan has none). We lost purely on scale."
+    "Critic found our shading objectively beats the bar (117 luminance levels on carbon vs 34; we run SSAO, Rowan has none). We lost purely on scale.",
+    "CIF fractional coordinates were never converted through the unit cell. Silicon loaded with nearest-neighbour 0.433 A instead of 2.3516 A — a factor of 5.4. Fixed and covered by public/demo/silicon.cif.",
+    "Four separate defects in this branch were code that reviews as correct and does nothing at runtime: the validator dead bounds, the phonon fallthrough, the no-op D3 toggle, and the inert structure guardrails.",
+    "Two agents (viewer round-2 critic, guardrail wiring) died on a session limit. The wiring was completed directly; the critic re-run is still outstanding."
   ]
 }
