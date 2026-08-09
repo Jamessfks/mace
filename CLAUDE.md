@@ -129,6 +129,14 @@ When spawning subagents or choosing model complexity, follow this tier system:
 - `fmax`: 0.05 eV/Å (general), 0.01 eV/Å (production), 0.005 eV/Å (before frequencies)
 - Always set `maxOptSteps` to prevent infinite loops
 - Only atomic positions optimized (no cell optimization currently)
+- **Use `float64` for geometry optimization**, `float32` for MD. This is upstream's own
+  guidance, printed on every run (`foundations_models.py`, both `mace_mp` and `mace_off`).
+  Note `mace_off()` defaults to `default_dtype="float64"` while `mace_mp()` defaults to
+  float32 — never override either without recording the override in `result["params"]`
+  and `result["warnings"]`
+- `BFGS.run()` returns a convergence bool. **Never discard it.** A run that exhausts
+  `maxOptSteps` without reaching `fmax` is not a relaxed minimum, and reporting it as
+  "completed" is the same class of error as returning a calculation that never ran
 
 ### Molecular Dynamics
 - NVT: Langevin thermostat with friction parameter
@@ -144,7 +152,11 @@ When spawning subagents or choosing model complexity, follow this tier system:
   `result["message"]` (the message survives PDF export and MACE Link sharing)
 
 ### Vibrational Analysis
-- **MUST** use `float64` precision for Hessian/frequency calculations
+> Not implemented. SimpleAtom rejects `phonon`; these are conventions for if it is ever
+> built, not rules the current code enforces.
+- `float64` for Hessian/frequency work is a **SimpleAtom convention, not an upstream rule**.
+  Upstream states no such requirement, and `MACECalculator.get_hessian()` inherits
+  `self.default_dtype` with no dtype guard. Do not cite it as coming from MACE
 - Structure MUST be at local minimum first (fmax < 0.005 eV/Å)
 - Imaginary frequencies at non-transition-state = incomplete optimization
 - For molecules: expect 3N-6 real frequencies (3N-5 for linear)

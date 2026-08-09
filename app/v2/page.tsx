@@ -19,13 +19,22 @@ type Piece = {
   blockedBy?: string;
 };
 
+type Defect = { sev: string; what: string; where: string };
+
 type Progress = {
   version: string;
   branch: string;
   updated: string;
   bars: { name: string; url: string; role: string; viewerBar?: string; fetchable: string }[];
   pieces: Piece[];
+  defectsFixed?: Defect[];
   notes: string[];
+};
+
+const SEV_STYLE: Record<string, string> = {
+  CRITICAL: "bg-[#F6EEEE] text-[#8A3A3A] border-[#E0BFBF]",
+  HIGH: "bg-[#FFF6E5] text-[#8A6A1F] border-[#EBD9AE]",
+  MEDIUM: "bg-[#F3F0E8] text-[#5C574E] border-[#E4DFD3]",
 };
 
 const STATUS_STYLE: Record<Piece["status"], string> = {
@@ -77,7 +86,50 @@ export default async function V2ProgressPage() {
           <p className="mt-3 font-mono text-xs text-[#8A8478]">
             updated {new Date(data.updated).toLocaleString()}
           </p>
+          <p className="mt-3 border-t border-[#F3F0E8] pt-3 text-sm text-[#5C574E]">
+            This counter only moves when a critic picks ours over the bar. It is
+            deliberately strict and says nothing about the{" "}
+            <span className="text-[#3A7A40]">
+              {data.defectsFixed?.length ?? 0} scientific defects
+            </span>{" "}
+            fixed below, which is where most of the work has gone.
+          </p>
         </div>
+
+        {/* Defects — the work the piece counter does not capture */}
+        {data.defectsFixed && data.defectsFixed.length > 0 && (
+          <>
+            <h2 className="mt-12 font-serif text-2xl text-[#262521]">
+              Defects found and fixed
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#5C574E]">
+              Found by auditing against the bars rather than by reading the diff.
+              Every one of these reviewed as correct code.
+            </p>
+            <div className="mt-4 space-y-2">
+              {data.defectsFixed.map((d) => (
+                <div
+                  key={d.what}
+                  className="flex gap-3 rounded-lg border border-[#E4DFD3] bg-white p-4"
+                >
+                  <span
+                    className={`h-fit shrink-0 rounded border px-2 py-0.5 font-mono text-[10px] tracking-wide ${
+                      SEV_STYLE[d.sev] ?? SEV_STYLE.MEDIUM
+                    }`}
+                  >
+                    {d.sev}
+                  </span>
+                  <div>
+                    <p className="text-sm text-[#262521]">{d.what}</p>
+                    <p className="mt-1 font-mono text-xs text-[#8A8478]">
+                      {d.where}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Bars */}
         <h2 className="mt-12 font-serif text-2xl text-[#262521]">The bars</h2>

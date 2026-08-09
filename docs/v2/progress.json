@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T13:51:21.835Z",
+  "updated": "2026-08-09T14:20:03.975Z",
   "bars": [
     {
       "name": "Rowan",
@@ -222,5 +222,67 @@
     "Two agents (viewer round-2 critic, guardrail wiring) died on a session limit. The wiring was completed directly; the critic re-run is still outstanding.",
     "ACEsuit/mace audit: the float64-for-Hessians rule in CLAUDE.md is not sourced from upstream and targets phonon, which SimpleAtom rejects, so it guards nothing. Upstream says use float64 for geometry optimisation, a feature SimpleAtom has.",
     "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails."
+  ],
+  "defectsFixed": [
+    {
+      "sev": "CRITICAL",
+      "what": "modelType had no allow-list — selecting a custom model with no checkpoint returned MACE-MP-0 results labelled custom, shareable and PDF-exportable",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "CRITICAL",
+      "what": "calculationType had no allow-list — any unrecognised type (incl. phonon) silently ran a single-point and returned it as the requested calculation",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "CRITICAL",
+      "what": "CIF fractional coordinates were never converted through the unit cell — silicon loaded with nearest-neighbour 0.433 A instead of 2.3516 A",
+      "where": "lib/parse-structure.ts"
+    },
+    {
+      "sev": "HIGH",
+      "what": "The scientific validator has never run: the documented path does not exist, and its model-aware energy bounds were dead code",
+      "where": "test_scripts/, mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "BFGS convergence was discarded — an optimisation that exhausted maxOptSteps was reported as completed",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MD recorded potential energy but called it total energy and told users to check NVE conservation — impossible, KE was never recorded",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MACE-OFF forced to float32, inverting upstream default_dtype=float64, with the downcast warning suppressed",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "HIGH",
+      "what": "MD was unreproducible — velocities and thermostat both drew from global np.random",
+      "where": "mace-api/calculate.py"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "Docs and landing copy advertised a FIRE optimizer that does not exist; BFGS is hardcoded",
+      "where": "app/docs/, components/intro-section.tsx"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "D3 toggle was live but a silent no-op for custom models, whose loader takes no dispersion argument",
+      "where": "components/calculate/parameter-panel.tsx"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "npm run lint reported 42,891 problems from a linted virtualenv, making the no-new-warnings gate meaningless",
+      "where": "eslint.config.mjs"
+    },
+    {
+      "sev": "MEDIUM",
+      "what": "result.params reported requested rather than effective values for dispersion and precision",
+      "where": "mace-api/calculate.py"
+    }
   ]
 }
