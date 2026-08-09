@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T08:01:24.038Z",
+  "updated": "2026-08-09T08:19:34.504Z",
   "bars": [
     {
       "name": "Rowan",
@@ -26,10 +26,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "judging",
-      "rounds": 1,
-      "verdict": null,
-      "gap": "Awaiting critic verdict. Specular gloss not matched — 3Dmol shaders are pure diffuse; matching it means forking the library."
+      "status": "building",
+      "rounds": 2,
+      "verdict": "LOST — critic picked Rowan",
+      "gap": "Auto-fit zoom leaves the molecule at 28.5% of the frame vs Rowan 73.9%; counting chrome they give the molecule 6.8x more screen. Raise the zoom multiplier. Secondary: white hydrogens blow out to exactly the background colour (108px at 255,255,255)."
     },
     {
       "id": "viewer-interact",
@@ -152,10 +152,10 @@
         "components/site-header.tsx",
         "components/site-footer.tsx"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "building",
+      "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Header/footer still max-w-6xl while content tightened to max-w-5xl — edges no longer align."
     },
     {
       "id": "benchmark",
@@ -193,6 +193,8 @@
     "Audit found FIRE optimizer advertised in docs and landing copy, but BFGS is hardcoded in mace-api/calculate.py. Being corrected.",
     "Of Rowan's ~30 workflows: 2 already shipped, 18 buildable on MACE, 13 blocked by the absence of any electron-density model.",
     "Measured: both our viewer and Rowan render at exactly devicePixelRatio 2.00. The original DPR-1 premise was wrong — 3Dmol upscales by default when antialias is on.",
-    "Blind label-stripping was not achievable for the qualitative comparison; critics run with fresh context and an adversarial brief instead. Stated rather than claimed otherwise."
+    "Blind label-stripping was not achievable for the qualitative comparison; critics run with fresh context and an adversarial brief instead. Stated rather than claimed otherwise.",
+    "Critic measured Rowan as having NO specular term either (brightest pixel 242/255, zero >=245). The 3Dmol fork is rejected on measurement, not deferred.",
+    "Critic found our shading objectively beats the bar (117 luminance levels on carbon vs 34; we run SSAO, Rowan has none). We lost purely on scale."
   ]
 }
