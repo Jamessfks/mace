@@ -14,24 +14,77 @@
 </p>
 
 <p>
-  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-2.0.0-blue?style=flat-square" alt="Version"/></a>
   <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
   <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
-  <a href="https://github.com/Jamessfks/mace"><img src="https://img.shields.io/badge/status-v1.3.0%20stable-brightgreen?style=flat-square" alt="Status"/></a>
+  <a href="#scientific-integrity"><img src="https://img.shields.io/badge/audited%20against-ACEsuit%2Fmace-0B7285?style=flat-square" alt="Audited against the MACE reference implementation"/></a>
+  <a href="#validation"><img src="https://img.shields.io/badge/results-reproducible-brightgreen?style=flat-square" alt="Reproducible results"/></a>
   <a href="https://mace-lake.vercel.app/docs"><img src="https://img.shields.io/badge/docs-in--app-8CA1AF?style=flat-square&logo=readthedocs&logoColor=white" alt="Documentation"/></a>
 </p>
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[Documentation](https://mace-lake.vercel.app/docs) · [What's New in v1.3.0](#whats-new-in-v130) · [See It in Action](#see-it-in-action) · [Why This Exists](#why-this-exists) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[Documentation](https://mace-lake.vercel.app/docs) · [What's New in v2.0](#whats-new-in-v20) · [Scientific Integrity](#scientific-integrity) · [See It in Action](#see-it-in-action) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
 
 ---
 
-## What's New in v1.3.0
+## What's New in v2.0
+
+> v2.0 was built by measuring SimpleAtom against three real references rather than against
+> our own judgement: [Rowan](https://rowansci.com) for interface quality,
+> [the Materials Project](https://next-gen.materialsproject.org) for data presentation, and
+> [ACEsuit/mace](https://github.com/ACEsuit/mace) — the reference implementation — for
+> scientific correctness. The last one found bugs the first two never could.
+
+**Calculations now fail loudly instead of quietly returning the wrong thing.**
+
+- `calculationType` and `modelType` are validated against explicit allow-lists in the Python
+  backend, which is the real security boundary — the API is callable directly. Previously an
+  unrecognised calculation type silently ran a single-point and returned it as whatever was
+  asked for, and selecting a custom model without uploading a checkpoint returned MACE-MP-0
+  results labelled `custom`.
+- Geometry optimisation reports whether it **actually converged**. A run that exhausts
+  `maxOptSteps` without reaching `fmax` is no longer described as completed.
+- Results echo the parameters that *actually ran* — defaults resolved, CUDA→CPU fallback
+  applied, the real dispersion state, and the precision read off the loaded model.
+
+**Molecular dynamics is reproducible and correctly reported.**
+
+- Every stochastic source is seeded from one generator, and the seed is recorded in the
+  result message so it survives sharing and PDF export. Two runs at the same seed produce
+  identical trajectories.
+- Trajectories now record potential, kinetic **and total** energy plus temperature. The MD
+  chart previously plotted potential energy under a "total energy" label, which made the NVE
+  conservation the docs tell you to check impossible to see. Measured on a real run: total
+  drifts 1.4 meV while potential swings 112 meV.
+- Centre-of-mass drift is removed after velocity initialisation, so reported temperature is
+  no longer inflated by rigid translation.
+
+**Scientific guardrails are enforced at the point of entry.**
+
+- MACE-OFF warns when the structure contains elements outside its coverage
+  (H, C, N, O, F, P, S, Cl, Br, I); NPT is disabled without a periodic cell; the MD timestep
+  ceiling dropped from 10 fs to 4 fs; D3 dispersion is locked out where it would double-count.
+- Every numeric input shows its unit and valid range.
+
+**Fixes worth calling out.**
+
+- **CIF fractional coordinates were never converted through the unit cell.** Materials Project
+  CIFs use fractional coordinates, so loading one packed every atom into a 1 Å box — silicon
+  came out with a 0.433 Å nearest-neighbour distance instead of 2.3516 Å.
+  `public/demo/silicon.cif` now guards this.
+- **D3 dispersion never worked.** `torch-dftd` was in neither our requirements nor
+  mace-torch's, so enabling it always failed — after downloading the model.
+- Precision now follows upstream's own defaults (float64 for MACE-OFF and for geometry
+  optimisation) instead of being pinned to float32.
+- Docs and landing copy advertised a FIRE optimiser that does not exist; BFGS is hardcoded.
+
+<details>
+<summary><b>What was in v1.3.0</b></summary>
 
 > A ground-up redesign focused on being genuinely useful to the science community — clearer, more accessible, and more honest about the science.
 
@@ -43,6 +96,62 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 - **Environment-aware links** — shareable, citation, and export URLs now derive from the live origin instead of a hardcoded host.
 - **Accessibility** — shadcn/Radix primitives with proper roles and ARIA, keyboard navigation, `prefers-reduced-motion` support, and the colorblind-safe Paul Tol palette across all charts.
 - **Correctness fixes** — removed a misleading Energy R² metric that was hardcoded to 1.0 for a single data point (now reports the signed energy error vs. a reference), and D3 dispersion is now automatically disabled for MACE-OFF, which already includes dispersion.
+
+</details>
+
+---
+
+## Scientific Integrity
+
+SimpleAtom is a wrapper around [MACE](https://github.com/ACEsuit/mace). A wrapper's main risk
+is not crashing — it is returning a plausible number for something that never ran. v2.0 was
+audited specifically for that failure mode, and found six instances of it.
+
+Every one reviewed as correct code. None would have been caught by reading a diff.
+
+| What looked fine | What it actually did |
+|---|---|
+| `calculationType` dispatch | No `else` branch — any unrecognised type ran a single-point and returned it as the requested calculation |
+| `modelType` dispatch | No allow-list — "custom" with no checkpoint returned MACE-MP-0 results labelled `custom`, shareable and exportable |
+| The result validator | Its model-aware energy bounds never fired, because the backend never echoed the parameters the validator reads |
+| The D3 dispersion toggle | Live in the UI, but a silent no-op for custom models, whose loader takes no dispersion argument |
+| MACE-OFF element / NPT guards | Implemented correctly and never invoked — nothing passed them the structure |
+| `parseCIF` | Read fractional coordinates and never multiplied them through the cell: silicon at 0.433 Å instead of 2.3516 Å |
+
+**The principle that came out of it:** an unsupported request must fail loudly. A stub that
+returns plausible numbers for a calculation that never ran is worse than an error, because
+the error is visible and the number is not.
+
+### Verifying it yourself
+
+These must all fail. If any returns a result, a silent fallthrough has come back:
+
+```bash
+export KMP_DUPLICATE_LIB_OK=TRUE
+python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"calculationType":"phonon"}'
+python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"modelType":"custom"}'
+python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"modelType":"MACE-MP"}'
+```
+
+And this must hold — it regresses to a 1 Å box if fractional-coordinate handling breaks:
+
+```bash
+# public/demo/silicon.cif — correct nearest-neighbour is 2.3516 Å (a·√3/4)
+```
+
+### Reproducibility
+
+Every MD run is seeded (`DEFAULT_MD_SEED = 42`, override with `params["seed"]`) and the seed
+is recorded in the result *message*, not just the parameters — the message survives MACE Link
+sharing and PDF export, which is exactly where reproducibility matters. Two runs at the same
+seed produce byte-identical trajectories.
+
+### What SimpleAtom deliberately cannot do
+
+MACE is an interatomic potential. It produces energies, forces and stress, and has **no
+electron density** — so orbitals, partial charges, Fukui indices, pKa, redox potentials and
+NMR shifts are not approximated, stubbed or hidden behind a "coming soon" toggle. They are
+absent, and `phonon` is rejected with an error rather than quietly running something else.
 
 ---
 
@@ -163,12 +272,20 @@ The interface is built with accessibility as a first principle, not an afterthou
 
 ```bash
 git clone https://github.com/Jamessfks/mace.git && cd mace
-npm install                    # frontend dependencies
-pip install mace-torch ase     # backend (MACE + ASE)
-npm run dev                    # → http://localhost:3000
+npm install                          # frontend dependencies
+pip install -r mace-api/requirements.txt   # backend: MACE + ASE + torch-dftd
+npm run dev                          # → http://localhost:3000
 ```
 
 > The first calculation takes ~30 seconds while models download. Subsequent runs are fast.
+
+> **On macOS**, export `KMP_DUPLICATE_LIB_OK=TRUE` before running the backend from a shell,
+> or PyTorch aborts with `OMP: Error #15`. The API route already sets this for you.
+
+> `torch-dftd` is only needed for D3 dispersion (MACE-MP-0). It pulls in pymatgen, about
+> 130 MB installed. Skip it with `pip install mace-torch ase` if you do not need dispersion —
+> the backend then rejects `dispersion: true` with a clear message instead of failing deep
+> inside the model load.
 
 **Try the guided demo:** visit `http://localhost:3000/calculate?demo=true` — it loads an ethanol molecule and walks you through the interface step by step.
 
@@ -176,7 +293,7 @@ npm run dev                    # → http://localhost:3000
 
 ```bash
 # Run the automated scientific validation suite
-python mace-api/validate_calculation.py --test
+python test_scripts/validate_calculation.py --test
 ```
 
 This runs 5 tests: Si bulk with MACE-MP-0, H2O with MACE-OFF, ethanol geometry optimization, force conservation check, and result validation. All must pass for a correct installation.
@@ -316,7 +433,7 @@ mace/
 The project includes an automated scientific validation suite that verifies calculation correctness:
 
 ```bash
-python mace-api/validate_calculation.py --test
+python test_scripts/validate_calculation.py --test
 ```
 
 | Test | What It Checks |
@@ -330,8 +447,8 @@ python mace-api/validate_calculation.py --test
 You can also validate individual calculation results:
 
 ```bash
-python mace-api/validate_calculation.py '<result_json>'
-python mace-api/validate_calculation.py result.json
+python test_scripts/validate_calculation.py '<result_json>'
+python test_scripts/validate_calculation.py result.json
 ```
 
 ---
