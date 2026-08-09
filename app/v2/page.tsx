@@ -1,0 +1,158 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+
+// Always re-read the manifest from disk so the page reflects the live run.
+export const dynamic = "force-dynamic";
+
+type Piece = {
+  id: string;
+  name: string;
+  bar: string;
+  judge: string;
+  files: string[];
+  status: "pending" | "building" | "judging" | "won" | "blocked";
+  rounds: number;
+  verdict: string | null;
+  gap: string | null;
+  blockedBy?: string;
+};
+
+type Progress = {
+  version: string;
+  branch: string;
+  updated: string;
+  bars: { name: string; url: string; role: string; viewerBar?: string; fetchable: string }[];
+  pieces: Piece[];
+  notes: string[];
+};
+
+const STATUS_STYLE: Record<Piece["status"], string> = {
+  pending: "bg-[#F3F0E8] text-[#8A8478] border-[#E4DFD3]",
+  building: "bg-[#FFF6E5] text-[#8A6A1F] border-[#EBD9AE]",
+  judging: "bg-[#EAF1FB] text-[#2F5C93] border-[#CBDDF2]",
+  won: "bg-[#EAF4EB] text-[#3A7A40] border-[#C6E0C8]",
+  blocked: "bg-[#F6EEEE] text-[#8A5252] border-[#E4CACA]",
+};
+
+export default async function V2ProgressPage() {
+  const file = path.join(process.cwd(), "docs/v2/progress.json");
+  const data: Progress = JSON.parse(await readFile(file, "utf8"));
+
+  const won = data.pieces.filter((p) => p.status === "won").length;
+  const total = data.pieces.length;
+  const pct = total ? Math.round((won / total) * 100) : 0;
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16">
+        <p className="font-mono text-xs uppercase tracking-widest text-[#8A8478]">
+          {data.branch} · gauntlet loop
+        </p>
+        <h1 className="mt-3 font-serif text-4xl leading-none text-[#262521]">
+          SimpleAtom v2.0 progress
+        </h1>
+        <p className="mt-4 max-w-2xl text-[#5C574E]">
+          Each piece runs a builder and a separate critic. A piece is only{" "}
+          <span className="text-[#3A7A40]">won</span> when the critic picks ours over the
+          bar in a blind comparison — not after a fixed number of rounds.
+        </p>
+
+        {/* Overall */}
+        <div className="mt-8 rounded-lg border border-[#E4DFD3] bg-white p-5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium text-[#262521]">
+              {won} of {total} pieces winning blind
+            </span>
+            <span className="font-mono text-sm text-[#8A8478]">{pct}%</span>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#F3F0E8]">
+            <div
+              className="h-full rounded-full bg-[#4F9A54] transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-3 font-mono text-xs text-[#8A8478]">
+            updated {new Date(data.updated).toLocaleString()}
+          </p>
+        </div>
+
+        {/* Bars */}
+        <h2 className="mt-12 font-serif text-2xl text-[#262521]">The bars</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {data.bars.map((b) => (
+            <div key={b.name} className="rounded-lg border border-[#E4DFD3] bg-white p-5">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-[#262521]">{b.name}</span>
+                <a
+                  href={b.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-[#3A7A40] underline underline-offset-2"
+                >
+                  open
+                </a>
+              </div>
+              <p className="mt-1 text-sm text-[#5C574E]">{b.role}</p>
+              <p className="mt-3 text-xs leading-relaxed text-[#8A8478]">{b.fetchable}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Pieces */}
+        <h2 className="mt-12 font-serif text-2xl text-[#262521]">Pieces</h2>
+        <div className="mt-4 space-y-3">
+          {data.pieces.map((p) => (
+            <div key={p.id} className="rounded-lg border border-[#E4DFD3] bg-white p-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className={`rounded border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide ${STATUS_STYLE[p.status]}`}
+                >
+                  {p.status}
+                </span>
+                <span className="font-medium text-[#262521]">{p.name}</span>
+                {p.rounds > 0 && (
+                  <span className="font-mono text-xs text-[#8A8478]">
+                    round {p.rounds}
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-sm text-[#5C574E]">
+                <span className="text-[#8A8478]">bar · </span>
+                {p.bar}
+              </p>
+              <p className="mt-1 text-sm text-[#5C574E]">
+                <span className="text-[#8A8478]">judged on · </span>
+                {p.judge}
+              </p>
+              {p.gap && (
+                <p className="mt-3 border-l-2 border-[#EBD9AE] pl-3 text-sm text-[#8A6A1F]">
+                  biggest remaining gap — {p.gap}
+                </p>
+              )}
+              {p.blockedBy && (
+                <p className="mt-2 font-mono text-xs text-[#8A5252]">
+                  waits on {p.blockedBy} (same file)
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Notes */}
+        <h2 className="mt-12 font-serif text-2xl text-[#262521]">Scope notes</h2>
+        <ul className="mt-4 space-y-2">
+          {data.notes.map((n) => (
+            <li key={n} className="flex gap-3 text-sm text-[#5C574E]">
+              <span className="text-[#8A8478]">—</span>
+              <span>{n}</span>
+            </li>
+          ))}
+        </ul>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}

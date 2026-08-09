@@ -1,0 +1,177 @@
+{
+  "version": "2.0.0-dev",
+  "branch": "v2.0",
+  "updated": "2026-08-09T07:35:32.352Z",
+  "bars": [
+    {
+      "name": "Rowan",
+      "url": "https://rowansci.com",
+      "role": "Interface quality, 3D viewer",
+      "viewerBar": "https://labs.rowansci.com/iframe2/calculation/c1cd40a2-f781-4be0-8c68-b6b4e681b9b5?auto-rotate=false&no-border=true",
+      "fetchable": "Marketing site + live production viewer are public. App job/results screens require login."
+    },
+    {
+      "name": "Materials Project",
+      "url": "https://next-gen.materialsproject.org/materials/mp-149",
+      "role": "Data density, scientific numbers",
+      "fetchable": "Property data public. Interactive crystal viewer requires login."
+    }
+  ],
+  "pieces": [
+    {
+      "id": "viewer-render",
+      "name": "3D viewer — render quality",
+      "bar": "Rowan viewer embed",
+      "judge": "Side-by-side render of the same molecule. Sharpness at retina, atom shading, bond geometry, CPK colours.",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "viewer-interact",
+      "name": "3D viewer — selection & measurement",
+      "bar": "Rowan viewer embed",
+      "judge": "Click an atom, then two/three/four. Does a highlight appear and a bond length / angle / dihedral read out?",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null,
+      "blockedBy": "viewer-render"
+    },
+    {
+      "id": "viewer-chrome",
+      "name": "3D viewer — controls & settings menu",
+      "bar": "Rowan viewer embed",
+      "judge": "Gear / fullscreen / reset controls. Auto-rotate, hide C–H bonds, download PNG.",
+      "files": [
+        "components/calculate/molecule-viewer-3d.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null,
+      "blockedBy": "viewer-interact"
+    },
+    {
+      "id": "landing",
+      "name": "Landing page",
+      "bar": "rowansci.com homepage",
+      "judge": "Blind screenshot at 1280 and 375. Which reads as the more credible scientific product?",
+      "files": [
+        "app/page.tsx",
+        "components/intro-section.tsx"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "config",
+      "name": "Calculation configuration",
+      "bar": "Rowan feature pages + docs",
+      "judge": "Can a chemist set up a run without reading docs? Are units and valid ranges visible at the point of entry?",
+      "files": [
+        "components/calculate/parameter-panel.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "results",
+      "name": "Results & property display",
+      "bar": "Materials Project mp-149 summary panel",
+      "judge": "Density and legibility of the property table. Every value carries a unit inline.",
+      "files": [
+        "components/calculate/results-display.tsx",
+        "components/calculate/structure-info.tsx"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "provenance",
+      "name": "Calculation manifest & audit trail",
+      "bar": "Materials Project 'Property Origins' section",
+      "judge": "Can a third party reproduce and verify any number the app displays, months later?",
+      "files": [
+        "mace-api/",
+        "docs/v2/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "share",
+      "name": "MACE Link shared viewer",
+      "bar": "Rowan iframe2 embed",
+      "judge": "Load both embeds side by side. Which is the better shareable artifact?",
+      "files": [
+        "app/r/[id]/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "nav",
+      "name": "Navigation & information architecture",
+      "bar": "rowansci.com header + site structure",
+      "judge": "Can a first-time visitor find what the product does and start a calculation in two clicks?",
+      "files": [
+        "components/site-header.tsx",
+        "components/site-footer.tsx"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "benchmark",
+      "name": "Benchmark suite vs MP reference values",
+      "bar": "Materials Project published formation energies",
+      "judge": "Numeric. Do SimpleAtom's MACE-MP-0 formation energies agree with MP within a stated tolerance?",
+      "files": [
+        "app/benchmark/",
+        "components/benchmark/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    },
+    {
+      "id": "mobile",
+      "name": "Responsive / mobile",
+      "bar": "rowansci.com at 375px",
+      "judge": "Blind screenshot at 375px. Which survives the phone better?",
+      "files": [
+        "app/"
+      ],
+      "status": "pending",
+      "rounds": 0,
+      "verdict": null,
+      "gap": null
+    }
+  ],
+  "notes": [
+    "Scope is MACE-only. No orbitals, partial charges, Fukui indices, pKa, docking, or DFT — MACE is an interatomic potential with no electron density.",
+    "Rowan's typeface Matter is commercially licensed and is not used. SimpleAtom keeps Fraunces + Inter.",
+    "Viewer pieces share one file and are serialised, not run in parallel."
+  ]
+}
