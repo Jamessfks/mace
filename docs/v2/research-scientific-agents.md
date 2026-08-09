@@ -25,9 +25,11 @@ Ordered by value-per-unit-effort. "Effort" is my estimate of implementation time
 | 7 | **arXiv MCP server** (`blazickjp/arxiv-mcp-server`, 3032★) | Agent can search/read arXiv full text + LaTeX by section. | `claude mcp add --transport stdio --scope user arxiv -- uvx arxiv-mcp-server` | 10 min | **ADOPT (optional)** |
 | 8 | **HF papers markdown endpoint** | Full text of all three MACE papers as markdown, no auth, no install. Already available via the installed `huggingface-skills` plugin. | already installed | 0 | **ADOPT — free** |
 | 9 | **OPTIMADE no-auth MP endpoint** | `formation_energy_per_atom` + `energy_above_hull` from Materials Project **with no API key**. Verified live. | `curl` / `pip install optimade` | 2–4 h | **ADOPT (v2 benchmark)** |
-| 10 | **`mp-api` 0.46.4** | Full Materials Project DFT data. Needs a free API key. Only if OPTIMADE's fields prove insufficient. | `pip install mp-api` + key | 2–4 h | **CONSIDER** |
-| 11 | **`pint` 0.25.3 / `unyt` 3.1.0** | Dimensional-analysis unit checking. | `pip install pint` | 4–6 h | **SKIP for now** — see §3.1 |
-| — | Materials Project MCP servers | 12★ and 1★ hobby repos. MP org publishes none. | — | — | **SKIP** |
+| 10 | **`matbench-discovery`** | Published MACE-MP-0 and MACE-MPA-0 leaderboard numbers — cite instead of re-deriving. Verified: `models/mace/mace-mp-0.yml`, `mace-mpa-0.yml`. | `pip install matbench-discovery` | 1–2 h | **ADOPT (cite)** |
+| 11 | **`mp-api[mcp]` 0.46.4** | **Official first-party** Materials Project MCP server (`mpmcp`). Gives the agent direct MP DFT queries. Needs a free API key. | `pip install "mp-api[mcp]"` + key | 30 min | **CONSIDER** |
+| 12 | **K-Dense `paper-lookup` skill** | 11 literature APIs (PubMed, arXiv, OpenAlex, Crossref, Unpaywall…), **no credentials**, built around reproducible provenance. | `npx skills add K-Dense-AI/scientific-agent-skills` | 15 min | **CONSIDER — see §1.5** |
+| 13 | **`pint` 0.25.3 / `unyt` 3.1.0** | Dimensional-analysis unit checking. | `pip install pint` | 4–6 h | **SKIP for now** — see §3.1 |
+| — | Third-party Materials Project MCP servers | 12★ and 1★ hobby repos, superseded by the official `mp-api[mcp]`. | — | — | **SKIP** |
 | — | PubChem MCP servers | All ≤11★ hobby. PUG-REST needs no auth — just `curl` it. | — | — | **SKIP** |
 | — | AiiDA / atomate2 / jobflow | AiiDA hard-requires PostgreSQL **and** RabbitMQ. Wrong weight class entirely. | — | — | **SKIP** |
 | — | `recipy`, `provenance`, `cffconvert`, `pytest-snapshot`, `sacred` | Dead or stale. See §3.3. | — | — | **SKIP** |
@@ -107,12 +109,20 @@ The result dict contains `energy`, `forces`, `positions`, `symbols`, `lattice`, 
 
 ### 1.1 The official channels have nothing scientific
 
-Verified first-hand from the local marketplace checkout at
-`~/.claude/plugins/marketplaces/claude-plugins-official`:
+Verified by parsing the real `marketplace.json` in the local checkout of `anthropics/claude-plugins-official` — **284 plugins**, ground truth, not a scrape:
 
-- **39 first-party plugins**: `agent-sdk-dev`, `claude-security`, `code-review`, `feature-dev`, `frontend-design`, `math-olympiad`, `mcp-server-dev`, `pr-review-toolkit`, various `*-lsp`, etc.
-- **15 external plugins**: `asana`, `context7`, `discord`, `firebase`, `github`, `gitlab`, `greptile`, `linear`, `playwright`, `serena`, `terraform`, …
-- **Science/chemistry/research/paper/citation plugins: zero.** Closest is `math-olympiad`.
+- 39 are vendored locally as first-party (`agent-sdk-dev`, `claude-security`, `code-review`, `feature-dev`, `math-olympiad`, `mcp-server-dev`, `pr-review-toolkit`, various `*-lsp`, …) plus 15 external (`asana`, `context7`, `github`, `linear`, `playwright`, `serena`, `terraform`, …); the rest are registry entries.
+- **Dedicated science / chemistry / paper / citation plugins: zero out of 284.**
+
+Regex matches on science-ish keywords are all false positives, and two are actively misleading:
+
+| Plugin | What it actually is |
+|---|---|
+| `atomic-agents` | **Not atomistic simulation.** An AI-agent framework ("building AI agents with the Atomic Agents framework"). |
+| `exa`, `tavily`, `youdotcom-agent-skills` | General *web* search / "research with citations" meaning web citations, not academic reference management. |
+| `bigdata-com` | Financial research (RavenPack). |
+| `dominodatalab` | MLOps platform. |
+| `math-olympiad` | Competition math, not literature. |
 
 `anthropics/skills` (167k★, pushed 2026-08-07) contains 17 skills — `algorithmic-art`, `brand-guidelines`, `canvas-design`, `claude-api`, `doc-coauthoring`, `docx`, `frontend-design`, `internal-comms`, `mcp-builder`, `pdf`, `pptx`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing`, `xlsx`. **No science skills.**
 
@@ -181,22 +191,64 @@ Optional extras exist for semantic search (ChromaDB), PDF outlines (PyMuPDF), an
 
 **Verdict: ADOPT only if you already keep a Zotero library.** For a paper's reference list, this is a real workflow improvement. It does nothing for calculation correctness. Semantic Scholar and OpenAlex MCP servers are all sub-30★ hobby projects — use their plain REST APIs instead if needed.
 
+### 1.5 The most complete literature option: K-Dense `scientific-agent-skills`
+
+`K-Dense-AI/scientific-agent-skills` — **33,022★, MIT, pushed 2026-08-09 (today), 161 skills, 6 open issues.** Third-party (K-Dense Inc., a commercial company), not Anthropic-blessed.
+
+```bash
+npx skills add K-Dense-AI/scientific-agent-skills
+# or per-skill with GitHub CLI v2.90+:  gh skill install ...
+```
+
+The relevant skill is **`paper-lookup`**, and I read its `SKILL.md` directly. It covers 11 literature APIs — PubMed, PMC, Europe PMC, bioRxiv, medRxiv, arXiv, OpenAlex, Crossref, Semantic Scholar, CORE, Unpaywall — with, verbatim from its frontmatter, *"No credentials are required"* (optional keys only raise rate limits). Python 3.11+ stdlib only.
+
+Two things make it unusually well-matched to your stated requirement:
+
+1. It is explicitly built around **reproducible provenance** — its own description asks for results carrying "endpoints, parameters, identifiers, access date" so "a human or another agent can repeat it."
+2. It documents a failure mode worth internalising project-wide: **"These APIs fail with HTTP 200."** PMC returns a well-formed article with an empty body when redistribution is forbidden; arXiv returns one entry titled `Error` for a malformed parameter; Europe PMC puts `errCode` in a 200 body. Silent wrong answers, never an exception.
+
+Sibling skills `citation-management` (→ validated BibTeX) and `literature-review` are also real.
+
+**Caveats, be clear-eyed:**
+- It installs **161 skills** — a large surface for what you need. Prefer installing only `paper-lookup` / `citation-management`.
+- Its chemistry skills are **not relevant to this project**. I checked `molecular-dynamics`: it wraps **OpenMM + MDAnalysis for protein/small-molecule biophysics**, not ASE/MACE atomistic materials MD. Likewise `deepchem` / `medchem` are drug-discovery oriented. **Do not install this expecting MACE or materials support.**
+- Star count on a 10-month-old commercial repo is a marketing signal as much as a quality one; the *content* checks out on inspection, the popularity claim should not be over-read.
+
+**Also real, if you prefer an MCP server to a skill:** `openags/paper-search-mcp` — 2,383★, MIT, pushed 2026-07-02, 48 open issues. Covers arXiv, PubMed, bioRxiv, medRxiv, Semantic Scholar, Crossref, OpenAlex in one server.
+
 ---
 
 ## §2. MCP servers for scientific data
 
-### 2.1 Materials Project — no MCP server worth using, but a no-auth path exists
+### 2.1 Materials Project — an *official* MCP server exists (I initially got this wrong)
 
-**There is no official Materials Project MCP server.** Verified: the `materialsproject` GitHub org has **zero** repos matching `mcp|agent|llm|ai`. Community attempts:
+**Correction, stated plainly:** my first pass concluded "no official Materials Project MCP server exists," based on searching the `materialsproject` GitHub org for **repository names** matching `mcp|agent|llm|ai` — which returns zero. That method has a blind spot: the server is a **subpackage inside the existing `mp-api` repo**, not a separate repo. A parallel research stream caught it and I then verified it directly.
+
+**Verified evidence:**
+
+- `mp-api` 0.46.4 PyPI metadata declares the extra: `fastmcp; extra == "mcp"` and `fastmcp; extra == "all"`.
+- `materialsproject/api` (176★, pushed 2026-07-16, not archived) contains `mp_api/mcp/` with `server.py`, `tools.py`, `mp_mcp.py`, `_schemas.py`, `utils.py`, `__init__.py`.
+- `pyproject.toml` declares the console script: `mpmcp = "mp_api.mcp.server:_run_mp_mcp_server"`.
+
+```bash
+pip install "mp-api[mcp]"
+export MP_API_KEY=...   # free, from next-gen.materialsproject.org/dashboard
+mpmcp
+```
+
+This is **first-party, released (not an unmerged branch), and new**. Pin the version and expect rough edges — the official docs page for it reportedly still tells you to clone a core contributor's fork rather than use the released extra, which means documentation is lagging the code.
+
+Community alternatives are now superseded, but for completeness:
 
 | Repo | Stars | Last push | Verdict |
 |---|---|---|---|
+| `pathintegral-institute/mcp.science` | 146 | 2026-02-27 | Real multi-server science collection (MIT). Includes a `materials-project` server **and** a `gpaw-computation` server that runs actual DFT via GPAW. Best third-party option. |
 | `benedictdebrah/materials-project-mcp` | 12 | 2026-05-20 | Hobby. Not dependable. |
-| `fair2wise/materials_project_mcp` | 1 | 2025-06-17 | Effectively abandoned. |
+| `fair2wise/materials_project_mcp` | 1 | 2025-06-17 | Abandoned; the GitHub URL 404s while still being listed on aggregator sites. |
 
-**SKIP both.** Use the Python client or the REST endpoint directly.
+**Prefer the official `mp-api[mcp]`.** Do not trust MCP directory sites (Glama, LobeHub, mcp.so) — the parallel research stream hit two Materials-Project MCP names that were listed on aggregators or produced by search summaries but returned flat 404s on GitHub.
 
-**`mp-api` 0.46.4** (released 2026-06-15, maintained) — `pip install mp-api`. **Requires a free API key**; I verified the main endpoint rejects unauthenticated requests:
+**`mp-api` 0.46.4** (released 2026-06-15, maintained, requires Python ≥3.11 — we have 3.13.11) — `pip install mp-api`. **Requires a free API key**; I verified the main endpoint rejects unauthenticated requests:
 
 ```
 https://api.materialsproject.org/materials/summary/?formula=Si  ->  HTTP 401
@@ -253,14 +305,37 @@ https://cccbdb.nist.gov/rest    ->  HTTP 404
 
 CCCBDB is an ASP form-driven HTML site with no machine-readable API and no MCP server. Any use requires HTML scraping against unstable form endpoints. **Do not build on it.** If you need molecular reference data (frequencies, atomization energies) for MACE-OFF validation, hand-curate a small table with citations into the catalog the way `mlpeg-catalog.ts` already does — that is more honest and more stable than a scraper.
 
-### 2.4 No ASE / atomistic MCP server exists
+### 2.4 No MACE or ASE MCP server — but two atomistic projects do exist
 
-GitHub searches for `chemistry mcp server` and `ase atomic simulation mcp` returned **zero** results. There is no MCP server for ASE, no MACE MCP server, no general computational-chemistry MCP server. This is a genuine gap, not something I failed to find. Do not wait for one.
+My keyword searches (`chemistry mcp server`, `ase atomic simulation mcp`) returned zero, which overstates the case; a parallel stream surfaced two real projects I then confirmed:
 
-### 2.5 Benchmarking reference
+| Repo | Stars | Last push | What it is |
+|---|---|---|---|
+| `pathintegral-institute/mcp.science` | 146 | 2026-02-27 | MIT collection of science MCP servers. Includes **`gpaw-computation`** — runs genuine DFT via GPAW (which is itself built on ASE's Calculator interface) — plus `materials-project`. Install: `uvx mcp-science <server-name>`. |
+| `XirtamEsrevni/mcp-atomictoolkit` | 11 | 2026-02-09 | Wraps ASE + pymatgen + ML potentials for structure building/optimization/MD. Self-describes as "under active development… not all features fully operational yet." Pseudonymous single author. |
 
-- **`matbench-discovery` 1.3.1** on PyPI — "A benchmark for machine learning energy models on inorganic crystal stability prediction." Repo `janosh/matbench-discovery`, pushed 2026-08-05, active. Relevant if v2 wants to position MACE-MP-0 against other MLIPs on a published leaderboard.
-- **MPtrj** (MACE-MP-0's training set) — community mirrors exist on Hugging Face; `nimashoghi/mptrj` returns HTTP 200 unauthenticated. These are **third-party mirrors**, not a canonical source; treat provenance accordingly. The canonical release is associated with the CHGNet paper (Figshare) — **UNVERIFIED** in this pass.
+**Still true and worth stating:** there is **no MACE MCP server**, nothing maintained by the ASE project itself, and nothing from the MACE authors. `mcp-atomictoolkit` is the only ASE-adjacent option and it is explicitly pre-production. Do not wait for one to appear; the provenance work in §4 is independent of this gap.
+
+### 2.5 Other providers, and one that is currently down
+
+| Source | Access | Status |
+|---|---|---|
+| **Alexandria** | via OPTIMADE, no auth, no dedicated client needed | Live: `alexandria.icams.rub.de/pbe/v1/info` → 200, 2.5M+ PBE structures |
+| **AFLOW** | Raw AFLUX REST API, no auth | API live (200). But the community pip wrapper **`aflow` last released 2020-02-29 — 6 years stale, ABANDONED.** Query the REST API directly. |
+| **NOMAD** | `pip install nomad-lab` (1.4.3, 2026-07-14), no auth for public reads | Maintained, but it's the *entire* NOMAD backend — heavy. Hit the REST API with `requests` instead. |
+| **OQMD** | `oqmd.org/oqmdapi` | **Returning HTTP 502 on every endpoint during this research.** `qmpy_rester` wrapper last released 2019. **Do not depend on it without re-checking.** |
+
+### 2.6 Benchmarking reference — matbench-discovery already has MACE numbers
+
+**`matbench-discovery`** 1.3.1 on PyPI; repo `janosh/matbench-discovery` (243★, MIT, pushed 2026-08-05, 2 open issues). Verified directly: the repo contains **`models/mace/mace-mp-0.yml`** and **`models/mace/mace-mpa-0.yml`** — published, community-vetted leaderboard entries for both models.
+
+**Use this rather than re-deriving.** And note the methodological point it makes for free: MACE-MP-0 was *trained* on Materials Project PBE+U data, so benchmarking MACE-MP-0 against MP is a **consistency check, not a held-out generalization test**. matbench-discovery's crystal-stability task is the genuinely held-out evaluation. Cite it; don't claim your own MP comparison is more than a self-consistency check.
+
+**MPtrj** (MACE-MP-0's training set) — community mirrors on Hugging Face; `nimashoghi/mptrj` returns HTTP 200 unauthenticated. These are **third-party mirrors**, not canonical. The canonical release is associated with the CHGNet paper (Figshare) — **UNVERIFIED** in this pass.
+
+### 2.7 Legacy Materials Project API is retired
+
+MP's own docs stated the legacy API would be retired in **September 2025** — 11 months ago. Live probes are consistent with that: `legacy.materialsproject.org` → 403, `materialsproject.org/rest/...` → 301 redirect rather than legacy JSON. Do not build against `pymatgen.ext.matproj.MPRester`. For old task IDs use `mp_api.client.MPRester().materials.tasks.search(task_ids=[...])`.
 
 ---
 
@@ -472,9 +547,15 @@ claude mcp add --transport stdio --scope user arxiv -- uvx arxiv-mcp-server
 
 for LaTeX-by-section equation extraction.
 
+If you want broader coverage (Crossref/OpenAlex/Unpaywall for the v2 paper's bibliography), add K-Dense's `paper-lookup` skill — no credentials, provenance-oriented (§1.5). Install only the skills you need; the full set is 161 skills and its chemistry skills are biomolecular, not atomistic.
+
 ### Priority 7 — v2 benchmark reference data (2–4 hours)
 
 Pull `formation_energy_per_atom` from MP's **no-key** OPTIMADE endpoint using the **`gga_gga+u`** functional key, and compute MACE formation energies against MACE-computed elemental references so the comparison is like-for-like. Keep `mlpeg-catalog.ts`'s existing experimental values as a clearly-labelled third column — do not silently mix the three quantities.
+
+Then cite `matbench-discovery`'s published **MACE-MP-0** and **MACE-MPA-0** entries rather than implying your MP comparison is a generalization test. Because MACE-MP-0 trained on MP data, your comparison is a self-consistency check; say so explicitly in the UI copy. That single sentence is worth more scientific credibility than another chart.
+
+If you want the agent to query MP directly during development, `pip install "mp-api[mcp]"` + `mpmcp` is first-party and takes 30 minutes — but it needs an API key, so it is a developer convenience, not something the deployed app should depend on.
 
 ### Explicitly do not adopt
 
@@ -482,8 +563,12 @@ Pull `formation_energy_per_atom` from MP's **no-key** OPTIMADE endpoint using th
 - **DVC / MLflow / Sacred / Sumatra** — experiment-tracking mental model, wrong problem.
 - **`recipy` / `provenance` / `cffconvert` / `pytest-snapshot`** — dead, 4–10 years stale.
 - **`pint`** — real overhead, low bug-catch rate here. Revisit only if a units bug actually ships.
-- **Materials Project / PubChem MCP servers** — 1–12★ hobby projects wrapping APIs you can call directly.
+- **Third-party Materials Project MCP servers** — superseded by the official `mp-api[mcp]`.
+- **PubChem MCP servers** — 5–46★ hobby projects wrapping a no-auth REST API you can `curl`.
 - **NIST CCCBDB automation** — no API exists; scraping will break.
+- **OQMD** — returning 502 across all endpoints during this research; wrapper `qmpy_rester` last released 2019.
+- **`aflow` pip wrapper** — 6 years stale. The AFLOW REST API itself is fine.
+- **K-Dense's `molecular-dynamics` / `deepchem` / `medchem` skills** — OpenMM/biomolecular and drug-discovery, **not** ASE/MACE. Do not install expecting materials support.
 
 ---
 
@@ -491,9 +576,8 @@ Pull `formation_energy_per_atom` from MP's **no-key** OPTIMADE endpoint using th
 
 Stated plainly so nobody spends time looking:
 
-- **No official Materials Project MCP server.** The `materialsproject` org has zero MCP/agent/LLM repos.
-- **No ASE, MACE, or general computational-chemistry MCP server.** GitHub search returns nothing.
-- **No science, chemistry, or research plugin in the official Anthropic marketplace** (39 first-party + 15 external checked).
+- **No MACE-specific or ASE-specific MCP server.** GitHub searches for `chemistry mcp server` and `ase atomic simulation mcp` return nothing from the ASE project or the MACE authors. The closest things that exist are `pathintegral-institute/mcp.science`'s `gpaw-computation` server (real DFT via GPAW) and `XirtamEsrevni/mcp-atomictoolkit` (11★, self-described as "not all features fully operational yet"). Neither covers MACE.
+- **No dedicated science / paper / citation plugin in the official Anthropic marketplace** — verified against the real `marketplace.json`, **0 of 284**.
 - **No science skill in `anthropics/skills`** (17 skills, all document/design/dev).
 - **No machine-readable NIST CCCBDB API.** `/api` and `/rest` both 404.
 - **No atomistic-simulation unit library.** Nothing like `ase-pint`.
@@ -509,4 +593,21 @@ Stated plainly so nobody spends time looking:
 - **Local filesystem inspection** of `~/.claude/plugins/marketplaces/claude-plugins-official` and the installed `huggingface-skills` plugin.
 - **Local execution** for `ase.db` round-trip, extxyz round-trip, MACE checkpoint path resolution and SHA256 timing, and the `validate_result` MACE-OFF false-positive demonstration.
 
-Two background research streams (literature ecosystem, scientific data sources) were still running when this document was finalized; every finding above rests on my own direct verification, and a third stream on reproducibility tooling corroborated §3.
+Three parallel research streams (literature ecosystem, scientific data sources, reproducibility tooling) fed this document. **Every claim retained above was re-verified by me directly** — where a stream's finding contradicted mine, I re-probed the primary source before editing.
+
+### Corrections made during research
+
+- **I was wrong about the Materials Project MCP server.** I concluded none existed by searching the `materialsproject` org for repo *names* matching `mcp`. The server is a subpackage inside the `mp-api` repo. Corrected in §2.1 with direct evidence. Lesson: search package metadata and entry points, not just repository names.
+- **Plugin count corrected** from "39 + 15" (the local vendored cache) to **284** (the real `marketplace.json`). The conclusion — zero science/literature plugins — was unaffected.
+
+### Names that do NOT exist — do not repeat them
+
+Search engines, AI summaries, and MCP aggregator directories produced several confident references to things that 404 on GitHub:
+
+- `win4r/arxiv-mcp` — no such repo.
+- `justaddcoffee/materials-project-mcp` — no such repo (search-snippet fabrication).
+- `fair2wise/materials-project-mcp` — 404 on GitHub while still listed on the Glama aggregator.
+- `huggingface-claude-skills` — wrong name; the real repo is `huggingface/skills`.
+- A batch of invented plugin names (`webprotein`, `oxford-dictionaries`, `potlatch`, `scarlet-gpt`, `tipranks`, `uniscope`) surfaced by an intermediate page-summarizing call and were discarded after checking against the real `marketplace.json`.
+
+**Operational rule for v2: trust GitHub API and PyPI JSON over MCP directory sites** (Glama, LobeHub, mcp.so, mcpservers.org). Aggregators list dead repos indefinitely.

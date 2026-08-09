@@ -42,3 +42,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python virtualenv (shares this repo root with the Next app)
+/.venv
+/venv
+
+# python bytecode
+__pycache__/
+*.py[cod]
