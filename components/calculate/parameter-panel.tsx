@@ -5,12 +5,23 @@
  *
  * Rebuilt on shadcn primitives (Select, RadioGroup, Switch, Input, Label,
  * Tooltip) and the warm light theme. Physical parameters are contextual to
- * the chosen calculation type. D3 dispersion is disabled for MACE-OFF, which
- * already includes dispersion (enabling it would double-count).
+ * the chosen calculation type. Every numeric control shows its unit and
+ * valid range inline (Materials Project panel discipline — nothing bare).
+ *
+ * Guardrails enforced here (see CLAUDE.md "Scientific Accuracy Rules"):
+ *  - D3 dispersion is disabled for MACE-OFF (already includes dispersion —
+ *    double-counting) and for custom checkpoints (the backend never wires
+ *    `dispersion` into a custom MACECalculator, so the toggle would be a no-op).
+ *  - MACE-OFF's element coverage (H, C, N, O, F, P, S, Cl, Br, I) is surfaced,
+ *    with a hard warning if the loaded structure is known to fall outside it.
+ *  - MD timestep is capped and flagged outside the typical 0.5-2.0 fs band.
+ *  - NPT is disabled when the loaded structure is known not to be periodic.
+ * The element/periodicity checks are undefined-safe: they activate once a
+ * parent passes `structureElements` / `isPeriodic`, and stay inert otherwise.
  */
 
 import { useEffect, useState } from "react";
-import { Info, Upload, X, FileText } from "lucide-react";
+import { Info, Upload, X, FileText, AlertTriangle } from "lucide-react";
 import type { CalculationParams } from "@/types/mace";
 import {
   Card,
@@ -41,6 +52,21 @@ interface ParameterPanelProps {
   onChange: (params: CalculationParams) => void;
   customModelFile: File | null;
   onCustomModelChange: (file: File | null) => void;
+  /**
+   * Unique elements present in the currently loaded structure (e.g. ["C", "H", "O"]),
+   * if known. Drives the MACE-OFF element-coverage warning below. Optional and
+   * undefined-safe: the calculator page does not currently lift parsed-structure
+   * state up to pass here, so this stays inactive until a parent wires it up —
+   * it does not affect anything else in the meantime.
+   */
+  structureElements?: string[];
+  /**
+   * Whether the currently loaded structure has a periodic cell (lattice vectors),
+   * if known. Drives the NPT guard below (NPT/barostat dynamics are only physically
+   * meaningful for a periodic system). Optional: when undefined, periodicity cannot
+   * be verified, so NPT is left selectable rather than guessed at.
+   */
+  isPeriodic?: boolean;
 }
 
 type CalcTypeOption = {
@@ -74,11 +100,20 @@ const CALC_TYPES: CalcTypeOption[] = [
   },
 ];
 
+/** Elements MACE-OFF was trained on (organic chemistry space only). Per
+ * CLAUDE.md's Model Selection rules; used to warn when a loaded structure
+ * falls outside MACE-OFF's domain. */
+const MACE_OFF_ELEMENTS = new Set([
+  "H", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I",
+]);
+
 export function ParameterPanel({
   params,
   onChange,
   customModelFile,
   onCustomModelChange,
+  structureElements,
+  isPeriodic,
 }: ParameterPanelProps) {
   const updateParam = <K extends keyof CalculationParams>(
     key: K,
@@ -88,14 +123,47 @@ export function ParameterPanel({
   const isCustom = params.modelType === "custom";
   const isOFF = params.modelType === "MACE-OFF";
 
-  // Custom models have no size choice / MACE-OFF must not double-count dispersion.
+  // Elements outside MACE-OFF's training domain, if the loaded structure is known.
+  const unsupportedElements = isOFF
+    ? (structureElements ?? []).filter((el) => !MACE_OFF_ELEMENTS.has(el))
+    : [];
+  const hasHydrogen = structureElements?.includes("H") ?? false;
+
+  const timeStepValue = params.timeStep ?? 1.0;
+  const timeStepWarning =
+    timeStepValue > 2.0
+      ? "Above the typical 0.5–2.0 fs range — energy conservation degrades quickly beyond this; results may be unusable."
+      : hasHydrogen && timeStepValue > 1.0
+        ? "Structure contains hydrogen — prefer 1.0 fs or smaller for stable integration."
+        : undefined;
+
+  // Custom models have no size choice. Dispersion must not be silently
+  // dropped: get_mace_calculator() only wires `dispersion` into mace_mp() —
+  // mace_off() never receives it (MACE-OFF already includes dispersion, so
+  // adding D3 would double-count it) and get_custom_calculator() has no
+  // dispersion parameter at all (mace-api/calculate.py). So neither MACE-OFF
+  // nor a custom checkpoint should leave the toggle in an "on" state that the
+  // backend will ignore.
   useEffect(() => {
     if (params.modelType !== "custom") onCustomModelChange(null);
-    if (params.modelType === "MACE-OFF" && params.dispersion) {
+    if (
+      (params.modelType === "MACE-OFF" || params.modelType === "custom") &&
+      params.dispersion
+    ) {
       onChange({ ...params, dispersion: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.modelType]);
+
+  // NPT (barostat) dynamics are only meaningful for a periodic cell. If the
+  // loaded structure is known not to be periodic, fall back to NVT rather
+  // than let the request go out as a calculation that cannot work.
+  useEffect(() => {
+    if (isPeriodic === false && params.mdEnsemble === "NPT") {
+      onChange({ ...params, mdEnsemble: "NVT" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPeriodic]);
 
   return (
     <div className="space-y-6">
@@ -110,7 +178,7 @@ export function ParameterPanel({
         <CardContent className="space-y-5">
           <Field
             label="Model type"
-            tooltip="MACE-MP-0: materials & crystals (89 elements). MACE-OFF: organic molecules. Custom: your own .model checkpoint."
+            tooltip="MACE-MP-0: materials & crystals (89 elements). MACE-OFF: organic molecules only — H, C, N, O, F, P, S, Cl, Br, I. Custom: your own .model checkpoint."
           >
             <Select
               value={params.modelType}
@@ -134,6 +202,33 @@ export function ParameterPanel({
               </SelectContent>
             </Select>
           </Field>
+
+          {isOFF && (
+            <div className="space-y-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3">
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]" />
+                <span>
+                  Trained only on organic elements:{" "}
+                  <strong className="font-mono text-[var(--color-text-primary)]">
+                    H, C, N, O, F, P, S, Cl, Br, I
+                  </strong>
+                  . Structures with other elements (metals, noble gases, etc.)
+                  are outside its training domain.
+                </span>
+              </p>
+              {unsupportedElements.length > 0 && (
+                <p className="flex items-start gap-2 rounded border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 p-2 text-xs leading-relaxed text-[var(--color-error)]">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    This structure contains{" "}
+                    <strong>{unsupportedElements.join(", ")}</strong>, which
+                    MACE-OFF does not support. Switch to MACE-MP-0 for this
+                    structure.
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
 
           {isCustom && (
             <div className="space-y-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-4">
@@ -327,18 +422,25 @@ export function ParameterPanel({
                 <Label htmlFor="dispersion" className="text-sm">
                   D3 dispersion correction
                 </Label>
-                <InfoTip text="Grimme D3 dispersion. Only meaningful for MACE-MP-0 — MACE-OFF already includes dispersion." />
+                <InfoTip text="Grimme D3 correction. Only meaningful for MACE-MP-0 — MACE-OFF already includes dispersion in training, so enabling this would double-count it." />
               </div>
               <Switch
                 id="dispersion"
-                checked={params.dispersion && !isOFF}
-                disabled={isOFF}
+                checked={params.dispersion && !isOFF && !isCustom}
+                disabled={isOFF || isCustom}
                 onCheckedChange={(c) => updateParam("dispersion", c)}
               />
             </div>
             {isOFF && (
               <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">
-                Dispersion is already included in MACE-OFF.
+                Disabled — MACE-OFF already includes dispersion; enabling D3
+                would double-count it.
+              </p>
+            )}
+            {isCustom && (
+              <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">
+                Disabled — dispersion is not applied to custom model
+                checkpoints; it depends on how the model was trained.
               </p>
             )}
 
@@ -346,8 +448,9 @@ export function ParameterPanel({
             {params.calculationType === "geometry-opt" && (
               <div className="mt-5 space-y-4">
                 <NumberField
-                  label="Force threshold (eV/Å)"
-                  hint="Convergence criterion: max force per atom (fmax)"
+                  label="Force threshold"
+                  unit="eV/Å"
+                  hint="Convergence: max force per atom (fmax). 0.05 for general use; tighten to 0.01 for production-quality geometries."
                   value={params.forceThreshold ?? 0.05}
                   onChange={(v) => updateParam("forceThreshold", v)}
                   min={0.001}
@@ -356,6 +459,7 @@ export function ParameterPanel({
                 />
                 <NumberField
                   label="Max optimization steps"
+                  hint="Upper bound on BFGS iterations; the run stops early once fmax is reached."
                   value={params.maxOptSteps ?? 500}
                   onChange={(v) => updateParam("maxOptSteps", v)}
                   min={10}
@@ -383,13 +487,30 @@ export function ParameterPanel({
                     <SelectContent>
                       <SelectItem value="NVE">NVE — microcanonical</SelectItem>
                       <SelectItem value="NVT">NVT — canonical</SelectItem>
-                      <SelectItem value="NPT">NPT — constant P, T</SelectItem>
+                      <SelectItem
+                        value="NPT"
+                        disabled={isPeriodic === false}
+                      >
+                        NPT — constant P, T
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {isPeriodic === false && (
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      NPT is unavailable — this structure has no periodic
+                      cell (not a crystal/bulk structure). Only NVE/NVT apply.
+                    </p>
+                  )}
                 </Field>
 
                 <NumberField
-                  label="Temperature (K)"
+                  label="Temperature"
+                  unit="K"
+                  hint={
+                    (params.mdEnsemble ?? "NVT") === "NVE"
+                      ? "NVE has no thermostat — this sets only the initial velocity draw; temperature will drift, not stay fixed."
+                      : undefined
+                  }
                   value={params.temperature ?? 300}
                   onChange={(v) => updateParam("temperature", v)}
                   min={0}
@@ -398,7 +519,8 @@ export function ParameterPanel({
 
                 {(params.mdEnsemble ?? "NVT") === "NVT" && (
                   <NumberField
-                    label="Friction (1/fs)"
+                    label="Friction"
+                    unit="1/fs"
                     hint="Langevin thermostat coupling strength"
                     value={params.friction ?? 0.005}
                     onChange={(v) => updateParam("friction", v)}
@@ -410,7 +532,8 @@ export function ParameterPanel({
 
                 {(params.mdEnsemble ?? "NVT") === "NPT" && (
                   <NumberField
-                    label="Pressure (GPa)"
+                    label="Pressure"
+                    unit="GPa"
                     value={params.pressure ?? 0}
                     onChange={(v) => updateParam("pressure", v)}
                     min={0}
@@ -420,11 +543,14 @@ export function ParameterPanel({
 
                 <div className="grid grid-cols-2 gap-4">
                   <NumberField
-                    label="Time step (fs)"
-                    value={params.timeStep ?? 1.0}
+                    label="Time step"
+                    unit="fs"
+                    hint="Typical: 0.5–2.0 fs. Use smaller steps for light elements like hydrogen."
+                    warning={timeStepWarning}
+                    value={timeStepValue}
                     onChange={(v) => updateParam("timeStep", v)}
                     min={0.1}
-                    max={10}
+                    max={4}
                     step={0.1}
                   />
                   <NumberField
@@ -493,7 +619,9 @@ function InfoTip({ text }: { text: string }) {
 
 function NumberField({
   label,
+  unit,
   hint,
+  warning,
   value,
   onChange,
   min,
@@ -501,7 +629,15 @@ function NumberField({
   step,
 }: {
   label: string;
+  /** Physical unit shown inline next to the label and in the range caption
+   * (e.g. "eV/Å", "K", "fs") — every numeric control here carries one unless
+   * the quantity is genuinely dimensionless (e.g. a step count). */
+  unit?: string;
   hint?: string;
+  /** Dynamic caution shown when the current value is valid but scientifically
+   * risky (e.g. an MD timestep above the typical range). Rendered distinctly
+   * from `hint`, which is static guidance shown regardless of the value. */
+  warning?: string;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -511,11 +647,20 @@ function NumberField({
   const [localValue, setLocalValue] = useState<string>(String(value));
   const [isFocused, setIsFocused] = useState(false);
   const displayValue = isFocused ? localValue : String(value);
+  const rangeText =
+    min != null && max != null
+      ? `Range: ${min}–${max}${unit ? ` ${unit}` : ""}`
+      : undefined;
 
   return (
     <div className="space-y-2">
       <Label className="text-xs font-medium text-[var(--color-text-secondary)]">
         {label}
+        {unit && (
+          <span className="ml-1 font-normal text-[var(--color-text-muted)]">
+            ({unit})
+          </span>
+        )}
       </Label>
       <Input
         type="number"
@@ -556,6 +701,17 @@ function NumberField({
       {hint && (
         <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
           {hint}
+        </p>
+      )}
+      {rangeText && (
+        <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+          {rangeText}
+        </p>
+      )}
+      {warning && (
+        <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-[var(--color-warning)]">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>{warning}</span>
         </p>
       )}
     </div>
