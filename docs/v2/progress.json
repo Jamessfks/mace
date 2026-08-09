@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.0",
-  "updated": "2026-08-09T13:41:16.933Z",
+  "updated": "2026-08-09T13:51:21.835Z",
   "bars": [
     {
       "name": "Rowan",
@@ -189,6 +189,21 @@
       "rounds": 0,
       "verdict": null,
       "gap": null
+    },
+    {
+      "id": "reference-conformance",
+      "name": "Conformance to the MACE reference implementation",
+      "bar": "ACEsuit/mace v0.3.16",
+      "judge": "Does SimpleAtom use MACE the way upstream says to? Where it differs, is the difference deliberate and documented, or a bug?",
+      "files": [
+        "mace-api/calculate.py",
+        "mace-api/calculate_local.py",
+        "requirements.txt"
+      ],
+      "status": "building",
+      "rounds": 1,
+      "verdict": null,
+      "gap": "modelType has no allow-list: custom with no uploaded model silently returns MACE-MP-0 results labelled custom, shareable and PDF-exportable. Plus non-converged optimisations reported as completed, dtype inverted vs upstream, and MD potential energy labelled total energy."
     }
   ],
   "notes": [
@@ -204,6 +219,8 @@
     "Critic found our shading objectively beats the bar (117 luminance levels on carbon vs 34; we run SSAO, Rowan has none). We lost purely on scale.",
     "CIF fractional coordinates were never converted through the unit cell. Silicon loaded with nearest-neighbour 0.433 A instead of 2.3516 A — a factor of 5.4. Fixed and covered by public/demo/silicon.cif.",
     "Four separate defects in this branch were code that reviews as correct and does nothing at runtime: the validator dead bounds, the phonon fallthrough, the no-op D3 toggle, and the inert structure guardrails.",
-    "Two agents (viewer round-2 critic, guardrail wiring) died on a session limit. The wiring was completed directly; the critic re-run is still outstanding."
+    "Two agents (viewer round-2 critic, guardrail wiring) died on a session limit. The wiring was completed directly; the critic re-run is still outstanding.",
+    "ACEsuit/mace audit: the float64-for-Hessians rule in CLAUDE.md is not sourced from upstream and targets phonon, which SimpleAtom rejects, so it guards nothing. Upstream says use float64 for geometry optimisation, a feature SimpleAtom has.",
+    "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails."
   ]
 }
