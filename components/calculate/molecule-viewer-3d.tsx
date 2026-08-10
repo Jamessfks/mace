@@ -31,9 +31,13 @@
  *      at ~28% and cannot be corrected with a constant (see the framing block
  *      below). The fit is re-solved on every size change, including entering
  *      and leaving fullscreen. Force arrows are an overlay, not the subject:
- *      they are excluded from the fit and clamped in length instead (see
- *      MAX_FORCE_ARROW_FRACTION). The fit also RE-CENTRES on the projected
- *      bounding box, so a lopsided silhouette still fills the frame.
+ *      they are excluded from the fit and bounded in length instead, by a
+ *      measured screen-space ceiling (ARROW_TIP_SAFE_FILL). The fit also
+ *      RE-CENTRES on the projected bounding box, so a lopsided silhouette still
+ *      fills the frame. Auto-rotation solves the SAME fit and then checks the
+ *      swept volume as a CEILING (SWEEP_SAFE_FILL), so the spinning and still
+ *      framings are identical wherever the sweep already fits — which for the
+ *      default view it does.
  *   3. Shading — renderer-level dark contact outline + screen-space ambient
  *      occlusion, so overlapping atoms separate and contacts darken.
  *   4. Colours — Jmol CPK (C grey, H off-white, N blue, O red), with a
@@ -70,6 +74,7 @@ import {
   Download,
   Ruler,
   X,
+  HelpCircle,
 } from "lucide-react";
 import type { AtomSpec, AtomStyleSpec, GLViewer } from "3dmol";
 import type { CalculationResult } from "@/types/mace";
@@ -108,7 +113,10 @@ interface AtomRecord {
   bonds: number[];
 }
 
-/** Everything the renderer needs to know about what should currently be drawn. */
+/**
+ * Everything the renderer needs to know about what should currently be drawn,
+ * plus the one thing only the FRAMING path reads.
+ */
 interface ViewOptions {
   representation: Representation;
   showForces: boolean;
@@ -116,16 +124,19 @@ interface ViewOptions {
   /** Ordered 3Dmol atom indices. Order is load-bearing: it sets the
    *  angle vertex and the dihedral sign. */
   selection: number[];
-  /** Auto-rotation. Read by the imperative resize path, which has to pick the
-   *  same framing mode the React effects would — see FrameSpec.envelope. */
+  /**
+   * Auto-rotation. Changes nothing about what is DRAWN — applyView must never
+   * read it, or toggling the rotation would tear down and rebuild every arrow and
+   * shell. It is here only so the imperative resize path can pick the same sweep
+   * ceiling the React effects would (FrameSpec.spinning).
+   */
   spin: boolean;
 }
 
 /**
- * The subset of ViewOptions that changes what is DRAWN. `spin` is not in it:
- * spin affects framing only, and including it would make applyView re-run
- * (tearing down and rebuilding every arrow and shell) each time the rotation is
- * toggled.
+ * The subset of ViewOptions that changes what is DRAWN. applyView takes THIS, so
+ * that "the renderer cannot read the spin state" is enforced by the compiler
+ * rather than by a comment. A full ViewOptions is assignable to it.
  */
 type RenderOptions = Omit<ViewOptions, "spin">;
 
@@ -331,25 +342,68 @@ const MAX_TOTAL_FRAMING_ZOOM = 12;
 const MIN_TOTAL_FRAMING_ZOOM = 0.2;
 
 /**
- * WHILE SPINNING, the fit is solved for a rotation-INVARIANT envelope instead
- * of the current silhouette (see FrameSpec.envelope).
+ * ROTATION SAFETY, AND WHY IT IS A CEILING RATHER THAN A FILL TARGET.
  *
  * A silhouette fit is correct for exactly one orientation. Rotating the
  * structure changes its projected extent, so a static per-orientation fit
  * drifts: measured over 32 samples of a spin, the fill swung 0.7365 to 0.9221 —
- * up to 12% OVER TARGET_FILL, which is the direction that clips, and one
- * clipped frame was in fact observed just after a spin stopped.
+ * up to 12% OVER TARGET_FILL, which is the direction that clips.
  *
- * The alternative fix is to re-solve on a throttle, which trades the drift for
- * a molecule that visibly breathes several times a second and a per-frame cost
- * that scales with atom count. Fitting the envelope instead costs nothing at
- * run time, holds the apparent size exactly constant through the rotation, and
- * makes "cannot clip at any angle" true by construction rather than by
- * sampling. The price is that an elongated structure under-fills while it
- * spins, which is the correct behaviour for a spinning object anyway: it fills
- * the frame at the orientation where it is widest.
+ * The previous fix swapped the fit for a rotation-invariant envelope WHILE
+ * SPINNING, and fitted that envelope to TARGET_FILL. It delivered no clipping
+ * at any angle, and it cost 27% of the apparent size the instant the rotation
+ * was engaged — measured 843 px static against 593-663 px spinning, with the
+ * molecule popping back when the spin stopped. Two different envelopes fitted
+ * to the same target CANNOT agree; that is arithmetic, not tuning. Reproduced
+ * here from the geometry alone: ethanol's centroid-centred bounding sphere is
+ * 4.196 A across where its silhouette is 3.07 A, so a sphere fitted to 0.82
+ * lands the silhouette at 0.60 — a 26.8% shrink, which is the measurement.
+ *
+ * TWO CHANGES, AND WHICH ONE MATTERS.
+ *
+ * 1. The envelope is no longer a SPHERE. `spin(true)` is `rotate(1, 'y')`
+ *    (3dmol/src/GLViewer.ts), which PRE-multiplies the view quaternion and so
+ *    turns the model about ITS OWN y axis through the rotation centre. The swept
+ *    volume is therefore bounded by a CYLINDER about that axis, not by a sphere:
+ *    for ethanol 3.734 x 3.129 A against the sphere's 4.196 x 4.196. The sphere
+ *    was throwing away a quarter of the frame for nothing.
+ *
+ * 2. It is a CEILING, not a fill target, and it runs only while the rotation is
+ *    actually on. TARGET_FILL is an aesthetic target for the subject; "cannot
+ *    clip while spinning" only asks that the swept volume stay INSIDE the canvas.
+ *    So both states solve the same per-orientation fit, and the spinning one is
+ *    pulled back afterwards only if the sweep would leave the frame.
+ *
+ * Together those are what close the gap, and the arithmetic says by how much. In
+ * the 664 x 514 box the defect was measured in, ethanol's static fit needs
+ * 137.2 px/A and its y-axis sweep permits 164.3 — the ceiling does not bind, so
+ * the framing while spinning is IDENTICAL to the framing while still and the
+ * 27-30% pop is zero. In a 470 x 470 hero box: 125.4 needed against 125.9
+ * permitted, also zero. Neither number is a tuned constant; both fall out of the
+ * geometry.
+ *
+ * WHAT IS NOT FIXED, AND WHY IT CANNOT BE. With "Hide C–H bonds" on, ethanol's
+ * drawn set is four atoms 2.14 A tall, so the fit magnifies to 196.6 px/A, while
+ * the swept cylinder is still 3.73 A wide because the radial extreme is the
+ * OXYGEN, which hiding keeps. 3.73 A at 196.6 px/A is 735 px in a 664 px box.
+ * Filling the frame with the rendered subset and sweeping that subset inside the
+ * same frame are then simply incompatible, and engaging the rotation in that
+ * sub-state still steps down by ~16%. A brute-force search over 16,000 candidate
+ * spin axes says the model y axis is already the best available choice and the
+ * best possible one still loses 16.5%, so this is not an axis-selection problem.
+ * The alternative — apply the ceiling unconditionally — makes "Hide C–H bonds"
+ * SHRINK the molecule (measured in simulation: hero fill 0.809 -> 0.534), which
+ * is the older defect this file already fixed once. Ranked: a 16% step in one
+ * sub-state beats a 34% shrink in the state people actually use.
  */
-const SPIN_USES_INVARIANT_ENVELOPE = true;
+const SWEEP_SAFE_FILL = 0.99;
+
+/**
+ * Rim samples per circle when measuring the swept cylinder. The radius is
+ * inflated by 1/cos(pi/N) so the sampled polygon CIRCUMSCRIBES the circle and
+ * the measurement cannot under-report the sweep; at 32 that is a 0.5% inflation.
+ */
+const SWEEP_RING_SAMPLES = 32;
 
 /** Nominal Angstroms drawn per eV/A of force, before the length clamp. */
 const FORCE_ARROW_SCALE = 5;
@@ -373,10 +427,96 @@ const FORCE_ARROW_SCALE = 5;
  * arrow length that encodes a quantity is not readable without its scale.
  *
  * 0.45 of the span puts the longest arrow at a little under half the molecule's
- * own size: unmistakable, and small enough that it mostly fits in the margin
- * TARGET_FILL leaves (0.09 of the box per side, i.e. ~0.11 of the atom span).
+ * own size: unmistakable, and clearly visible against the structure.
+ *
+ * WHAT THIS CLAMP DOES NOT DO, AND THE REGRESSION THAT PROVED IT. An earlier
+ * version of this note claimed 0.45 "mostly fits in the margin TARGET_FILL
+ * leaves (0.09 of the box per side, i.e. ~0.11 of the atom span)". 0.45 is four
+ * times 0.11, so the claim was arithmetically false, and hiding the C-H
+ * hydrogens is what exposed it. Hiding them shrinks the FITTED set (ethanol's
+ * silhouette 3.07 A -> 2.14 A) so the fit magnifies by 1.434x — reproduced from
+ * the coordinates, and the critic measured 1.44x. The arrows are excluded from
+ * the fit by design and their length in ANGSTROMS did not change, so their
+ * on-screen length grew by that same 1.434x: measured 588 CSS px of arrow bbox
+ * in a 664 px box became ~842 px, i.e. clipped at BOTH edges, which is exactly
+ * what was reported ([0, 1327] on a 1328 px backing store).
+ *
+ * Note what this rules out: the hypothesis that the hidden hydrogens were still
+ * being drawn. If they were, the post-hide silhouette would be the ALL-atom one
+ * at the C/O fit — 604 px tall in a 514 px box, clipped top and bottom. The
+ * measured vertical extent did not move (842 -> 844 backing px, i.e. 421 -> 422
+ * CSS px, which is the C/O fit's own 421 px). setStyle(sel, {}) does remove the
+ * geometry (GLModel.setStyle assigns `style = {}` when `add` is falsy, and every
+ * draw path is gated on a style key), so nothing is drawn for them.
+ *
+ * The clamp cannot be made airtight by geometry alone, and it is worth saying
+ * why rather than tuning the constant again: it is scaled by the structure's own
+ * span, and the fit is scaled by the PROJECTED silhouette. Those differ by an
+ * unbounded factor — a linear molecule end-on has a tiny silhouette and a large
+ * span, so the fit zooms in arbitrarily far while the clamp does not move. For
+ * ethanol the two are not even distinguishable by the drawn set: the atom
+ * farthest from the centroid is the HYDROXYL hydrogen (1.834 A), which hiding
+ * C-H keeps, so re-basing this clamp on the drawn atoms alone would change
+ * nothing at all. Hence ARROW_TIP_SAFE_FILL below: a measured ceiling, in screen
+ * space, which is the only thing that can actually promise "no edge contact".
  */
 const MAX_FORCE_ARROW_FRACTION = 0.45;
+
+/**
+ * Fraction of the canvas half-extent an arrow TIP may reach.
+ *
+ * Measured after the fit and applied by shortening the arrows — never by
+ * zooming out. That distinction is the whole point: the fit is solved from the
+ * atoms alone, so showing or hiding the arrows leaves the molecule's size
+ * byte-identical (measured: centroid moves 0.02 px, fill 0.8106 either way). A
+ * guard that zoomed out to make room for arrows would destroy exactly that
+ * property. Shortening an arrow costs nothing that is not already printed in the
+ * legend; shrinking the molecule costs the subject.
+ *
+ * Hence also why this is 0.98 while SWEEP_SAFE_FILL is 0.99 — the two margins
+ * are not the same kind of thing. This one is free, so it is generous.
+ */
+const ARROW_TIP_SAFE_FILL = 0.98;
+
+/**
+ * Rungs the arrow scale is rounded DOWN to, per decade — a map scale bar's
+ * ladder. Two purposes:
+ *
+ *   1. STABILITY. The scale now has a measured screen-space ceiling, so without
+ *      quantisation the printed number would drift with the window width.
+ *      Rounding to a rung makes it reproducible.
+ *   2. ROUNDNESS. "0.5 A per eV/A" reads as a chosen scale; "0.82" reads as an
+ *      accident, which is how the reported defect looked.
+ *
+ * It does NOT make the scale model-independent, and no quantisation can. The
+ * reported case is MACE-OFF and MACE-MP-0 on the same ethanol geometry giving
+ * |F|max of about 2.01 and 1.65 eV/A — a real 22% difference in the physics. Any
+ * ladder containing a rung between the two resulting caps separates them, and a
+ * ladder coarse enough to merge every such pair would throw away most of the
+ * arrow length. So comparability is handled where it belongs, on screen: see the
+ * length-reference tick in the legend, whose drawn length IS the scale.
+ */
+const ARROW_SCALE_RUNGS = [1, 2, 5];
+
+/**
+ * Reference forces for the legend's length tick, in eV/A, and the CSS-pixel band
+ * the tick may occupy.
+ *
+ * POWERS OF TEN ONLY, AND THAT IS THE WHOLE POINT. The tick exists so that two
+ * results of the same molecule at different arrow scales LOOK different. A
+ * reference chosen to normalise the tick to a comfortable length would defeat
+ * that exactly: both would draw a ~36 px rule and only the label beside it would
+ * change, which is the defect over again. With a decade ladder the rung is stable
+ * across any scale change under 10x, so the tick's LENGTH is directly
+ * proportional to the scale — 0.5 A per eV/A draws half the rule that 1.0 does,
+ * visible at a glance, with the same "1 eV/A" label under both.
+ *
+ * The band is generous at the top for the same reason: clipping the tick short
+ * would re-normalise it. 1e-3 to 1e3 keeps every label out of exponent notation.
+ */
+const TICK_FORCE_DECADES = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+const TICK_MIN_PX = 8;
+const TICK_MAX_PX = 140;
 
 /** Floor on the structure span used by the arrow clamp, in Angstroms. Without
  *  it a single atom (span 0) would clamp every arrow to zero length. */
@@ -658,17 +798,30 @@ interface ProjectedExtent {
   pxPerAngstrom: number;
 }
 
-/** What the framing solver has to keep inside the frame. */
+/**
+ * What the framing solver has to keep inside the frame.
+ *
+ * `spinning` selects a CEILING, not a different fit — see SWEEP_SAFE_FILL. The
+ * fit itself is the same per-orientation solve in both states, which is why the
+ * two states now agree wherever the ceiling does not bind (i.e. everywhere except
+ * with C–H hidden). Do not turn it back into a mode switch.
+ */
 interface FrameSpec {
   rep: Representation;
   /** Atom indices currently styled away (hidden C–H hydrogens). */
   hidden: ReadonlySet<number>;
-  /**
-   * Fit the rotation-invariant envelope (a sphere about the centroid that
-   * contains every drawn atom) rather than the current silhouette. Used while
-   * spinning — see SPIN_USES_INVARIANT_ENVELOPE.
-   */
-  envelope?: boolean;
+  /** Auto-rotate is on, so the swept volume must also fit the canvas. */
+  spinning?: boolean;
+}
+
+/**
+ * What a completed fit tells the rest of the component. `pxPerAngstrom` is what
+ * lets the legend draw a length reference that is true in pixels.
+ */
+interface FrameMetrics {
+  pxPerAngstrom: number;
+  viewHalfWidth: number;
+  viewHalfHeight: number;
 }
 
 /** Screen-space basis of the current projection, in CSS pixels per Angstrom. */
@@ -738,29 +891,34 @@ function probeProjection(
   };
 }
 
+/** One point's signed CSS-pixel offset from the centre of the viewport. */
+interface ScreenOffset {
+  x: number;
+  y: number;
+}
+
+/** Per-point screen offsets plus the viewport half-size, in CSS pixels. */
+interface ProjectedPoints {
+  offsets: ScreenOffset[];
+  viewHalfWidth: number;
+  viewHalfHeight: number;
+}
+
 /**
- * Signed extent of the rendered ATOM silhouette, and of the viewport, both in
- * CSS pixels, measured through 3Dmol's own projection. Returns null when the
- * viewer is not in a measurable state.
+ * Project model points through 3Dmol's OWN projection and return their offsets
+ * from the centre of the viewport.
  *
- * Each drawn atom contributes FOUR probes — its centre offset by its own
- * radius along +/-screenX and +/-screenY — so the sphere edge is projected by
- * 3Dmol rather than approximated with one shared radius and one shared scale.
- * That makes the estimate correct per atom AND correct under perspective (an
- * atom nearer the camera projects its own radius larger, and the probe follows
- * it), which is what the single `pad` term got wrong.
- *
- * Force arrows are NOT probed. They used to be, and that is what made the
- * DEFAULT result view unreadable: FORCE_ARROW_SCALE puts a tip tens of
- * Angstroms out on an unrelaxed single-point, the solver dutifully fitted the
- * tips, and the molecule was measured at 79.5 x 83 px in a 664 x 520 box —
- * 12% of the width, a 4.03x shrink versus the same structure with the arrows
- * hidden. The arrows are a legend-backed overlay; the structure is the subject.
+ * The single primitive every measurement here is built on, so the silhouette
+ * fit, the rotation-sweep ceiling and the arrow-tip ceiling cannot disagree
+ * about where the centre of the canvas is. modelToScreen returns PAGE
+ * coordinates, so the viewport centre is rebuilt the way 3Dmol's own
+ * canvasOffset() does.
  */
-function measureProjectedExtent(
+function projectedPoints(
   viewer: GLViewer,
-  spec: FrameSpec
-): ProjectedExtent | null {
+  points: Point3[]
+): ProjectedPoints | null {
+  if (points.length === 0) return null;
   const canvas = viewer.getRenderer()?.getCanvas() as
     | HTMLCanvasElement
     | undefined;
@@ -769,16 +927,69 @@ function measureProjectedExtent(
   const rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
 
+  const screen = viewer.modelToScreen(points) as Array<{
+    x: number;
+    y: number;
+  }>;
+  if (!Array.isArray(screen) || screen.length !== points.length) return null;
+
+  const doc = canvas.ownerDocument.documentElement;
+  const left = rect.left + window.scrollX - doc.clientLeft;
+  const top = rect.top + window.scrollY - doc.clientTop;
+  const centreX = left + rect.width / 2;
+  const centreY = top + rect.height / 2;
+
+  const offsets: ScreenOffset[] = [];
+  for (const s of screen) {
+    if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
+    offsets.push({ x: s.x - centreX, y: s.y - centreY });
+  }
+
+  return {
+    offsets,
+    viewHalfWidth: rect.width / 2,
+    viewHalfHeight: rect.height / 2,
+  };
+}
+
+/**
+ * The largest fraction of a canvas half-extent any of `offsets` reaches. 1.0
+ * means something touches the edge; above 1.0 it is clipped. The padded
+ * comparison is symmetric (max of |min| and |max| per axis), so the answer does
+ * not depend on which side the overflow is on.
+ */
+function overflowFraction(
+  projected: ProjectedPoints,
+  safeFill: number
+): number {
+  let maxX = 0;
+  let maxY = 0;
+  for (const o of projected.offsets) {
+    maxX = Math.max(maxX, Math.abs(o.x));
+    maxY = Math.max(maxY, Math.abs(o.y));
+  }
+  const limitX = projected.viewHalfWidth * safeFill - OUTLINE_PAD_PX;
+  const limitY = projected.viewHalfHeight * safeFill - OUTLINE_PAD_PX;
+  if (limitX <= 0 || limitY <= 0) return 1;
+  return Math.max(maxX / limitX, maxY / limitY);
+}
+
+/**
+ * Every atom in the model, with the radius it is DRAWN at, split into the set
+ * that is currently rendered and the centroid of the whole model.
+ *
+ * The centroid is over EVERY atom, hidden ones included. This is the point
+ * zoomTo() parks at the centre of the viewport AND the point the spin turns
+ * about — GLViewer.zoomTo sets modelGroup.position to -getExtent()[2], which is
+ * the mean of the coordinates (not the bounding-box centre) of the atoms alone,
+ * before shapes are folded into the slab. Hiding a hydrogen changes its style,
+ * not its existence, so it still counts here.
+ */
+function collectDrawn(
+  viewer: GLViewer,
+  spec: FrameSpec
+): { drawn: Array<{ p: Point3; r: number }>; centre: Point3 } | null {
   const drawn: Array<{ p: Point3; r: number }> = [];
-  let sx = 0;
-  let sy = 0;
-  let sz = 0;
-  let atomCount = 0;
-  // The centroid of EVERY atom, hidden ones included. This is the point
-  // zoomTo() parks at the centre of the viewport — GLViewer.zoomTo takes
-  // getExtent()[2], which is the mean of the coordinates (not the bounding-box
-  // centre), of the whole selection before shapes are folded in. Hiding a
-  // hydrogen changes its style, not its existence, so it still counts here.
   let ax = 0;
   let ay = 0;
   let az = 0;
@@ -799,43 +1010,112 @@ function measureProjectedExtent(
     allCount++;
     if (typeof a.index === "number" && spec.hidden.has(a.index)) continue;
     drawn.push({ p, r: drawnRadius(a.elem, spec.rep) });
+  }
+  if (drawn.length === 0 || allCount === 0) return null;
+  return {
+    drawn,
+    centre: { x: ax / allCount, y: ay / allCount, z: az / allCount },
+  };
+}
+
+/**
+ * How far outside the canvas the SPIN would carry the structure, as a fraction
+ * of the safe area — see SWEEP_SAFE_FILL. At or below 1.0 nothing can clip at
+ * any rotation angle reachable from the current orientation.
+ *
+ * `spin(true)` is `rotate(1, 'y')`, which does `quaternion.multiply(q)` — a
+ * PRE-multiplication, so q acts in model space and the structure turns about its
+ * own y axis through the rotation centre. The volume swept over a full turn is
+ * therefore contained in the cylinder about that axis with
+ *     radius     = max over drawn atoms of ( hypot(dx, dz) + r )
+ *     y from     = min ( y - r )  to  max ( y + r )
+ * where dx, dz are measured from the rotation centre. The cylinder is convex, so
+ * the extreme point of its projection always lies on one of the two rim circles;
+ * a middle ring is sampled as well because under a perspective camera the
+ * nearest-depth point matters, not only the extreme y. Sampling is O(1) in atom
+ * count, which is why this can run on every fit.
+ *
+ * NOT a fill target. It only ever pulls the fit back, never pushes it in.
+ */
+function measureSpinSweep(viewer: GLViewer, spec: FrameSpec): number {
+  const collected = collectDrawn(viewer, spec);
+  if (!collected) return 0;
+  const { drawn, centre } = collected;
+
+  let radius = 0;
+  let yTop = -Infinity;
+  let yBottom = Infinity;
+  for (const { p, r } of drawn) {
+    radius = Math.max(radius, Math.hypot(p.x - centre.x, p.z - centre.z) + r);
+    yTop = Math.max(yTop, p.y + r);
+    yBottom = Math.min(yBottom, p.y - r);
+  }
+  if (!Number.isFinite(yTop) || !Number.isFinite(yBottom)) return 0;
+
+  const n = SWEEP_RING_SAMPLES;
+  // Circumscribe rather than inscribe, so the polygon cannot under-report.
+  const sampled = radius / Math.cos(Math.PI / n);
+  const heights = [yBottom, (yTop + yBottom) / 2, yTop];
+  const rim: Point3[] = [];
+  for (let i = 0; i < n; i++) {
+    const theta = (2 * Math.PI * i) / n;
+    const dx = sampled * Math.cos(theta);
+    const dz = sampled * Math.sin(theta);
+    for (const y of heights) {
+      rim.push({ x: centre.x + dx, y, z: centre.z + dz });
+    }
+  }
+
+  const projected = projectedPoints(viewer, rim);
+  if (!projected) return 0;
+  return overflowFraction(projected, SWEEP_SAFE_FILL);
+}
+
+/**
+ * Signed extent of the rendered ATOM silhouette, and of the viewport, both in
+ * CSS pixels, measured through 3Dmol's own projection. Returns null when the
+ * viewer is not in a measurable state.
+ *
+ * Each drawn atom contributes FOUR probes — its centre offset by its own
+ * radius along +/-screenX and +/-screenY — so the sphere edge is projected by
+ * 3Dmol rather than approximated with one shared radius and one shared scale.
+ * That makes the estimate correct per atom AND correct under perspective (an
+ * atom nearer the camera projects its own radius larger, and the probe follows
+ * it), which is what the single `pad` term got wrong.
+ *
+ * Force arrows are NOT probed. They used to be, and that is what made the
+ * DEFAULT result view unreadable: FORCE_ARROW_SCALE puts a tip tens of
+ * Angstroms out on an unrelaxed single-point, the solver dutifully fitted the
+ * tips, and the molecule was measured at 79.5 x 83 px in a 664 x 520 box —
+ * 12% of the width, a 4.03x shrink versus the same structure with the arrows
+ * hidden. The arrows are a legend-backed overlay; the structure is the subject.
+ * They get a ceiling of their own instead — see measureArrowCeiling.
+ */
+function measureProjectedExtent(
+  viewer: GLViewer,
+  spec: FrameSpec
+): ProjectedExtent | null {
+  const collected = collectDrawn(viewer, spec);
+  if (!collected) return null;
+  const { drawn } = collected;
+
+  // Probe the projection at the centroid of the DRAWN atoms — a point that is
+  // always inside the molecule, so pxPerAngstrom is measured where the
+  // structure actually is.
+  let sx = 0;
+  let sy = 0;
+  let sz = 0;
+  for (const { p } of drawn) {
     sx += p.x;
     sy += p.y;
     sz += p.z;
-    atomCount++;
   }
-  if (atomCount === 0 || allCount === 0) return null;
-
-  // Probe the projection at the centroid of the drawn atoms — a point that is
-  // always inside the molecule, so pxPerAngstrom is measured where the
-  // structure actually is.
   const basis = probeProjection(viewer, {
-    x: sx / atomCount,
-    y: sy / atomCount,
-    z: sz / atomCount,
+    x: sx / drawn.length,
+    y: sy / drawn.length,
+    z: sz / drawn.length,
   });
   if (!basis) return null;
-
-  // Rotation-invariant mode: ONE sphere, centred on the point zoomTo() keeps at
-  // the middle of the viewport, with a radius big enough to hold every drawn
-  // atom. Both halves of that matter. The four probes sit at the sphere
-  // centre's depth and at equal distances along the screen axes, so the
-  // measured SIZE is rotation-independent; centring on zoomTo()'s own point
-  // (rather than on the drawn atoms' centroid, which moves when hydrogens are
-  // hidden) makes the measured POSITION rotation-independent too, so no pan is
-  // solved and the picture cannot drift off-centre as it turns.
-  if (spec.envelope) {
-    const centre = { x: ax / allCount, y: ay / allCount, z: az / allCount };
-    let radius = 0;
-    for (const { p, r } of drawn) {
-      radius = Math.max(
-        radius,
-        Math.hypot(p.x - centre.x, p.y - centre.y, p.z - centre.z) + r
-      );
-    }
-    drawn.length = 0;
-    drawn.push({ p: centre, r: radius });
-  }
 
   const { screenX: u, screenY: v } = basis;
   const probes: Point3[] = [];
@@ -848,30 +1128,18 @@ function measureProjectedExtent(
     );
   }
 
-  const screen = viewer.modelToScreen(probes) as Array<{
-    x: number;
-    y: number;
-  }>;
-  if (!Array.isArray(screen) || screen.length !== probes.length) return null;
-
-  // modelToScreen returns page coordinates, so build the viewport centre the
-  // same way 3Dmol's canvasOffset() does.
-  const doc = canvas.ownerDocument.documentElement;
-  const left = rect.left + window.scrollX - doc.clientLeft;
-  const top = rect.top + window.scrollY - doc.clientTop;
-  const centreX = left + rect.width / 2;
-  const centreY = top + rect.height / 2;
+  const projected = projectedPoints(viewer, probes);
+  if (!projected) return null;
 
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
-  for (const s of screen) {
-    if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
-    minX = Math.min(minX, s.x - centreX);
-    maxX = Math.max(maxX, s.x - centreX);
-    minY = Math.min(minY, s.y - centreY);
-    maxY = Math.max(maxY, s.y - centreY);
+  for (const o of projected.offsets) {
+    minX = Math.min(minX, o.x);
+    maxX = Math.max(maxX, o.x);
+    minY = Math.min(minY, o.y);
+    maxY = Math.max(maxY, o.y);
   }
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
 
@@ -880,10 +1148,83 @@ function measureProjectedExtent(
     maxX: maxX + OUTLINE_PAD_PX,
     minY: minY - OUTLINE_PAD_PX,
     maxY: maxY + OUTLINE_PAD_PX,
-    viewHalfWidth: rect.width / 2,
-    viewHalfHeight: rect.height / 2,
+    viewHalfWidth: projected.viewHalfWidth,
+    viewHalfHeight: projected.viewHalfHeight,
     pxPerAngstrom: basis.pxPerAngstrom,
   };
+}
+
+/**
+ * The longest arrow scale, in Angstroms per eV/A, that keeps every force-arrow
+ * TIP inside ARROW_TIP_SAFE_FILL of the canvas at the CURRENT fit. Returns null
+ * when nothing constrains it.
+ *
+ * Measured, not derived, because it cannot be derived: see
+ * MAX_FORCE_ARROW_FRACTION. Each atom contributes two projected points, its
+ * centre and its tip at `probeScale`, and the answer is the largest k for which
+ * `centre + k * (tip - centre)` stays inside the safe box on both axes — one
+ * linear inequality per atom per axis. Exact under an orthographic camera and
+ * close under 3Dmol's default 20-degree perspective, which is what the 2% margin
+ * in ARROW_TIP_SAFE_FILL is there to absorb.
+ *
+ * Atoms whose CENTRE is already outside the safe box do not constrain anything:
+ * that is a framing failure (a fit that hit MAX_TOTAL_FRAMING_ZOOM, say), and
+ * answering it by deleting the arrows would hide it rather than fix it.
+ */
+function measureArrowCeiling(
+  viewer: GLViewer,
+  result: CalculationResult,
+  hidden: ReadonlySet<number>,
+  probeScale: number
+): number | null {
+  const forces = result.forces;
+  const positions = result.positions;
+  if (!forces || !positions || !(probeScale > 0)) return null;
+
+  const points: Point3[] = [];
+  for (let i = 0; i < forces.length; i++) {
+    const p = positions[i];
+    const f = forces[i];
+    if (!p || !f) continue;
+    if (hidden.has(i)) continue;
+    if (!Math.hypot(f[0], f[1], f[2])) continue;
+    points.push(
+      { x: p[0], y: p[1], z: p[2] },
+      {
+        x: p[0] + f[0] * probeScale,
+        y: p[1] + f[1] * probeScale,
+        z: p[2] + f[2] * probeScale,
+      }
+    );
+  }
+  if (points.length === 0) return null;
+
+  const projected = projectedPoints(viewer, points);
+  if (!projected) return null;
+
+  const limitX = projected.viewHalfWidth * ARROW_TIP_SAFE_FILL - OUTLINE_PAD_PX;
+  const limitY = projected.viewHalfHeight * ARROW_TIP_SAFE_FILL - OUTLINE_PAD_PX;
+  if (limitX <= 0 || limitY <= 0) return null;
+
+  /** Largest k >= 0 with |a + k*d| <= limit, or Infinity when unconstrained. */
+  const axisLimit = (a: number, d: number, limit: number): number => {
+    if (Math.abs(a) >= limit) return Infinity;
+    if (d === 0) return Infinity;
+    return (limit - Math.sign(d) * a) / Math.abs(d);
+  };
+
+  let k = Infinity;
+  for (let i = 0; i + 1 < projected.offsets.length; i += 2) {
+    const centre = projected.offsets[i];
+    const tip = projected.offsets[i + 1];
+    k = Math.min(
+      k,
+      axisLimit(centre.x, tip.x - centre.x, limitX),
+      axisLimit(centre.y, tip.y - centre.y, limitY)
+    );
+  }
+  if (!Number.isFinite(k)) return null;
+  return Math.max(0, k) * probeScale;
 }
 
 /**
@@ -954,21 +1295,31 @@ function resetOrientation(viewer: GLViewer): void {
  * factor, so a pan solved before a zoom is still correct after it. That is why
  * two passes normally converge.
  *
- * The final pass is a no-crop guard rather than a fit: it measures the
- * SYMMETRIC envelope (max of |min| and |max| per axis), so "nothing is ever
- * clipped" stays a checked property of the final state even if the pan was
- * clamped or did not converge.
+ * The final pass is two no-crop CEILINGS rather than a fit, and neither of them
+ * can ever zoom IN:
+ *   1. the SYMMETRIC atom envelope (max of |min| and |max| per axis), so
+ *      "nothing is ever clipped at this orientation" stays a checked property of
+ *      the final state even if the pan was clamped or did not converge;
+ *   2. while auto-rotate is on, the SPIN SWEEP (measureSpinSweep), so "nothing
+ *      can clip at any rotation angle" is a checked property too. It is a ceiling
+ *      and not a second fit, which is what lets the spinning and still framings
+ *      come out identical whenever it does not bind — see SWEEP_SAFE_FILL.
+ * Both are folded into one zoom-out so the two cannot fight.
  *
- * WHAT THE GUARD DOES NOT COVER, and did not before either: the fit is solved
- * for the orientation it is called at, and nothing re-frames while the USER
- * drags. Rotating by hand can therefore still push part of the structure out of
- * frame — measured at up to 0.92 fill during a spin, i.e. 12% over target, back
- * when spin used this same per-orientation fit. Re-centring adds the pan offset
- * to that worst case (bounded by the asymmetry, ~0.1 of the box on the measured
- * ethanol-minus-hydrogens example), in exchange for removing a permanent 28%
- * shrink. "Reset view" is the way back, and it now resets the orientation too.
+ * WHAT THE GUARDS DO NOT COVER, stated rather than implied:
+ *   - the fit is solved for the orientation it is called at, and nothing
+ *     re-frames while the USER drags, so dragging by hand can still push part of
+ *     the structure out of frame. "Reset view" is the way back, and it resets the
+ *     orientation too;
+ *   - FORCE ARROWS are bounded per-orientation (measureArrowCeiling), not per
+ *     sweep. Folding the tips into the sweep would make `showForces` change the
+ *     molecule's size, which is a defect this file already fixed. So while
+ *     spinning, an arrow tip can pass outside the frame at some angles. The
+ *     arrows are the overlay; the structure is the subject.
+ *
+ * Returns the metrics of the final state, or null if it was never measurable.
  */
-function frameView(viewer: GLViewer, spec: FrameSpec): void {
+function frameView(viewer: GLViewer, spec: FrameSpec): FrameMetrics | null {
   viewer.zoomTo();
   // Start from no pan: setFramingPan cannot read the current offset back, so
   // frameView owns it outright rather than accumulating across calls.
@@ -1057,22 +1408,57 @@ function frameView(viewer: GLViewer, spec: FrameSpec): void {
     if (!zoomed && !panned) break;
   }
 
-  // No-crop guard. Costs one extra measurement and makes "nothing is ever
-  // clipped" a checked property of the final state rather than of the loop.
-  const finalExtent = measureProjectedExtent(viewer, spec);
-  if (finalExtent) {
+  // ── Ceilings: this orientation must not clip, and neither must any rotation
+  //    reachable from it. Measured, folded into ONE zoom-out, never zoom-in.
+  let extent = measureProjectedExtent(viewer, spec);
+  let worst = 1;
+  if (extent) {
     const overflow = Math.max(
-      Math.max(-finalExtent.minX, finalExtent.maxX) /
-        finalExtent.viewHalfWidth,
-      Math.max(-finalExtent.minY, finalExtent.maxY) /
-        finalExtent.viewHalfHeight
+      Math.max(-extent.minX, extent.maxX) / extent.viewHalfWidth,
+      Math.max(-extent.minY, extent.maxY) / extent.viewHalfHeight
     );
-    if (Number.isFinite(overflow) && overflow > 1) {
-      viewer.zoom(1 / overflow);
-    }
+    if (Number.isFinite(overflow)) worst = Math.max(worst, overflow);
+  }
+  if (spec.spinning) {
+    const sweep = measureSpinSweep(viewer, spec);
+    if (Number.isFinite(sweep)) worst = Math.max(worst, sweep);
+  }
+  if (worst > 1) {
+    viewer.zoom(1 / worst);
+    extent = measureProjectedExtent(viewer, spec);
   }
 
   viewer.render();
+
+  if (!extent) return null;
+  return {
+    pxPerAngstrom: extent.pxPerAngstrom,
+    viewHalfWidth: extent.viewHalfWidth,
+    viewHalfHeight: extent.viewHalfHeight,
+  };
+}
+
+/**
+ * Fit, then measure everything the component needs to describe what it drew.
+ *
+ * One function for all three entry points (load, the re-frame effect, resize)
+ * so that the framing and the arrow ceiling can never be solved from different
+ * states of the viewer.
+ */
+function frameAndMeasure(
+  viewer: GLViewer,
+  result: CalculationResult,
+  spec: FrameSpec,
+  nominalArrowScale: number
+): { metrics: FrameMetrics | null; arrowCeiling: number | null } {
+  const metrics = frameView(viewer, spec);
+  const arrowCeiling = measureArrowCeiling(
+    viewer,
+    result,
+    spec.hidden,
+    nominalArrowScale
+  );
+  return { metrics, arrowCeiling };
 }
 
 /**
@@ -1184,6 +1570,76 @@ function forceArrowScale(result: CalculationResult): number {
   if (!(maxForce > 0)) return FORCE_ARROW_SCALE;
   const cap = (MAX_FORCE_ARROW_FRACTION * structureSpan(result)) / maxForce;
   return Math.min(FORCE_ARROW_SCALE, cap);
+}
+
+/**
+ * Round `value` DOWN to the largest entry of a 1-2-5-style ladder, so a computed
+ * quantity can be printed as a chosen one. Never rounds up: every ladder here
+ * expresses a ceiling, and rounding a ceiling up would breach it.
+ */
+function roundDownToRung(value: number, rungs: readonly number[]): number {
+  if (!(value > 0) || !Number.isFinite(value)) return 0;
+  const decade = Math.pow(10, Math.floor(Math.log10(value)));
+  let best = 0;
+  for (const step of [decade / 10, decade, decade * 10]) {
+    for (const rung of rungs) {
+      const candidate = rung * step;
+      if (candidate <= value && candidate > best) best = candidate;
+    }
+  }
+  return best > 0 ? best : value;
+}
+
+/**
+ * The Angstroms-per-eV/A the arrows are actually drawn at: the nominal scale,
+ * cut to the measured screen-space ceiling if there is one, then rounded down to
+ * a ladder rung — see ARROW_SCALE_RUNGS for why it is quantised at all.
+ */
+function effectiveArrowScale(
+  nominal: number,
+  ceiling: number | null
+): number {
+  const allowed =
+    ceiling !== null && Number.isFinite(ceiling)
+      ? Math.min(nominal, ceiling)
+      : nominal;
+  return roundDownToRung(allowed, ARROW_SCALE_RUNGS);
+}
+
+/**
+ * The legend's length-reference tick: a round force, and the TRUE on-screen
+ * length of an arrow of that force in CSS pixels.
+ *
+ * This is what makes two results of the same molecule comparable when their arrow
+ * scales differ, which cannot be prevented (see ARROW_SCALE_RUNGS): the printed
+ * number can be read, but the drawn LENGTH can be compared without reading
+ * anything. The rule is "the largest decade that still fits the band", so the
+ * label holds still while the length tracks the scale — see TICK_FORCE_DECADES.
+ */
+function arrowReferenceTick(
+  arrowScale: number,
+  pxPerAngstrom: number
+): { force: number; px: number } | null {
+  if (!(arrowScale > 0) || !(pxPerAngstrom > 0)) return null;
+  const pxFor = (force: number) => force * arrowScale * pxPerAngstrom;
+
+  let chosen: number | null = null;
+  for (const force of TICK_FORCE_DECADES) {
+    if (pxFor(force) <= TICK_MAX_PX) chosen = force;
+  }
+  // Everything is too long even at the smallest decade, or the chosen one is too
+  // short to see: step to the neighbour rather than clipping the tick, which
+  // would make its length a lie.
+  if (chosen === null) chosen = TICK_FORCE_DECADES[0];
+  while (pxFor(chosen) < TICK_MIN_PX) {
+    const next = TICK_FORCE_DECADES.find((f) => f > (chosen as number));
+    if (next === undefined) break;
+    chosen = next;
+  }
+
+  const px = pxFor(chosen);
+  if (!Number.isFinite(px) || px <= 0) return null;
+  return { force: chosen, px };
 }
 
 function buildXYZ(result: CalculationResult): string {
@@ -1510,7 +1966,8 @@ function applyView(
   result: CalculationResult,
   atoms: AtomRecord[],
   opts: RenderOptions,
-  hidden: readonly number[]
+  hidden: readonly number[],
+  arrowScale: number
 ): void {
   viewer.removeAllShapes();
   viewer.setStyle({}, repStyle(opts.representation));
@@ -1520,16 +1977,21 @@ function applyView(
       selectedStyle(opts.representation)
     );
   }
-  if (opts.hideNonpolarH && hidden.length > 0) {
-    viewer.setStyle({ index: [...hidden] }, {});
+  const hiddenSet = opts.hideNonpolarH ? new Set(hidden) : new Set<number>();
+  if (hiddenSet.size > 0) {
+    viewer.setStyle({ index: [...hiddenSet] }, {});
   }
   viewer.render();
 
-  if (result.forces && result.positions && opts.showForces) {
-    const arrowScale = forceArrowScale(result);
+  if (result.forces && result.positions && opts.showForces && arrowScale > 0) {
     result.forces.forEach((force, i) => {
       const pos = result.positions![i];
       if (!pos) return;
+      // No arrow on an atom that is not drawn. A green vector sprouting from
+      // where a hidden hydrogen ISN'T is not a force reading, it is a line from
+      // nowhere — and those five arrows were the widest thing on the canvas
+      // after "Hide C–H bonds" magnified the fit by 1.43x.
+      if (hiddenSet.has(i)) return;
       viewer.addArrow({
         start: { x: pos[0], y: pos[1], z: pos[2] },
         end: {
@@ -1544,7 +2006,6 @@ function applyView(
   }
 
   if (opts.selection.length > 0) {
-    const hiddenSet = opts.hideNonpolarH ? new Set(hidden) : new Set<number>();
     const byIndex = new Map(atoms.map((a) => [a.index, a]));
     for (const index of opts.selection) {
       const atom = byIndex.get(index);
@@ -1686,6 +2147,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const helpRef = useRef<HTMLDivElement>(null);
   const viewerInstance = useRef<GLViewer | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const pixelRatioWatcherRef = useRef<(() => void) | null>(null);
@@ -1701,11 +2163,34 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Atom snapshot + derived sets. Populated once the model is parsed.
   const [atoms, setAtoms] = useState<AtomRecord[]>([]);
   const atomsRef = useRef<AtomRecord[]>([]);
   const hiddenRef = useRef<number[]>([]);
+
+  /**
+   * What the last completed fit measured. Written by every framing entry point;
+   * read only by the legend (the arrow length ceiling and the reference tick).
+   *
+   * Neither of these is a framing input, which is what keeps this loop-free: the
+   * framing effect writes them, the style effect reads them, and the framing
+   * effect does not depend on either.
+   */
+  const [pxPerAngstrom, setPxPerAngstrom] = useState<number | null>(null);
+  const [arrowCeiling, setArrowCeiling] = useState<number | null>(null);
+
+  /**
+   * The arrow scale the shapes currently on screen were built with.
+   *
+   * A ref, not state, because the arrows have to be rebuilt in the SAME tick as
+   * the fit that measured their new ceiling. Passive effects run after paint, so
+   * waiting for the state round-trip would paint exactly one frame with the old
+   * arrow length at the new zoom — the clipped frame this whole fix is about, and
+   * a frame a screenshot taken right after the toggle would catch.
+   */
+  const drawnArrowScaleRef = useRef<number | null>(null);
 
   // The viewer-init effect and the 3Dmol click/hover callbacks are registered
   // once, so they cannot close over state. They read this instead.
@@ -1787,14 +2272,33 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   const is3Dmol = engine === "3dmol";
 
   /**
-   * The effective Angstroms-per-eV/A the arrows are drawn at, for the caption.
-   * Structure-dependent because of the length clamp (see MAX_FORCE_ARROW_FRACTION),
-   * so an arrow's length is not decodable without it.
+   * The Angstroms-per-eV/A the arrows WOULD be drawn at from the structure and
+   * the forces alone, before the measured screen-space ceiling.
    */
-  const arrowScaleLabel = useMemo(() => {
-    const scale = forceArrowScale(result);
-    return scale >= 1 ? scale.toFixed(1) : scale.toFixed(2);
-  }, [result]);
+  const nominalArrowScale = useMemo(() => forceArrowScale(result), [result]);
+
+  /**
+   * The scale they are ACTUALLY drawn at, and the one the legend prints: the
+   * nominal scale, cut to whatever keeps the tips on the canvas, rounded to a
+   * ladder rung. This is a single source of truth on purpose — an arrow length
+   * that encodes a quantity is unreadable if the number beside it is a different
+   * number from the one that was drawn.
+   */
+  const arrowScale = useMemo(
+    () => effectiveArrowScale(nominalArrowScale, arrowCeiling),
+    [nominalArrowScale, arrowCeiling]
+  );
+
+  const arrowScaleLabel = useMemo(
+    () => (arrowScale >= 1 ? arrowScale.toFixed(1) : arrowScale.toFixed(2)),
+    [arrowScale]
+  );
+
+  /** Length reference for the legend — see arrowReferenceTick. */
+  const arrowTick = useMemo(
+    () => arrowReferenceTick(arrowScale, pxPerAngstrom ?? 0),
+    [arrowScale, pxPerAngstrom]
+  );
 
   /** Hydrogens the "Hide C–H bonds" item can hide, derived from the model. */
   const hiddenIndices = useMemo(() => nonpolarHydrogens(atoms), [atoms]);
@@ -1859,13 +2363,29 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       // resize(). Measured; Reset view recovered it, which is what identified
       // this as a missing frameView() rather than a solver bug.
       const opts = optionsRef.current;
-      frameView(v, {
-        rep: opts.representation,
-        hidden: opts.hideNonpolarH
-          ? new Set(hiddenRef.current)
-          : new Set<number>(),
-        envelope: opts.spin && SPIN_USES_INVARIANT_ENVELOPE,
-      });
+      // Re-solve the arrow ceiling too: it is a SCREEN-space bound, so a change
+      // of canvas size changes it even though the structure has not moved.
+      const nominal = forceArrowScale(result);
+      const solved = frameAndMeasure(
+        v,
+        result,
+        {
+          rep: opts.representation,
+          hidden: opts.hideNonpolarH
+            ? new Set(hiddenRef.current)
+            : new Set<number>(),
+          spinning: opts.spin,
+        },
+        nominal
+      );
+      setPxPerAngstrom(solved.metrics?.pxPerAngstrom ?? null);
+      setArrowCeiling(solved.arrowCeiling);
+      // Rebuild now, before paint — see drawnArrowScaleRef.
+      const nextScale = effectiveArrowScale(nominal, solved.arrowCeiling);
+      if (drawnArrowScaleRef.current !== nextScale) {
+        applyView(v, result, atomsRef.current, opts, hiddenRef.current, nextScale);
+        drawnArrowScaleRef.current = nextScale;
+      }
       v.render();
     };
     resizeRef.current = resize;
@@ -1986,15 +2506,19 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
         () => setHover(null)
       );
 
+      // setSelection([]) above will not have reached optionsRef yet — the sync
+      // effect runs on the next commit — and resize() below reads the ref, so the
+      // cleared selection is written through here rather than patched at one
+      // call site. Without this a reload could re-apply the previous result's
+      // selection indices to a different molecule.
+      optionsRef.current = { ...optionsRef.current, selection: [] };
       const opts = optionsRef.current;
-      applyView(viewer, result, records, { ...opts, selection: [] }, hiddenRef.current);
-      frameView(viewer, {
-        rep: opts.representation,
-        hidden: opts.hideNonpolarH
-          ? new Set(hiddenRef.current)
-          : new Set<number>(),
-        envelope: opts.spin && SPIN_USES_INVARIANT_ENVELOPE,
-      });
+
+      // First paint uses the nominal arrow scale; resize() immediately below
+      // solves the fit, measures the ceiling and rebuilds the arrows if it binds.
+      const bootScale = effectiveArrowScale(forceArrowScale(result), null);
+      applyView(viewer, result, records, opts, hiddenRef.current, bootScale);
+      drawnArrowScaleRef.current = bootScale;
 
       resize();
       resizeObserverRef.current = new ResizeObserver(resize);
@@ -2059,8 +2583,10 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       result,
       atoms,
       { representation, showForces, hideNonpolarH, selection },
-      hiddenIndices
+      hiddenIndices,
+      arrowScale
     );
+    drawnArrowScaleRef.current = arrowScale;
   }, [
     engine,
     result,
@@ -2070,6 +2596,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
     showForces,
     hideNonpolarH,
     selection,
+    arrowScale,
   ]);
 
   // ── 3Dmol.js: re-frame ──
@@ -2083,18 +2610,50 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
   // change the molecule's size at all. It used to re-frame here and the default
   // state (arrows on) came out 4.03x smaller than the same structure with them
   // off.
-  // Keyed on `spin` as well, because starting or stopping the rotation switches
-  // between the invariant envelope and the tight per-orientation silhouette.
+  //
+  // Keyed on `spin`, but for a CEILING now, not for a different envelope. It used
+  // to switch between a rotation-invariant sphere fitted to TARGET_FILL and the
+  // tight per-orientation silhouette — two envelopes, one target, which cannot
+  // agree, and which rescaled the molecule 27% the moment auto-rotate was
+  // engaged. Now both states solve the same fit and the sweep only pulls it back
+  // if it would actually clip, which for the default view it does not: 137 px/A
+  // needed against 164 permitted. See SWEEP_SAFE_FILL.
+  //
+  // NOT keyed on `arrowScale`: the ceiling is an OUTPUT of the fit, and feeding
+  // it back in would be a loop.
   useEffect(() => {
     if (engine !== "3dmol") return;
     const v = viewerInstance.current;
     if (!v || atoms.length === 0) return;
-    frameView(v, {
-      rep: representation,
-      hidden: hiddenSet,
-      envelope: spin && SPIN_USES_INVARIANT_ENVELOPE,
-    });
-  }, [engine, result, atoms, hiddenSet, representation, spin]);
+    const solved = frameAndMeasure(
+      v,
+      result,
+      { rep: representation, hidden: hiddenSet, spinning: spin },
+      nominalArrowScale
+    );
+    setPxPerAngstrom(solved.metrics?.pxPerAngstrom ?? null);
+    setArrowCeiling(solved.arrowCeiling);
+
+    // Rebuild the arrows NOW if the new fit shortened them, rather than on the
+    // state round-trip a frame later — see drawnArrowScaleRef. optionsRef is read
+    // instead of the state so that `showForces` and `selection` do not become
+    // framing dependencies; the sync effect that fills it is declared first, so
+    // it already holds this commit's values.
+    const nextScale = effectiveArrowScale(nominalArrowScale, solved.arrowCeiling);
+    if (drawnArrowScaleRef.current !== nextScale) {
+      applyView(v, result, atoms, optionsRef.current, hiddenIndices, nextScale);
+      drawnArrowScaleRef.current = nextScale;
+    }
+  }, [
+    engine,
+    result,
+    atoms,
+    hiddenIndices,
+    hiddenSet,
+    representation,
+    spin,
+    nominalArrowScale,
+  ]);
 
   // ── 3Dmol.js: spin toggle ──
   useEffect(() => {
@@ -2129,14 +2688,20 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [selection.length, marqueeArmed]);
 
-  // ── Gear menu: outside click / Escape ──
+  // ── Gear menu and gestures popover: outside click / Escape ──
+  // One effect for both, so a click that opens one closes the other and Escape
+  // is not registered twice.
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !helpOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      const target = e.target as Node;
+      if (!menuRef.current?.contains(target)) setMenuOpen(false);
+      if (!helpRef.current?.contains(target)) setHelpOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      setHelpOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -2144,7 +2709,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, helpOpen]);
 
   // ── Reset view ──
   // Orientation FIRST, then the fit. frameView alone leaves the tumble
@@ -2155,12 +2720,30 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
     const v = viewerInstance.current;
     if (!v) return;
     resetOrientation(v);
-    frameView(v, {
-      rep: representation,
-      hidden: hiddenSet,
-      envelope: spin && SPIN_USES_INVARIANT_ENVELOPE,
-    });
-  }, [engine, representation, hiddenSet, spin]);
+    const solved = frameAndMeasure(
+      v,
+      result,
+      { rep: representation, hidden: hiddenSet, spinning: spin },
+      nominalArrowScale
+    );
+    setPxPerAngstrom(solved.metrics?.pxPerAngstrom ?? null);
+    setArrowCeiling(solved.arrowCeiling);
+    // Same-tick rebuild — see drawnArrowScaleRef.
+    const nextScale = effectiveArrowScale(nominalArrowScale, solved.arrowCeiling);
+    if (drawnArrowScaleRef.current !== nextScale) {
+      applyView(v, result, atoms, optionsRef.current, hiddenIndices, nextScale);
+      drawnArrowScaleRef.current = nextScale;
+    }
+  }, [
+    engine,
+    result,
+    atoms,
+    hiddenIndices,
+    hiddenSet,
+    representation,
+    spin,
+    nominalArrowScale,
+  ]);
 
   // ── Fullscreen ──
   // State is driven ONLY by the fullscreenchange event. The old code flipped
@@ -2734,19 +3317,112 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
             The crosshair cursor is the desktop affordance for this mode and a
             touch device has no cursor, so the state needs to be visible on the
             canvas: otherwise "my drag stopped rotating the molecule" has no
-            explanation on a phone. */}
+            explanation on a phone.
+
+            Width-capped so it cannot reach the "?" in the opposite corner: this
+            line is ~54 characters at 10px mono, wider than the whole box at a
+            375 px viewport, and two overlapping controls in one corner is worse
+            than a wrapped label. */}
         {is3Dmol && marqueeArmed && (
-          <div className="absolute bottom-2 left-2 z-20">
+          <div className="absolute bottom-2 left-2 z-20 max-w-[calc(100%-3.5rem)]">
             <button
               type="button"
               onClick={() => setMarqueeArmed(false)}
-              className={`flex items-center gap-1.5 rounded border border-[var(--color-accent-primary)]/60 bg-[var(--color-bg-elevated)]/95 px-2 font-mono text-[10px] text-[var(--color-accent-primary)] shadow-sm ${
+              className={`flex items-center gap-1.5 rounded border border-[var(--color-accent-primary)]/60 bg-[var(--color-bg-elevated)]/95 px-2 text-left font-mono text-[10px] text-[var(--color-accent-primary)] shadow-sm ${
                 coarse ? "min-h-[44px] py-2" : "py-1"
               }`}
             >
               <Ruler className="h-3 w-3 shrink-0" />
-              Box-select on — drag to select ·{" "}
-              {pointerFine ? "click" : "tap"} here to turn off
+              <span>
+                Box-select on — drag to select ·{" "}
+                {pointerFine ? "click" : "tap"} here to turn off
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* ── Gestures, on demand ──
+            WHY THIS IS A "?" AND NOT A CAPTION. The gesture list used to be
+            printed under the viewer as a permanent 4-line, 12px monospace
+            manual: 64 px tall on desktop, 96 px at 375 px, and on the landing
+            page it was the LOWEST element above the fold — the hero's last word
+            was an instruction sheet for a control the reader had not touched
+            yet. The reference embed shows zero instructions. So the list moves
+            behind an affordance and the hero reclaims the space outright: with
+            no forces to legend (the hero has none) the caption below now renders
+            nothing at all.
+
+            Inside the canvas rather than in the toolbar, deliberately: the
+            toolbar already wraps at 375 px, so an eighth button there could add
+            a row and give back the height this is meant to reclaim. The corner
+            costs no layout at all. Bottom-RIGHT because bottom-left is the
+            box-select badge and top-left is the measurement readout.
+
+            The content still lists only gestures the device can perform — see
+            `pointerFine`. Do not merge the two branches. */}
+        {!loading && (
+          <div ref={helpRef} className="absolute bottom-2 right-2 z-20">
+            {helpOpen && (
+              <div
+                id="viewer-gestures"
+                role="group"
+                aria-label="Gestures and controls"
+                className="absolute bottom-full right-0 mb-2 w-[16rem] rounded border border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]/95 p-2.5 shadow-lg backdrop-blur-sm"
+              >
+                <ul className="space-y-1 font-mono text-[11px] leading-snug text-[var(--color-text-muted)]">
+                  {(is3Dmol
+                    ? pointerFine
+                      ? [
+                          "Drag to rotate",
+                          "Scroll or right-drag to zoom",
+                          "Middle-drag to pan",
+                          "Click an atom to select — 2 give a distance in Å, 3 an angle, 4 a dihedral",
+                          "Ctrl/Cmd-drag to box-select",
+                          "Esc to clear the selection",
+                        ]
+                      : [
+                          "Drag to rotate",
+                          "Pinch to zoom",
+                          "Three-finger drag to pan",
+                          "Tap an atom to select — 2 give a distance in Å, 3 an angle, 4 a dihedral",
+                          "Tap × on the readout to clear",
+                          "Box-select: turn it on in the gear menu",
+                        ]
+                    : [
+                        "WEAS viewer (ml-peg compatible)",
+                        "Drag to rotate",
+                        "Scroll to zoom",
+                      ]
+                  ).map((line) => (
+                    <li key={line} className="flex gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className="text-[var(--color-accent-primary)]"
+                      >
+                        ·
+                      </span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setHelpOpen((o) => !o)}
+              title="Gestures and controls"
+              aria-label="Gestures and controls"
+              aria-expanded={helpOpen}
+              aria-controls="viewer-gestures"
+              className={`flex items-center justify-center rounded-full border transition-colors ${
+                coarse ? HIT_SQUARE : "h-7 w-7"
+              } ${
+                helpOpen
+                  ? "border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
+                  : "border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]/90 text-[var(--color-text-muted)] hover:border-[var(--color-accent-primary)]/60 hover:text-[var(--color-accent-primary)]"
+              }`}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
@@ -2759,42 +3435,37 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
         )}
       </div>
 
-      {/* ── Footer help text ──
-          Two variants, chosen by `pointerFine`. The desktop line used to be
-          shown on touch devices as well, where it advertised right-drag,
-          middle-drag, Ctrl/Cmd-drag and Esc — four gestures the hardware cannot
-          perform. The touch line lists only what 3Dmol's own touch handling
-          implements: one finger rotates, two pinch to zoom, three pan
-          (GLViewer._handleMouseMove branches on targetTouches.length). Box-select
-          has no native touch gesture, so it is named as a mode you switch on
-          rather than as a drag you can just do. */}
-      <p className="mt-2 font-mono text-xs text-[var(--color-text-muted)]">
-        {is3Dmol ? (
-          pointerFine ? (
-            <>
-              Drag to rotate · Scroll or right-drag to zoom · Middle-drag to pan
-              · Click an atom to select (2 = distance in Å, 3 = angle, 4 =
-              dihedral) · Ctrl/Cmd-drag to box-select · Esc to clear
-              {hasForces &&
-                showForces &&
-                ` · Green arrows = force vectors at ${arrowScaleLabel} Å per eV/Å`}
-            </>
-          ) : (
-            <>
-              Drag to rotate · Pinch to zoom · Three-finger drag to pan · Tap an
-              atom to select (2 = distance in Å, 3 = angle, 4 = dihedral) · Tap ×
-              on the readout to clear · Box-select: turn it on in the gear menu
-              {hasForces &&
-                showForces &&
-                ` · Green arrows = force vectors at ${arrowScaleLabel} Å per eV/Å`}
-            </>
-          )
-        ) : (
-          <>
-            WEAS viewer (ml-peg compatible) · Drag to rotate · Scroll to zoom
-          </>
-        )}
-      </p>
+      {/* ── Force-vector legend ──
+          All that is left under the viewer, and only when there is something to
+          legend. An arrow length that encodes a quantity is not readable without
+          its scale, so this stays visible rather than moving into the popover
+          with the gestures.
+
+          The TICK is the answer to a measured defect: the same ethanol geometry
+          gave "0.82 Å per eV/Å" under MACE-OFF and "1.0" under MACE-MP-0, so two
+          results of one molecule had non-comparable arrow lengths with nothing on
+          screen to say so. The scale cannot be pinned — the two runs really do
+          differ in |F|max by 22%, and no rounding merges every such pair (see
+          ARROW_SCALE_RUNGS). A reference of known force CAN be compared by eye,
+          because its drawn length IS the scale. */}
+      {is3Dmol && hasForces && showForces && arrowScale > 0 && (
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-[var(--color-text-muted)]">
+          <span>
+            Green arrows = force vectors · {arrowScaleLabel} Å per eV/Å
+          </span>
+          {arrowTick && (
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true">·</span>
+              <span
+                aria-hidden="true"
+                className="inline-block h-[3px] rounded-sm bg-[#228833]"
+                style={{ width: `${arrowTick.px.toFixed(1)}px` }}
+              />
+              <span>= {arrowTick.force} eV/Å</span>
+            </span>
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -2835,16 +3506,30 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
  *   Manage molecule view / Hide C–H bonds / Download PNG. "Manage molecule
  *   view" is the representation switcher, which stays visible in the toolbar
  *   here.
+ *   ON THE CANVAS, not in the toolbar: the "?" gesture list (bottom-right) and
+ *   the box-select badge (bottom-left). Both are there because the toolbar row
+ *   already wraps at 375 px, so anything added to it can cost a row of height —
+ *   and the "?" exists to RECLAIM height. Do not migrate them into the toolbar.
  *
  * TOUCH:
  *   Every control switches to a 44 px hit target when the device reports no
- *   fine pointer (see HIT_SQUARE), and the footer swaps to a touch gesture list.
- *   Do NOT put right-drag, middle-drag, Ctrl/Cmd or Esc back into the shared
- *   copy: a touch device can perform none of them. 3Dmol's touch handling is one
- *   finger to rotate, two to pinch-zoom, three to pan
+ *   fine pointer (see HIT_SQUARE), and the "?" popover swaps to a touch gesture
+ *   list. Do NOT put right-drag, middle-drag, Ctrl/Cmd or Esc back into the
+ *   shared copy: a touch device can perform none of them. 3Dmol's touch handling
+ *   is one finger to rotate, two to pinch-zoom, three to pan
  *   (GLViewer._handleMouseMove, branching on ev.targetTouches.length); there is
  *   no native touch gesture for box-select, which is why box-select is a MODE in
- *   the gear menu rather than a gesture in the caption.
+ *   the gear menu rather than a gesture in the list.
+ *
+ * WHERE THE GESTURE LIST LIVES, AND WHY IT IS NOT A CAPTION:
+ *   Behind a "?" in the bottom-right of the canvas. It used to be printed under
+ *   the viewer permanently — four 12px monospace lines, 64 px tall, six lines and
+ *   96 px at 375 px, and on the landing page it was the lowest element above the
+ *   fold. A hero should not end in an instruction sheet for a control the reader
+ *   has not touched; the reference embed shows no instructions at all. Only the
+ *   force-vector legend is still printed below the viewer, and only when there
+ *   are arrows to legend — so a viewer with no forces (the landing hero) now has
+ *   no caption whatsoever. Do not put the gestures back into the caption.
  *
  * SELECTION & MEASUREMENT:
  *   Click an atom to select it: its own geometry is repainted in the accent
@@ -2881,19 +3566,30 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
  *   reintroduce a single shared pad, and do not special-case spacefill.
  *
  * FRAMING — WHAT THE FIT IS SOLVED FOR, AND WHAT IT IGNORES:
- *   Three rules, each of which was a measured defect before it was a rule.
+ *   Five rules, each of which was a measured defect before it was a rule.
  *   1. Fit the ATOMS. Force arrows are not probed and the framing effect is not
  *      keyed on `showForces`, so toggling the arrows cannot change the
  *      molecule's size by even a pixel. Feeding arrow TIPS to the solver is
  *      what left the default result view at 12% of the box width.
- *   2. Clamp the arrows instead (MAX_FORCE_ARROW_FRACTION), with ONE shared
- *      scale so lengths stay proportional to |F|, and print the resulting
- *      Å-per-eV/Å in the caption.
+ *   2. Bound the arrows instead, with ONE shared scale so lengths stay
+ *      proportional to |F|, and print the resulting Å-per-eV/Å in the legend.
+ *      The bound is MEASURED in screen space (ARROW_TIP_SAFE_FILL), because a
+ *      structure-relative clamp cannot work: the clamp scales with the span and
+ *      the fit scales with the projected silhouette, and hiding five C–H
+ *      hydrogens magnified the fit 1.43x while leaving the arrows' Angstroms
+ *      alone, which clipped them at both edges of the canvas.
  *   3. Re-centre on the projected bounding box, via rotationGroup's post-
  *      rotation x/y offset (setFramingPan) — NOT translateScene, which would
- *      turn rotate() into an orbit. While spinning, fit a rotation-invariant
- *      envelope instead so nothing can clip at any angle
- *      (SPIN_USES_INVARIANT_ENVELOPE).
+ *      turn rotate() into an orbit.
+ *   4. Handle auto-rotation as a CEILING, not as a second fit. Both states solve
+ *      the same per-orientation fit; while spinning, the swept cylinder about the
+ *      model's own y axis (the axis spin(true) turns about) must additionally fit
+ *      the canvas. Where it already does — the default view, 137 px/Å needed
+ *      against 164 permitted — the two framings are identical and there is no
+ *      pop. Fitting a rotation-invariant SPHERE to TARGET_FILL instead is what
+ *      cost 27% of the apparent size the instant auto-rotate was engaged.
+ *      See SWEEP_SAFE_FILL, including what this still does not fix.
+ *   5. Never let a ceiling zoom IN. Ceilings only ever pull the fit back.
  *
  * SPECULAR HIGHLIGHTS — SETTLED, DO NOT RE-OPEN:
  *   An earlier round listed "no gloss" as a gap needing a 3Dmol fork. It is
