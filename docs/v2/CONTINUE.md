@@ -1,24 +1,28 @@
-# v2.0 — where the loop stands, and how to resume it
+# Gauntlet loop — state and how to resume
 
-Written 2026-08-09 at the point the v2.0 branch was merged. This is the handover
-document: what the method is, what is done, what is not, and the exact next move.
+Last updated 2026-08-10, on `main` at `9efa649`. Everything described here is committed and
+pushed; there is no unsaved work. Live dashboard: `/v2` (renders `docs/v2/progress.json`).
 
-Live progress dashboard: `/v2` (reads `docs/v2/progress.json`).
+Releases: [v2.0.0](https://github.com/Jamessfks/mace/releases/tag/v2.0.0) ·
+[v2.1.0](https://github.com/Jamessfks/mace/releases/tag/v2.1.0) · live at mace-lake.vercel.app
+(Vercel deploys from `main` automatically on push).
 
 ---
 
-## The method, in one paragraph
+## The method
 
-Every piece of work has a **bar** — a real, fetchable thing that is undeniably good — a
-**builder**, and a separate **critic** with fresh context whose job is to find reasons ours
-is worse. A piece is only done when the critic picks ours over the bar. Not a score out of
-ten, which drifts upward every round. A pick. The exit is winning, or the user calling it —
-never a fixed number of rounds.
+Every piece has a **bar** — a real, fetchable thing — a **builder**, and a separate **critic**
+with fresh context whose job is to find reasons ours is worse. A piece is done only when the
+critic picks ours. Not a score; a pick. The exit is winning, or the user calling it.
 
-The counter on `/v2` reads **0 of 13 pieces winning blind**. That is accurate and is not the
-whole story: it counts only blind-comparison wins and deliberately says nothing about the
-scientific defects fixed along the way, which is where most of the value landed. Both numbers
-are shown on the page for that reason.
+**Score: 2 of 13 winning blind.** That counter is deliberately strict and says nothing about
+the ~20 scientific defects fixed along the way, which is where most of the value landed. Both
+numbers are shown on `/v2` for that reason.
+
+| Won | Why it won |
+|---|---|
+| **Navigation** | One chrome width site-wide. The critic measured Rowan using the same `max-w-7xl` + `px-6` with the logo at x=24 and h1 at x=144.5 — a 120.5px offset against our 121px. Full-bleed chrome over a narrower column is the bar's own pattern. We also set `aria-current` on the active route; Rowan sets it on none of its five top links. |
+| **Viewer selection & measurement** | Every displayed value hand-checked against the raw XYZ. Bond length in Å, angle in degrees with the vertex named, signed dihedral, order setting vertex and sign. Two atoms read `Bond length` only when a bond was actually perceived; otherwise `Distance` with the distinction stated. The bar makes no such distinction and does not name the vertex. |
 
 ---
 
@@ -26,134 +30,120 @@ are shown on the page for that reason.
 
 | Bar | Judges | Fetchable? |
 |---|---|---|
-| [Rowan](https://rowansci.com) | Interface quality, 3D viewer | Marketing site **and their live production viewer** are public. The app's job-config and results screens are **behind login**. |
-| [Materials Project](https://next-gen.materialsproject.org/materials/mp-149) | Data density, scientific numbers | Property data public. Interactive crystal viewer **behind login**. |
+| [Rowan](https://rowansci.com) | Interface, 3D viewer | Marketing site **and their live production viewer** are public. App job/results screens are **behind login**. |
+| [Materials Project](https://next-gen.materialsproject.org/materials/mp-149) | Data density, numeric reference | Property data public. Interactive crystal viewer **behind login**. |
 | [ACEsuit/mace](https://github.com/ACEsuit/mace) | Scientific correctness | Fully public. Where SimpleAtom disagrees with upstream, SimpleAtom is wrong by definition. |
 
-Details, measured tokens and the public viewer-embed URL are in `docs/v2/bars/`.
+Details and measured tokens in `docs/v2/bars/`. **Only Rowan's viewer is genuinely interactive
+and public** — a critic judging the job-config or results screens is working from docs prose
+and must say so. That is the most common way this method fails.
 
-**Read this before judging anything:** only Rowan's *viewer* is genuinely interactive and
-public. A critic judging the job-config or results screens is working from docs prose and
-must say so rather than inventing the comparison. That is the single most common way this
-method fails.
-
----
-
-## Round-2 critic verdicts: three losses
-
-| Piece | Verdict | Why |
-|---|---|---|
-| 3D viewer | **ROWAN** | Ambient occlusion never runs; canvas is an opaque white box on a warm page; framing solver misses its own target |
-| Landing | **ROWAN** | A hard `<br/>` in the h1 forces four staircase lines and pushes all proof below the fold; body copy one step small |
-| Nav | **ROWAN** | Per-route chrome widths move the wordmark 120px between pages |
-
-Fixes for all three were dispatched and **may not have landed before the merge** — see
-"Unfinished" below.
+Public viewer embed (the real bar, no login):
+`https://labs.rowansci.com/iframe2/calculation/c1cd40a2-f781-4be0-8c68-b6b4e681b9b5?auto-rotate=false&no-border=true`
 
 ---
 
-## Unfinished — start here
+## In flight when this was written
 
-### In flight at merge time (verify before redoing)
-Two builders were mid-task. Check `git log` and the files before assuming this work is missing.
+Three agents were running. Check `git log` before redoing any of it.
 
-1. **Viewer round 3** — `components/calculate/molecule-viewer-3d.tsx`
-   - **AO has never actually run.** `rendersWithWebGL2()` calls `getContext("webgl2")` on the
-     *visible* canvas, but `upscale: true` makes 3Dmol render into an `OffscreenCanvas` and
-     blit, so the visible canvas holds a `bitmaprenderer` context and the check returns
-     `null`. The guard disables AO on every load. Check `renderer._webglversion === 2`
-     instead. The `AMBIENT_OCCLUSION` radius constant is therefore untested in reality.
-   - Canvas should be `alpha: true` so the molecule sits on the page with no seam, as Rowan's
-     does, instead of being an opaque `#FFFFFF` box inside an `#F3F0E8` card on `#FBFAF7`.
-   - Framing solver never reaches its own `TARGET_FILL = 0.76`: ball-and-stick 0.705, stick
-     0.734, spacefill 0.671 — spacefill ends up *smaller*, which is backwards.
-   - `frameView()` is never re-run on container resize: 1280 → 375 gives fill 0.998, clipped.
-   - `toggleFullscreen` has no `.catch()` and flips state optimistically; a rejected request
-     leaves the component in CSS-fullscreen inside the hero column, clipping all four sides.
-   - At 375px the toolbar overflows its card and the Fullscreen button is **unreachable**.
+1. **Critic, round 6** — judging viewer render, gear menu, landing, results panel, provenance.
+   The results panel and provenance had **never been judged**. Two fixes were unmeasured:
+   whether toggling force vectors now changes molecule size by zero pixels, and whether the
+   pan direction in the asymmetry fix is correct.
+2. **Builder — MACE Link share piece** (`app/r/[id]/`). Never started. The bar ships this
+   primitive publicly and embeds it in its own homepage, so the comparison is direct.
+3. **Builder — benchmark vs MP** (`app/benchmark/`, `components/benchmark/`,
+   `lib/mlpeg-catalog.ts`). Never started. Supplies the numeric half of the bar.
 
-2. **Landing + nav round 2** — `components/intro-section.tsx`, `components/site-header.tsx`,
-   `components/site-footer.tsx`
-   - Delete the `<br/>` in the h1 (`intro-section.tsx` ~line 201). Fixes the rag *and*
-     reclaims ~48px, lifting the proof strip from y=807 to ~759, above the fold.
-   - Body copy and the primary CTA are 14px against the bar's 16px.
-   - Radius scale is flat (six values, no dominant) against Rowan's four with 60% at 6px.
-   - **Reverse the per-route chrome width.** Collapse `contentWidthClass()` to one site-wide
-     width. Rowan uses one width everywhere and accepts the misalignment; a jump in
-     persistent chrome is noticed, a static misalignment is not.
+---
 
-### Never started
+## Pieces never started
+
 | Piece | Notes |
 |---|---|
-| **Viewer selection & measurement** | The largest visible gap vs Rowan. Click an atom → highlight; two/three/four atoms → bond length / angle / dihedral readout. Serialised behind the render work (same file). |
-| **Viewer chrome** | Settings menu parity: auto-rotate, hide C–H bonds, download PNG. Partly exists already. |
-| **Provenance manifest** | Make any displayed number reproducible months later. Research recommends: model SHA256 (hashing a 134 MB checkpoint costs 0.06 s), `ase.db` logging, `pytest-regressions` + `hypothesis`. `pint` was evaluated and **rejected** — real per-op cost against a risk confined to a few known conversion sites. |
-| **MACE Link share view** | Judge against Rowan's `iframe2` embed — they ship exactly this primitive. |
-| **Benchmark vs MP** | The numeric half of the bar. Use the **unauthenticated** OPTIMADE endpoint (`optimade.materialsproject.org`), key `gga_gga+u` — MACE-MP-0 trained on PBE, not r2SCAN. Compare **formation energies**, never raw totals (different reference states). Band gap is **not computable** by MACE. |
-| **Mobile** | Rowan's own mobile is weak — their hero molecule clips off-screen. Winnable. |
+| **Mobile / responsive** | Rowan's own mobile is weak — their hero molecule clips off-screen. Winnable. Known issues: 21 interactive targets under 44×44 (partly addressed in the viewer), nav links 17px tall. |
+| **Reference conformance** | Round 1 shipped. Findings 6, 7 (done), 9, 10, 11 (done), 12 from `docs/v2/audit-vs-acesuit.md` remain. |
 
-### Known defects, deliberately not fixed
-- `mace-api/main.py` returns **HTTP 500** instead of 400 for a rejected `calculationType`, so
+---
+
+## Known defects, deliberately unfixed
+
+- **`mace-api/main.py` returns HTTP 500 instead of 400** for a rejected `calculationType`, so
   the hosted FastAPI path reports the wrong status.
-- **19 stale `mace-api/validate_calculation.py` references** remain outside the files fixed so
-  far (README fixed; `app/docs/validation`, `app/docs/getting-started`, `docs/science/`,
-  `docs/getting-started.md`, `mace-api/README.md`, `docs/architecture/`).
+- **The validator is absent from the deployed container.** `mace-api/Dockerfile`'s build
+  context is `mace-api/`, so `COPY . .` cannot reach `../test_scripts/`. Hosted results report
+  `validation.status: "unavailable"` — degrading correctly, but degraded.
 - **Audit finding 8**: the foundation-model comparison picks its baseline by substring-matching
   the uploaded *filename* for `"off"`/`"organic"` (`app/calculate/page.tsx` ~259). This can
   silently compare across two incompatible energy conventions.
 - **Audit finding 6**: geometry-opt trajectories contain a duplicated frame 0 with off-by-one
   step labels — the message and the trajectory contradict each other.
 - **Audit finding 10**: upstream computes stress on every call and it is discarded;
-  `properties.pressure` is declared in the types and never populated.
+  `properties.pressure` is declared and never populated.
+- `lattice` and `properties.volume` are declared non-nullable but the backend sends `null` for
+  both on non-periodic systems.
 - ASE's `get_temperature()` divides by 3N even with COM momentum pinned, so reported
-  temperature reads ~11% low for a 9-atom molecule. The MD temperature chart shows it as-is.
-- `components/calculate/results-display.tsx` is dead code (zero importers) still carrying the
-  old mislabelling. A separate session was spawned to remove it.
+  temperature reads ~11% low for a 9-atom molecule. The MD chart shows it as-is.
+- **Force arrows are still drawn for hidden C–H hydrogens**, leaving arrows with no visible
+  atom at their base.
+- `components/ui/card.tsx`'s `CardHeader` is a bare grid with no explicit columns unless a
+  `CardAction` child is present — the same unsafe pattern that caused the `/calculate` mobile
+  overflow, one level deeper. `ResultsSkeleton` has it too, currently inert.
+- **Viewer framing** still sits a few percent under the 0.82 target.
 
 ---
 
 ## The pattern worth remembering
 
-Five separate defects in this branch were **code that reviews as correct and does nothing at
-runtime**. None would be caught by reading a diff:
+Six defects in this work were **code that reviews as correct and does nothing, or the wrong
+thing, at runtime**. None would be caught by reading a diff:
 
-1. `calculationType` had no allow-list — any unrecognised type silently ran a single-point
-   and returned it as the requested calculation.
+1. `calculationType` had no allow-list — any unrecognised type ran a single-point and returned
+   it as the requested calculation.
 2. `modelType` had no allow-list — "custom" with no checkpoint returned MACE-MP-0 results
    labelled `custom`, shareable and PDF-exportable.
 3. The validator's model-aware energy bounds were dead because `_build_result()` never echoed
    the `params` the validator reads.
 4. The D3 toggle was live but a no-op for custom models, whose loader takes no dispersion arg.
-5. The MACE-OFF element and NPT periodicity guards were implemented but inert because nothing
-   passed the props.
+5. The MACE-OFF element and NPT periodicity guards were implemented but inert — nothing passed
+   them the structure.
+6. **Ambient occlusion had never once rendered.** The WebGL2 check probed the visible canvas,
+   which holds a `bitmaprenderer` context whenever the viewer renders offscreen, so the check
+   failed on every capable machine.
 
-And a sixth, found only because wiring the fifth forced the question "where is the lattice?":
-`parseCIF` never converted fractional coordinates, loading silicon with nearest-neighbour
-**0.433 Å instead of 2.3516 Å**.
+And two found only by asking a downstream question:
+- `parseCIF` never converted fractional coordinates — silicon loaded with a **0.433 Å**
+  nearest-neighbour distance instead of 2.3516 Å. Found only because wiring `isPeriodic` forced
+  "where is the lattice?"
+- The default result viewer fitted force-arrow **tips**, so the molecule rendered at ~12% of
+  the box. Found only because a critic ran a real calculation; every prior check measured the
+  *hero* viewer, which has no arrows.
 
-**Lesson for whoever continues: verify by execution, never by reading.** Run the thing. The
-`docs/v2/bars/` files exist so a critic can measure rather than assert.
+**Verify by execution, never by reading.** Also verify the *right build* — one critic spent a
+full run measuring a stale branch because the dev server was serving different code than the
+branch under test.
 
 ---
 
 ## Resuming
 
 ```bash
-git checkout -b v2.1 main
+git checkout -b v2.2 main
 npm install && npm run dev          # dashboard at /v2
 ```
 
-Verification gates that must stay green:
+Gates that must stay green:
 
 ```bash
 npm run build                                        # must compile
-npx eslint .                                         # 37 known pre-existing problems
+npx eslint .                                         # ~37 known pre-existing problems
 export KMP_DUPLICATE_LIB_OK=TRUE                     # else OMP Error #15
 python3 test_scripts/validate_calculation.py --test  # all_passed: true
+python3 -m unittest discover -s test_scripts -p "test_provenance.py"   # 40 tests
 ```
 
-Guards that must keep failing loudly — if any of these ever returns a result, a regression
-has reintroduced a silent fallthrough:
+Guards that must keep failing loudly. If any returns a result, a silent fallthrough is back:
 
 ```bash
 python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"calculationType":"phonon"}'
@@ -161,10 +151,20 @@ python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"modelType":"custo
 python3 mace-api/calculate_local.py public/demo/ethanol.xyz '{"modelType":"MACE-MP"}'
 ```
 
-And the CIF fixture, which regresses to a 1 Å box if fractional-coordinate conversion breaks:
+And the CIF fixture, which regresses to a 1 Å box if fractional handling breaks:
 `public/demo/silicon.cif` — correct nearest-neighbour is **2.3516 Å** (a·√3/4).
+
+### Harness traps that cost real time
+
+- **Coordinate clicks in the browser pane are scaled ~3.4952×.** A ref-based click reports page
+  coords but lands at 3.5× that point. Click via `javascript_tool` (`el.click()`) instead.
+- Injecting `input.files` + a native `change` event does **not** trigger React's handler. Load
+  structures through the UI (Catalog, SMILES, or `?demo=true`).
+- Concurrent `npm run build` from parallel agents shares `.next/` and produces spurious lock
+  failures. Treat an agent's build result as advisory; run one authoritative build yourself.
+- Verify the dev server is serving the branch you think it is before judging anything.
 
 ---
 
-Method credit: the gauntlet loop is [Matt Shumer's](https://github.com/mshumer); packaged as
-a skill by [Jay E / RoboNuggets](https://robonuggets.com), CC BY 4.0.
+Method credit: the gauntlet loop is [Matt Shumer's](https://github.com/mshumer); packaged as a
+skill by [Jay E / RoboNuggets](https://robonuggets.com), CC BY 4.0.
