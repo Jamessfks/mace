@@ -85,12 +85,25 @@ interface MoleculeViewer3DProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Ceiling on rendered luminance, in 0-255. The canvas is white (255), and the
- * only light in a 3Dmol scene is a single white directional light with no
- * ambient term, so a fragment's maximum output is exactly its base colour.
- * Jmol's hydrogen is #FFFFFF, which means every hydrogen's lit cap renders at
- * literally the background colour and the atom dissolves into it — it survives
- * only on its outline. The bar never exceeds ~242 anywhere in the molecule.
+ * Ceiling on the BASE colour's luminance, in 0-255. Jmol's hydrogen is
+ * #FFFFFF, so without this every hydrogen's lit cap rendered at the background
+ * colour and the atom dissolved into it, surviving only on its outline —
+ * measured at 108 pixels of exactly (255,255,255) inside the silhouette.
+ *
+ * Set to 237 rather than 240: the canvas is now transparent and composites
+ * onto the page tint #FBFAF7, whose luminance is ~250, not 255. The bar keeps
+ * about 13 levels of headroom (its brightest pixel is 242 on a 255 page), and
+ * 237 against 250 reproduces that same margin.
+ *
+ * This caps the base colour, NOT the rendered pixel. An earlier version of
+ * this comment claimed 3Dmol's scene has a single directional light with no
+ * ambient term, so output could never exceed base — that is false, and a
+ * critic disproved it: oxygen's base is #FF0D0D yet its brightest rendered
+ * pixel is (235,176,176), so green and blue land 163 above base. There is a
+ * specular term. Grey and white are capped as intended (max measured exactly
+ * 240); saturated colours can still blow toward pale. Ours reaches
+ * (235,176,176) on oxygen where the bar holds (236,82,82) and keeps its hue —
+ * their specular is tighter. Unfixed, and NOT addressed by this constant.
  *
  * Capping *luminance* (not per channel) darkens only the near-white entries and
  * leaves saturated colours alone: a red oxygen pixel at (255,13,13) has
@@ -100,7 +113,7 @@ interface MoleculeViewer3DProps {
  *   Ce #FFFFC7 -> #F4F4BE     Pr #D9FFC7 -> #D6FCC5
  * C, N, O, F, P, S, Cl and every metal are unchanged.
  */
-const WHITE_CEILING = 240;
+const WHITE_CEILING = 237;
 
 /**
  * Ball-and-stick proportions. 3Dmol's `sphere.scale` multiplies the element's
@@ -919,11 +932,17 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       </div>
 
       {/* ── Viewer canvas ──
-          bg-elevated (pure white in the light theme) so the canvas well matches
-          the WebGL clear colour exactly — the warm page tint read as muddy
-          next to a white-background viewer. */}
+          NO background and NO border. The canvas is transparent
+          (backgroundAlpha 0), so whatever sits here shows through — and a
+          white well made that transparency a pixel-level no-op: the well
+          painted exactly the white the opaque canvas used to paint, measured
+          identical. Stacking an elevated surface inside a secondary surface on
+          the page tint gave three backgrounds and two borders around the
+          molecule, which read as a screenshot in a box rather than an object
+          on the page. The bar's wrapper is a bare rounded box with no fill and
+          no border. Callers own the surface. */}
       <div
-        className={`relative overflow-hidden rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] ${
+        className={`relative overflow-hidden rounded-lg ${
           fullscreen ? "min-h-0 flex-1" : ""
         }`}
       >

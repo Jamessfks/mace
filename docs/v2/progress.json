@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.1",
-  "updated": "2026-08-10T00:43:12.001Z",
+  "updated": "2026-08-10T01:12:50.499Z",
   "bars": [
     {
       "name": "Rowan",
@@ -32,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "judging",
-      "rounds": 3,
-      "verdict": "Round 2: LOST to Rowan",
-      "gap": "Round 3 shipped: ambient occlusion enabled for the first time (the WebGL2 guard was probing the wrong canvas), canvas made transparent, framing re-solved on resize. Verified _webglversion=2 while the old check returned false. AO output still never seen rendered."
+      "status": "building",
+      "rounds": 4,
+      "verdict": "Round 3: LOST to Rowan",
+      "gap": "Ambient occlusion CONFIRMED running by ablation (13.6% of pixels change when disabled, zero halo leak). Lost on framing — the bar fills 0.825 in an identical 824x840 buffer where we reach 0.703, and spacefill is still smaller than ball-and-stick. White well now removed."
     },
     {
       "id": "viewer-interact",
@@ -74,10 +74,10 @@
         "app/page.tsx",
         "components/intro-section.tsx"
       ],
-      "status": "judging",
-      "rounds": 2,
-      "verdict": "Round 1: LOST to Rowan",
-      "gap": "Round 2 shipped: hard <br/> removed, headline now three balanced lines; body and CTA at the bar 16px."
+      "status": "building",
+      "rounds": 3,
+      "verdict": "Round 2: LOST to Rowan",
+      "gap": "Headline rag now beats the bar (423/353/360 vs their 456/475/97 orphan). Lost on the proof strip: it lands at y=791 so only 9px of 104px clears the fold, and single-digit tiles read as anti-proof where the bar shows twelve customer logos."
     },
     {
       "id": "config",
@@ -158,10 +158,10 @@
         "components/site-header.tsx",
         "components/site-footer.tsx"
       ],
-      "status": "judging",
+      "status": "won",
       "rounds": 2,
-      "verdict": "Round 1: LOST to Rowan",
-      "gap": "Round 2 shipped: one chrome width site-wide, wordmark pinned at x=24 on every route. Footer reverted to a server component."
+      "verdict": "WON — critic picked ours over Rowan",
+      "gap": "Wordmark pinned at x=24 on every route, matching the bar to within half a pixel (our 121px chrome-to-content offset vs their 120.5px). Plus aria-current on the active route, which Rowan sets on none of its five top links. Remaining: /support uses max-w-3xl, giving a 225px offset — the only route exceeding the bar."
     },
     {
       "id": "benchmark",
@@ -224,7 +224,10 @@
     "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails.",
     "CORRECTION: the claim that our shading beats the bar does not replicate. AO was never enabled (renderer._AOEnabled === false) and carbon tonality measures 237 distinct luminance levels for both viewers, not 117 vs 34.",
     "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes.",
-    "v2.1 continues the loop from main. Viewer, landing and nav all have their round-N fixes shipped and are awaiting re-judgment."
+    "v2.1 continues the loop from main. Viewer, landing and nav all have their round-N fixes shipped and are awaiting re-judgment.",
+    "FIRST WIN: nav. Critic measured Rowan uses the same mx-auto max-w-7xl px-6 with logo at x=24 and h1 at x=144.5 — a 120.5px offset against our 121px. Full-bleed chrome over a narrower column is the bar own pattern, not a defect.",
+    "SETTLED by ablation: ambient occlusion is genuinely active. Disabling it changes 14,024 of 103,106 pixels, all strictly interior to the silhouette. The 117-vs-34 luminance claim is dead — 241 with AO on, 241 with AO off; that metric never measured shading.",
+    "The transparency fix alone was a pixel-level no-op: the well behind the canvas painted the identical white the opaque canvas had painted. Removing the well is what makes it mean anything."
   ],
   "defectsFixed": [
     {
