@@ -36,6 +36,7 @@ import {
   Copy,
   Download,
   Eye,
+  ExternalLink,
   Table2,
 } from "lucide-react";
 import { computeRmsForce } from "@/lib/utils";
@@ -273,13 +274,23 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           )}
           {/* Compute time and round-trip time are different measurements and
               are labelled as such. Neither is ever rendered with more digits
-              than the value it came from — see formatDuration(). */}
+              than the value it came from — see formatDuration(). When both
+              are present they share one decimal count (pairedDurationDecimals)
+              so two equally millisecond-precise numbers — e.g. 0.135 s and
+              5.13 s — never read as if one were measured more coarsely than
+              the other purely because of which magnitude bucket it landed in. */}
           {result.timeTaken != null && (
             <span
               className="font-mono text-xs text-muted-foreground"
               title="Backend-measured calculation time, timed around the calculation itself — structure parsing and model load happen before the clock starts."
             >
-              {formatDuration(result.timeTaken)} compute
+              {formatDuration(
+                result.timeTaken,
+                result.clientRoundTrip != null
+                  ? pairedDurationDecimals(result.timeTaken, result.clientRoundTrip)
+                  : undefined,
+              )}{" "}
+              compute
             </span>
           )}
           {result.clientRoundTrip != null && (
@@ -287,7 +298,13 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
               className="font-mono text-xs text-muted-foreground"
               title="Wall-clock time measured in the browser: request, HTTP both ways, any model download, and the compute."
             >
-              {formatDuration(result.clientRoundTrip)} round trip
+              {formatDuration(
+                result.clientRoundTrip,
+                result.timeTaken != null
+                  ? pairedDurationDecimals(result.timeTaken, result.clientRoundTrip)
+                  : undefined,
+              )}{" "}
+              round trip
             </span>
           )}
           {hasRef && (
@@ -485,13 +502,30 @@ function SummaryTab({
 
   return (
     <div className="space-y-4">
+      {/* On-page jump links to the four peer sections below — added so a
+          reader lands on Validation/Provenance directly instead of scrolling
+          past the whole tab to find them. Silently omits any section this
+          result didn't produce, and renders nothing at all when fewer than
+          two sections are available (a contents list of one entry isn't one). */}
+      <ResultsToc
+        sections={[
+          { id: "run-configuration", label: "Run Configuration", available: !!result.params },
+          { id: "properties", label: "Properties", available: propertyRows.length > 0 },
+          { id: "validation", label: "Validation", available: !!result.validation },
+          { id: "provenance", label: "Provenance", available: !!result.provenance },
+        ]}
+      />
+
       {/* Run config */}
       {result.params && (
         <Card className="gap-2 border-l-4 border-l-[var(--color-data-gray)] bg-muted py-4">
           <CardHeader className="px-4">
-            <CardTitle className="font-serif text-sm font-semibold text-foreground">
+            <h3
+              id="run-configuration"
+              className="scroll-mt-20 font-serif text-sm font-semibold leading-none text-foreground"
+            >
               Run Configuration
-            </CardTitle>
+            </h3>
           </CardHeader>
           <CardContent className="px-4">
             <p className="font-mono text-xs text-muted-foreground">
@@ -528,9 +562,12 @@ function SummaryTab({
         {propertyRows.length > 0 && (
           <Card className="gap-2 border-l-4 border-l-[var(--color-data-gray)] py-4">
             <CardHeader className="px-4">
-              <CardTitle className="font-serif text-sm font-semibold text-foreground">
+              <h3
+                id="properties"
+                className="scroll-mt-20 font-serif text-sm font-semibold leading-none text-foreground"
+              >
                 Properties
-              </CardTitle>
+              </h3>
             </CardHeader>
             <CardContent className="px-4">
               <PropertyRows rows={propertyRows} />
@@ -611,6 +648,52 @@ function SummaryTab({
         </ul>
       </div>
     </div>
+  );
+}
+
+/**
+ * On-page jump links for the Summary tab's peer sections.
+ *
+ * Materials Project pins its sticky table of contents beside the data
+ * (docs/v2/bars/materials-project.md); this tab is one long scroll instead,
+ * so a reader who wants Provenance or Validation has to pass the energy card,
+ * Properties, Model Accuracy and the trajectory summary first. This does not
+ * reproduce MP's sticky rail (nothing here is fixed-position — see the
+ * function doc for why), but it does let a reader skip straight there.
+ *
+ * Each entry names a section that may or may not exist on a given result
+ * (Properties is empty for some inputs, Validation/Provenance are absent on
+ * results predating those fields). Links to sections that will not render
+ * would be dead links, so `available` is required per entry and unavailable
+ * ones are dropped silently. A contents list of zero or one real destination
+ * is not a contents list, so the whole thing renders nothing below two.
+ */
+function ResultsToc({
+  sections,
+}: {
+  sections: { id: string; label: string; available: boolean }[];
+}) {
+  const links = sections.filter((s) => s.available);
+  if (links.length < 2) return null;
+
+  return (
+    <nav
+      aria-label="Sections on this tab"
+      className="flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg border border-border bg-muted px-3 py-2 font-mono text-xs text-muted-foreground"
+    >
+      <span>On this tab:</span>
+      {links.map((s, i) => (
+        <span key={s.id} className="flex items-center gap-1.5">
+          {i > 0 && <span aria-hidden="true">·</span>}
+          <a
+            href={`#${s.id}`}
+            className="rounded text-[var(--color-accent-strong)] underline-offset-2 hover:underline"
+          >
+            {s.label}
+          </a>
+        </span>
+      ))}
+    </nav>
   );
 }
 
@@ -1060,9 +1143,12 @@ function ValidationFindings({
     return (
       <Card className="gap-2 border-l-4 border-l-[var(--color-data-gray)] py-4">
         <CardHeader className="px-4">
-          <CardTitle className="font-serif text-sm font-semibold text-foreground">
+          <h3
+            id="validation"
+            className="scroll-mt-20 font-serif text-sm font-semibold leading-none text-foreground"
+          >
             Validation
-          </CardTitle>
+          </h3>
         </CardHeader>
         <CardContent className="px-4">
           <p className="font-mono text-xs leading-relaxed text-muted-foreground">
@@ -1118,9 +1204,12 @@ function ValidationFindings({
   return (
     <Card className={`gap-2 border-l-4 py-4 ${accent.border}`}>
       <CardHeader className="px-4">
-        <CardTitle className={`font-serif text-sm font-semibold ${accent.text}`}>
+        <h3
+          id="validation"
+          className={`scroll-mt-20 font-serif text-sm font-semibold leading-none ${accent.text}`}
+        >
           Validation
-        </CardTitle>
+        </h3>
         <p className="font-mono text-xs text-muted-foreground">{summary}</p>
       </CardHeader>
       <CardContent className="space-y-2 px-4">
@@ -1200,6 +1289,37 @@ function FindingList({
 /** Characters of a digest shown before the ellipsis. */
 const HASH_PREFIX_CHARS = 16;
 const BYTES_PER_MIB = 1024 * 1024;
+
+/** Same repository components/site-header.tsx links to as "View source on GitHub". */
+const REPO_URL = "https://github.com/Jamessfks/mace";
+
+/**
+ * Where each model family's foundation-model weights are published upstream —
+ * read off docs/v2/bars/acesuit-mace.md's Fetchability table, NOT off anything
+ * the backend records. mace-api/provenance.py's checkpoint manifest has no URL
+ * field at all (see its module docstring): it hashes the file `torch.load()`
+ * actually opened but never learns the address it was fetched from.
+ *
+ * These are repository-level pages, not links to one specific checkpoint
+ * file. The bar doc itself flags upstream as internally inconsistent about at
+ * least one size→file mapping ("large"), so constructing a per-file URL from
+ * a size string here would risk presenting a guess as a fact — exactly what
+ * this section exists to never do. "custom" checkpoints are user uploads with
+ * no upstream URL at all and are handled separately, not through this map.
+ *
+ * Keys mirror `SUPPORTED_MODEL_TYPES` in mace-api/calculate.py, not just the
+ * frontend's narrower `ModelType` union — the backend is the security
+ * boundary and can be posted to directly (CLAUDE.md), so a manifest can carry
+ * "MACE-OFF23" even though the UI never sends it. "MACE-OFF" and "MACE-OFF23"
+ * both route through upstream's `mace_off()` (`MACE_OFF_MODEL_TYPES` in
+ * calculate.py) and that loader only ever serves MACE-OFF23 checkpoints
+ * regardless of which label was requested, so both point at the same repo.
+ */
+const UPSTREAM_WEIGHTS_REPO: Record<string, string> = {
+  "MACE-MP-0": "https://github.com/ACEsuit/mace-foundations/releases",
+  "MACE-OFF": "https://github.com/ACEsuit/mace-off",
+  "MACE-OFF23": "https://github.com/ACEsuit/mace-off",
+};
 
 /**
  * A digest: truncated so it can be read, copyable so it stays evidence.
@@ -1318,6 +1438,44 @@ function ProvenanceSection({ provenance }: { provenance?: CalculationProvenance 
     ),
   });
 
+  // A hash that cannot be resolved to a fetchable artifact is a receipt, not
+  // provenance. The backend never records a download URL (see
+  // UPSTREAM_WEIGHTS_REPO above), so this is the one place in the manifest
+  // that is allowed to show a link the backend didn't hand us — and it is
+  // always paired with an explicit "not recorded" and a label saying the link
+  // is the family's general upstream location, not a verified match for this
+  // exact SHA-256.
+  const modelFamily = provenance.model?.type;
+  if (modelFamily === "custom") {
+    rows.push({
+      label: "Upstream weights",
+      value: (
+        <span className="text-muted-foreground">
+          not applicable — custom, user-uploaded checkpoint
+        </span>
+      ),
+    });
+  } else if (modelFamily && UPSTREAM_WEIGHTS_REPO[modelFamily]) {
+    rows.push({
+      label: "Upstream weights",
+      value: (
+        <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+          <span className="text-[var(--color-warning)]">no download URL recorded</span>
+          <a
+            href={UPSTREAM_WEIGHTS_REPO[modelFamily]}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Not reported by this result. This is where ${modelFamily} weights are published upstream in general (docs/v2/bars/acesuit-mace.md) — not a verified link to this exact checkpoint file.`}
+            className="inline-flex items-center gap-0.5 text-[var(--color-accent-strong)] underline underline-offset-2 hover:no-underline"
+          >
+            expected location (unverified)
+            <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+          </a>
+        </span>
+      ),
+    });
+  }
+
   if (input?.filename) {
     rows.push({
       label: "Input file",
@@ -1402,6 +1560,15 @@ function ProvenanceSection({ provenance }: { provenance?: CalculationProvenance 
       value: (
         <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
           <HashValue value={code.gitCommit} label="git commit" prefixChars={7} />
+          <a
+            href={`${REPO_URL}/commit/${code.gitCommit}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-0.5 text-[var(--color-accent-strong)] underline underline-offset-2 hover:no-underline"
+          >
+            view
+            <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+          </a>
           {code.gitDirty === true ? (
             <span className="text-[var(--color-warning)]">uncommitted changes</span>
           ) : code.gitDirty === false ? (
@@ -1423,9 +1590,12 @@ function ProvenanceSection({ provenance }: { provenance?: CalculationProvenance 
   return (
     <Card className="gap-2 border-l-4 border-l-[var(--color-data-purple)] py-4">
       <CardHeader className="px-4">
-        <CardTitle className="font-serif text-sm font-semibold text-foreground">
+        <h3
+          id="provenance"
+          className="scroll-mt-20 font-serif text-sm font-semibold leading-none text-foreground"
+        >
           Provenance
-        </CardTitle>
+        </h3>
         <p className="text-xs leading-relaxed text-muted-foreground">
           What produced these numbers. A model name is not a reproducible
           identifier — the hash of the checkpoint that was actually loaded is.
@@ -1577,10 +1747,18 @@ function ForcesTable({
             <tr>
               <th className="px-3 py-2 text-left">#</th>
               <th className="px-3 py-2 text-left">Element</th>
-              <th className="px-3 py-2 text-right">Fx</th>
-              <th className="px-3 py-2 text-right">Fy</th>
-              <th className="px-3 py-2 text-right">Fz</th>
-              <th className="px-3 py-2 text-right">|F|</th>
+              <th className="px-3 py-2 text-right">
+                Fx <span className="text-[10px] font-normal">(eV/Å)</span>
+              </th>
+              <th className="px-3 py-2 text-right">
+                Fy <span className="text-[10px] font-normal">(eV/Å)</span>
+              </th>
+              <th className="px-3 py-2 text-right">
+                Fz <span className="text-[10px] font-normal">(eV/Å)</span>
+              </th>
+              <th className="px-3 py-2 text-right">
+                |F| <span className="text-[10px] font-normal">(eV/Å)</span>
+              </th>
             </tr>
           </thead>
           <tbody className="text-[var(--color-text-secondary)]">
@@ -1642,28 +1820,63 @@ function formatParams(params: Partial<CalculationParams>): string {
 }
 
 /**
+ * Decimal count that reads comfortably for a duration of this magnitude —
+ * more digits for a sub-second value, fewer once the number is large enough
+ * that they'd be noise. This is a READABILITY choice, not a measurement of
+ * source precision; see `formatDuration` for how the two are reconciled.
+ */
+function readableDecimalsFor(magnitude: number): number {
+  return magnitude < 1 ? 3 : magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
+}
+
+/**
  * A duration in seconds, rendered at a precision the source actually has.
  *
  * The backend reports `timeTaken` as `round(t, 3)` seconds and the browser
- * measures `clientRoundTrip` to the millisecond, so two decimals is the most
- * either can support — and an integer input is printed as an integer, because
- * a value that arrived rounded to whole seconds (which is what older shared
- * results carry) must not grow a decimal on the way to the screen. Rendering
- * FEWER digits than the source is always fine; more is fabrication.
+ * measures `clientRoundTrip` from `Date.now()` millisecond timestamps — both
+ * are millisecond-resolution measurements. `decimalsOverride`, when given,
+ * pins the decimal count instead of deriving it from this value's own
+ * magnitude; see `pairedDurationDecimals` for why the compute/round-trip pair
+ * needs that. Either way, the result never carries more decimals than the
+ * value itself actually has: an integer input prints as an integer, because a
+ * value that arrived rounded to whole seconds (what older shared results
+ * carry) must not grow a decimal on the way to the screen. Rendering FEWER
+ * digits than the source is always fine; more is fabrication.
  */
-function formatDuration(seconds: number): string {
+function formatDuration(seconds: number, decimalsOverride?: number): string {
   if (!Number.isFinite(seconds)) return "N/A";
   const magnitude = Math.abs(seconds);
   // Digits the value itself actually carries. A whole-second value (what older
   // shared results hold, from when the client's rounded round-trip was written
   // into this field) therefore prints as a whole second.
   const sourceDecimals = (String(seconds).split(".")[1] ?? "").length;
-  const readableDecimals =
-    magnitude < 1 ? 3 : magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
-  const text = seconds.toFixed(Math.min(sourceDecimals, readableDecimals));
-  // A small non-zero duration must not be reported as a flat zero.
-  if (seconds > 0 && Number(text) === 0) return "< 0.001 s";
+  const readableDecimals = decimalsOverride ?? readableDecimalsFor(magnitude);
+  const decimalsUsed = Math.min(sourceDecimals, readableDecimals);
+  const text = seconds.toFixed(decimalsUsed);
+  // A small non-zero duration must not be reported as a flat zero — say what
+  // it's below instead, at whatever precision this render actually used.
+  if (seconds > 0 && Number(text) === 0) {
+    return `< ${Math.pow(10, -decimalsUsed).toFixed(decimalsUsed)} s`;
+  }
   return `${text} s`;
+}
+
+/**
+ * Shared decimal count for the compute-time / round-trip pair shown side by
+ * side in the status banner.
+ *
+ * Both are millisecond-resolution measurements (see `formatDuration`), but
+ * `readableDecimalsFor` buckets by magnitude, so two equally-precise values
+ * that straddle a bucket boundary — e.g. 0.135 s and 5.13 s — used to render
+ * with different decimal counts for no reason a reader could see, reading as
+ * if one measurement were coarser than the other. Using the larger value's
+ * bucket for both fixes that by only ever DROPPING decimals from the smaller
+ * one, never adding decimals the other's bucket doesn't already call for —
+ * `formatDuration`'s own per-value cap still applies on top of this, so
+ * neither number is ever shown with more precision than it actually has.
+ */
+function pairedDurationDecimals(a: number, b: number): number {
+  return readableDecimalsFor(Math.max(Math.abs(a), Math.abs(b)));
 }
 
 /** Mean of a non-empty numeric array. */
