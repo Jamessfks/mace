@@ -8,8 +8,11 @@
  * a command line, or an HPC allocation. Sections:
  *   1. Hero            — split layout: positioning + CTAs on the left, a
  *                         real, live, interactive MACE structure on the
- *                         right (lazy-loaded so it never blocks first paint),
- *                         with a proof strip of checkable facts beneath
+ *                         right (lazy-loaded so it never blocks first paint).
+ *                         Genuine, checkable proof (provenance + license/
+ *                         access facts) is promoted directly under the left
+ *                         column's CTAs, not a separate strip — see the
+ *                         "Proof, promoted" comment below for why
  *   2. Workflow        — the four-step path from structure to insight
  *   3. Capabilities    — what you can actually compute
  *   4. Foundation models — MACE-MP-0 vs MACE-OFF, described scientifically
@@ -37,7 +40,6 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CalculationResult } from "@/types/mace";
 import {
@@ -52,6 +54,7 @@ import {
   GitCompareArrows,
   Share2,
   ArrowRight,
+  Check,
 } from "lucide-react";
 
 /* ── Hero molecule: a real structure, not a mock ──────────────────────────
@@ -180,38 +183,39 @@ const CAPABILITIES = [
   },
 ];
 
-/* ── Proof strip ──────────────────────────────────────────────────────────
- * Every figure here is checkable against this repository, which is the
- * point — we have no usage numbers, user counts, or calculation counts,
- * and inventing them is not an option. So the strip carries capability
- * facts instead:
+/* ── Proof, promoted ──────────────────────────────────────────────────────
+ * Round 2 shipped a four-tile stat grid ("3 Calculation types", "4
+ * Structure file formats", …) as a full-width strip below the hero grid.
+ * Measured against docs/v2/bars/rowan.md, that lost on two counts:
  *
- *   89   — elements covered by MACE-MP-0 (CLAUDE.md, model card)
- *   3    — SUPPORTED_CALCULATION_TYPES in mace-api/calculate.py
- *   4    — structure formats in lib/parse-structure.ts (XYZ, CIF,
- *          POSCAR/CONTCAR, PDB); SMILES and the sketcher are additional
- *          inputs, not file formats, so they are deliberately not counted
- *   MIT  — LICENSE at the repository root
+ *   1. Single-digit counts read as anti-proof — they draw the eye to how
+ *      small the numbers are, in the exact slot where the reference puts a
+ *      twelve-logo customer marquee.
+ *   2. The strip's vertical position was inherited from the hero grid's
+ *      row height, which is set by whichever column is taller. The 3D
+ *      viewer column (components/calculate/molecule-viewer-3d.tsx, owned
+ *      elsewhere in this round) is the tall one, so the strip's position
+ *      depended on a file this component doesn't control: it measured at
+ *      104px tall starting at y=791, with only 9px clearing an 800px fold.
  *
- * None of it restates the "free / no account / no install" line above,
- * which is what made the previous four tiles half echo.
+ * Fix: no separate strip. The strongest true claim on the page — built on
+ * MACE, from the University of Cambridge — is promoted out of a buried
+ * 14px attribution line into its own sentence directly under the CTAs,
+ * followed by the rest of what's actually true and verifiable (free,
+ * MIT-licensed, no account, runs in the browser) as a short checked list.
+ * Living inside the left column instead of below the full grid — combined
+ * with `items-start` instead of `items-center` on the hero grid below —
+ * means its position is a function of this file's own type sizes only,
+ * never the viewer column's rendered height.
  *
- * `whitespace-nowrap` on the model name is load-bearing: "MACE-MP-0"
- * offers the browser two hyphen break opportunities, and at 375px it was
- * splitting as "MACE-MP-" / "0".
+ * No usage numbers, customer counts, or logos appear here. SimpleAtom has
+ * none to show, and inventing any would be worse than this shorter list.
  */
-const PROOF: { value: string; label: ReactNode }[] = [
-  {
-    value: "89",
-    label: (
-      <>
-        Elements in <span className="whitespace-nowrap">MACE-MP-0</span>
-      </>
-    ),
-  },
-  { value: "3", label: "Calculation types" },
-  { value: "4", label: "Structure file formats" },
-  { value: "MIT", label: "Open-source license" },
+const PROOF_CLAIMS = [
+  "Free",
+  "Open source (MIT)",
+  "No account required",
+  "Runs entirely in your browser",
 ];
 
 /* ── Foundation model cards ── */
@@ -245,7 +249,7 @@ export function IntroSection() {
       <section className="relative overflow-hidden">
         <div className="dot-grid pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative mx-auto max-w-5xl px-6 py-20 sm:py-24">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-16">
             {/* ── Left: positioning + CTAs ── */}
             <div>
               <span className="inline-flex items-center rounded-full border border-[var(--color-border-emphasis)] bg-[var(--color-accent-soft)] px-4 py-1.5 text-xs font-medium tracking-wide text-[var(--color-accent-strong)]">
@@ -260,7 +264,7 @@ export function IntroSection() {
                 Quantum-accurate chemistry, right in your browser.
               </h1>
 
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
+              <p className="mt-6 max-w-xl text-base text-[var(--color-text-secondary)]">
                 SimpleAtom is a free, open interface to{" "}
                 <span className="text-[var(--color-text-primary)]">MACE</span>{" "}
                 machine-learning force fields. Compute energies, relax geometries,
@@ -285,12 +289,35 @@ export function IntroSection() {
                 </Button>
               </div>
 
-              {/* Attribution only. "Free / no account / no install" is the
-                * lead paragraph's job and the proof strip's job; saying it
-                * a third time here was the redundancy, not the substance. */}
-              <p className="mt-5 text-sm text-[var(--color-text-muted)]">
-                Built on MACE, developed at the University of Cambridge.
+              {/* Promoted proof — see the "Proof, promoted" comment above
+                * PROOF_CLAIMS. Replaces both the old 14px attribution line
+                * and the four-tile stat strip that used to sit below the
+                * grid: the strongest true claim gets its own sentence, the
+                * rest of what's true and verifiable follows as a checked
+                * list, and none of it restates the lead paragraph. */}
+              <p className="mt-8 text-base font-medium text-[var(--color-text-primary)]">
+                Built on{" "}
+                <span className="text-[var(--color-accent-strong)]">
+                  MACE
+                </span>
+                , the open-source machine-learning potential developed at
+                the University of Cambridge.
               </p>
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+                {PROOF_CLAIMS.map((claim) => (
+                  <li
+                    key={claim}
+                    className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)]"
+                  >
+                    <Check
+                      className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]"
+                      strokeWidth={2.5}
+                      aria-hidden="true"
+                    />
+                    {claim}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* ── Right: a real, live molecule ── */}
@@ -300,27 +327,6 @@ export function IntroSection() {
               </p>
               <LazyMoleculeViewer3D result={HERO_STRUCTURE} />
             </div>
-          </div>
-
-          {/* Proof strip — kept tight to the hero (mt-12, not mt-16) so it
-            * lands inside the first screen rather than seven pixels below
-            * it. `justify-center` centres each tile's contents, so a label
-            * that wraps to two lines no longer leaves a visible void under
-            * its one-line neighbour at 375px. */}
-          <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border border-[var(--color-border-subtle)] bg-[var(--color-border-subtle)] sm:grid-cols-4">
-            {PROOF.map((item) => (
-              <div
-                key={item.value}
-                className="flex flex-col items-center justify-center bg-[var(--color-bg-elevated)] px-4 py-6 text-center"
-              >
-                <span className="font-serif text-2xl font-semibold text-[var(--color-accent-strong)]">
-                  {item.value}
-                </span>
-                <span className="mt-1 text-sm leading-tight text-[var(--color-text-muted)]">
-                  {item.label}
-                </span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
