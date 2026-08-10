@@ -22,15 +22,21 @@ import {
 import { BenchmarkProgress } from "@/components/benchmark/benchmark-progress";
 import { BenchmarkDashboard } from "@/components/benchmark/benchmark-dashboard";
 import { MLPEG_CATALOG } from "@/lib/mlpeg-catalog";
+import { MP_REFERENCE_ENTRIES } from "@/lib/mp-reference";
 import type { BenchmarkResult } from "@/types/mace";
 
 type Phase = "config" | "running" | "results";
 
+// Both selectable families, so the progress list can name every structure it is
+// waiting on rather than falling back to a bare id.
 const structureNameMap: Record<string, string> = {};
 for (const cat of MLPEG_CATALOG) {
   for (const e of cat.entries) {
     structureNameMap[e.id] = e.name;
   }
+}
+for (const e of MP_REFERENCE_ENTRIES) {
+  structureNameMap[e.id] = e.name;
 }
 
 export default function BenchmarkPage() {

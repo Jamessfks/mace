@@ -149,8 +149,15 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
             >
               Atoms <SortIcon k="atoms" />
             </TableHead>
-            <TableHead className="h-auto px-3 py-2.5 text-right" style={{ color: DATA_COLORS.yellow }}>
-              Ref (eV/atom)
+            <TableHead
+              className="h-auto whitespace-normal px-3 py-2.5 text-right"
+              style={{ color: DATA_COLORS.yellow }}
+              title={
+                "Experimental cohesive energy from the literature. NOT a DFT total energy and " +
+                "not comparable to the model columns beside it."
+              }
+            >
+              Exp. cohesive (eV/atom)
             </TableHead>
             {modelLabels.map((label, i) => (
               <TableHead
@@ -291,6 +298,24 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
           </TableRow>
         </TableFooter>
       </Table>
+
+      {/*
+        The "Exp. cohesive" column sits next to model energies per atom, which
+        invites exactly the comparison that is invalid: a cohesive energy is
+        measured against isolated atoms, a MACE energy against the model's own
+        reference. CLAUDE.md requires the experimental provenance to be noted in
+        comparisons, and a caption is the only place a reader will actually see
+        it. The valid numeric comparison lives on the "vs Materials Project" tab.
+      */}
+      <p className="border-t border-[var(--color-border-subtle)] px-4 py-3 font-mono text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+        <span style={{ color: DATA_COLORS.yellow }}>Exp. cohesive</span> is an{" "}
+        <span className="font-semibold">experimental</span> cohesive energy from the literature
+        (Kittel 8th ed., CRC Handbook) — not a DFT total energy, and not comparable to the model
+        energy-per-atom columns beside it: the two use different reference states. It is context,
+        not a score. For a comparison with a declared tolerance, see the{" "}
+        <span className="font-semibold">vs Materials Project</span> tab, which compares formation
+        energies against published PBE values.
+      </p>
     </div>
   );
 }

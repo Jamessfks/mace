@@ -116,7 +116,10 @@ function BenchmarkPDF({ result }: { result: BenchmarkResult }) {
           <Text style={pdfStyles.sectionTitle}>Energy per Atom Leaderboard (eV)</Text>
           <View style={pdfStyles.tableHeader}>
             <Text style={pdfStyles.colLeft}>Structure</Text>
-            <Text style={pdfStyles.col}>Ref.</Text>
+            {/* Labelled "Exp." to match the Leaderboard: this is an experimental
+                cohesive energy, not a DFT reference, and not comparable to the
+                model columns next to it. The footnote below spells it out. */}
+            <Text style={pdfStyles.col}>Exp.</Text>
             {modelLabels.map((l) => (
               <Text key={l} style={pdfStyles.col}>
                 {l.replace("MACE-", "")}

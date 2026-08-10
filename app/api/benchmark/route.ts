@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getEntriesByIds } from "@/lib/mlpeg-catalog";
+import { getBenchmarkStructuresByIds } from "@/lib/benchmark-structures";
 import type {
   BenchmarkResult,
   BenchmarkStructureResult,
@@ -108,7 +108,16 @@ async function runCalculationLocal(
       {
         timeout: 10 * 60 * 1000,
         maxBuffer: 50 * 1024 * 1024,
-        env: { ...process.env, PYTHONUNBUFFERED: "1" },
+        // KMP_DUPLICATE_LIB_OK: on macOS, torch and its dependencies can each
+        // link a copy of libomp; without this the child aborts (SIGABRT,
+        // "OMP Error #15") before producing any JSON. app/api/calculate does
+        // the same — the benchmark route was the one path that did not, which
+        // made local mode unusable on macOS. See README "Common issues".
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: "1",
+          KMP_DUPLICATE_LIB_OK: "TRUE",
+        },
       }
     );
     if (stderr) console.warn("[Benchmark local stderr]", stderr.slice(0, 300));
@@ -241,8 +250,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build the catalog entries list
-    const catalogEntries = hasStructureIds ? getEntriesByIds(structureIds) : [];
+    // Build the catalog entries list. Resolves both the ml-peg catalog and the
+    // Materials Project reference set; each entry carries the filename (and so
+    // the ASE reader) it must be submitted under.
+    const catalogEntries = hasStructureIds
+      ? getBenchmarkStructuresByIds(structureIds)
+      : [];
     const totalEntryCount = catalogEntries.length + userStructures.length;
 
     if (totalEntryCount === 0) {
@@ -265,8 +278,34 @@ export async function POST(request: NextRequest) {
         const calcStart = Date.now();
         try {
           const calcResult = MACE_API_URL
-            ? await runCalculationRemote(entry.xyzData, `${entry.id}.xyz`, model, calculationType)
-            : await runCalculationLocal(entry.xyzData, `${entry.id}.xyz`, model, calculationType, customModelPath);
+            ? await runCalculationRemote(entry.structureData, entry.filename, model, calculationType)
+            : await runCalculationLocal(entry.structureData, entry.filename, model, calculationType, customModelPath);
+
+          // A structure with a defined cell must come back periodic. The backend
+          // reports lattice: null whenever the parsed Atoms had no periodicity,
+          // which means the cell was lost on the way in and the energy is a
+          // gas-phase cluster energy — off by whole eV per atom. Reporting that
+          // as a crystal energy is the same class of error as reporting a
+          // calculation that never ran, so it is an error, not a result.
+          if (
+            calcResult.status !== "error" &&
+            entry.expectsPeriodic &&
+            calcResult.lattice == null
+          ) {
+            errorCount++;
+            modelResults.push({
+              modelLabel: modelLabel(model),
+              modelType: model.type,
+              modelSize: model.size,
+              status: "error",
+              error:
+                `${entry.name} has a defined unit cell, but the backend returned no ` +
+                "lattice — the periodicity was lost while parsing, so the energy would " +
+                "be a cluster energy, not a crystal energy. Rejected rather than reported.",
+              timeTaken: (Date.now() - calcStart) / 1000,
+            });
+            continue;
+          }
 
           if (calcResult.status === "error") {
             errorCount++;

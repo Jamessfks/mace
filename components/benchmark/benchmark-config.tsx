@@ -10,11 +10,24 @@
  * Br, I (organic elements). When any OFF model is selected, structures
  * containing unsupported elements (Si, Cu, Fe, Na, etc.) are automatically
  * excluded and grayed out. This prevents runtime crashes in the backend.
+ *
+ * A second family of structures is offered alongside the ml-peg catalog: the
+ * Materials Project reference set, which feeds the "vs Materials Project" tab.
+ * It comes in two halves that must be run together — compounds, and the
+ * elemental reference phases their formation energies are built from. Selecting
+ * a compound without its references produces no formation energy at all, so the
+ * panel says so rather than guessing, and this page warns before the run.
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Play, AlertTriangle, Info, Upload, X, File as FileIcon } from "lucide-react";
 import { MLPEG_CATALOG, type CatalogCategory, type CatalogEntry } from "@/lib/mlpeg-catalog";
+import {
+  MP_REFERENCE_ENTRIES,
+  MP_REFERENCE_PROVENANCE,
+  type MpReferenceEntry,
+} from "@/lib/mp-reference";
+import { MP_CATEGORY_ID } from "@/lib/benchmark-structures";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,6 +72,62 @@ const MACE_OFF_ELEMENTS = new Set([
   "H", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I",
 ]);
 
+/** One-line description for an MP entry, with its published value inline. */
+function mpEntryDescription(e: MpReferenceEntry): string {
+  if (e.role === "element-reference") {
+    return (
+      `MP's reference phase for ${e.element} (${e.mpId}). Formation energy is ` +
+      "0 eV/atom by definition; supplies e_ref for the compounds above."
+    );
+  }
+  return (
+    `MP published formation energy ${e.mpFormationEnergyPerAtom >= 0 ? "+" : ""}` +
+    `${e.mpFormationEnergyPerAtom.toFixed(4)} eV/atom (${MP_REFERENCE_PROVENANCE.datasetKey}), ` +
+    "hull ground state. MP's PBE-relaxed cell."
+  );
+}
+
+/**
+ * The MP reference set presented as a catalog category, so it flows through the
+ * same selection, compatibility and counting logic as the ml-peg entries.
+ * Deliberately NOT added to MLPEG_CATALOG: the calculator page reads that
+ * catalog directly and its structure picker is unchanged by this feature.
+ */
+const MP_CATEGORY: CatalogCategory = {
+  id: MP_CATEGORY_ID,
+  name: "Materials Project reference set",
+  description:
+    "MP's own PBE-relaxed cells with published formation energies. Compounds plus the " +
+    "elemental reference phases they need — both halves are required.",
+  mlpegPath: MP_REFERENCE_PROVENANCE.endpoint,
+  entries: MP_REFERENCE_ENTRIES.map((e) => ({
+    id: e.id,
+    name: e.name,
+    description: mpEntryDescription(e),
+    formula: e.formula,
+    atomCount: e.atomCount,
+    elements: e.elements,
+    recommendedModel: "MACE-MP-0" as const,
+    xyzData: e.xyzData,
+  })),
+};
+
+/** Everything selectable on this page. */
+const ALL_CATEGORIES: CatalogCategory[] = [...MLPEG_CATALOG, MP_CATEGORY];
+
+/** MP compound ids and the elements each needs, for the pre-run check. */
+const MP_COMPOUND_ELEMENTS = MP_REFERENCE_ENTRIES.filter(
+  (e) => e.role === "compound",
+).map((e) => ({ id: e.id, formula: e.formula, elements: e.elements }));
+
+/** element -> the structure id of MP's reference phase for it. */
+const MP_REFERENCE_ID_BY_ELEMENT = new Map(
+  MP_REFERENCE_ENTRIES.filter((e) => e.role === "element-reference").map((e) => [
+    e.element as string,
+    e.id,
+  ]),
+);
+
 function modelKey(m: ModelOption | SelectedModel): string {
   return `${m.type}-${m.size}`;
 }
@@ -72,7 +141,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
     new Set(["MACE-MP-0-small", "MACE-MP-0-medium"])
   );
   const [selectedStructures, setSelectedStructures] = useState<Set<string>>(
-    new Set(MLPEG_CATALOG.flatMap((c) => c.entries.map((e) => e.id)))
+    new Set(ALL_CATEGORIES.flatMap((c) => c.entries.map((e) => e.id)))
   );
   const [customModel, setCustomModel] = useState<File | null>(null);
   const [userStructures, setUserStructures] = useState<File[]>([]);
@@ -159,7 +228,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
   const incompatibleIds = useMemo(() => {
     if (!hasAnyOFF) return new Set<string>();
     const ids = new Set<string>();
-    for (const cat of MLPEG_CATALOG) {
+    for (const cat of ALL_CATEGORIES) {
       for (const e of cat.entries) {
         if (!isStructureCompatibleWithOFF(e)) {
           ids.add(e.id);
@@ -171,14 +240,14 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
   const incompatibleNames = useMemo(() => {
     if (incompatibleIds.size === 0) return [];
-    const all = MLPEG_CATALOG.flatMap((c) => c.entries);
+    const all = ALL_CATEGORIES.flatMap((c) => c.entries);
     return all.filter((e) => incompatibleIds.has(e.id)).map((e) => e.name);
   }, [incompatibleIds]);
 
   const unsupportedElements = useMemo(() => {
     if (incompatibleIds.size === 0) return [];
     const elems = new Set<string>();
-    const all = MLPEG_CATALOG.flatMap((c) => c.entries);
+    const all = ALL_CATEGORIES.flatMap((c) => c.entries);
     for (const e of all) {
       if (incompatibleIds.has(e.id)) {
         for (const el of e.elements) {
@@ -207,7 +276,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
   const selectAll = () => {
     setSelectedStructures(
       new Set(
-        MLPEG_CATALOG.flatMap((c) =>
+        ALL_CATEGORIES.flatMap((c) =>
           c.entries
             .filter((e) => !incompatibleIds.has(e.id))
             .map((e) => e.id)
@@ -217,6 +286,47 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
   };
 
   const clearAll = () => setSelectedStructures(new Set());
+
+  /** Select exactly the MP reference set: compounds plus every reference phase. */
+  const selectMpSet = () => {
+    setSelectedStructures((prev) => {
+      const next = new Set(prev);
+      for (const e of MP_CATEGORY.entries) {
+        if (!incompatibleIds.has(e.id)) next.add(e.id);
+      }
+      return next;
+    });
+  };
+
+  /**
+   * MP compounds selected whose elemental reference phase is not.
+   *
+   * Without the reference, the formation energy cannot be formed at all — and
+   * substituting MP's own elemental energy would smuggle the VASP-to-MACE offset
+   * into the answer. So it is worth catching before the run rather than
+   * explaining after it.
+   */
+  const mpMissingReferences = useMemo(() => {
+    const needed = new Set<string>();
+    for (const c of MP_COMPOUND_ELEMENTS) {
+      if (!selectedStructures.has(c.id)) continue;
+      for (const el of c.elements) needed.add(el);
+    }
+    const missing: { element: string; id: string }[] = [];
+    for (const el of [...needed].sort()) {
+      const refId = MP_REFERENCE_ID_BY_ELEMENT.get(el);
+      if (refId && !selectedStructures.has(refId)) missing.push({ element: el, id: refId });
+    }
+    return missing;
+  }, [selectedStructures]);
+
+  const addMissingMpReferences = () => {
+    setSelectedStructures((prev) => {
+      const next = new Set(prev);
+      for (const m of mpMissingReferences) next.add(m.id);
+      return next;
+    });
+  };
 
   const totalModels = selectedModels.size + (customModel ? 1 : 0);
   const totalStructures = selectedStructures.size + userStructures.length;
@@ -403,6 +513,15 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 Select All
               </Button>
               <Button
+                onClick={selectMpSet}
+                variant="link"
+                size="xs"
+                className="h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
+                title="Compounds plus every elemental reference phase they need"
+              >
+                + MP set
+              </Button>
+              <Button
                 onClick={clearAll}
                 variant="link"
                 size="xs"
@@ -413,8 +532,32 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
             </div>
           </div>
 
+          {mpMissingReferences.length > 0 && (
+            <div className="mb-3 rounded border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5 px-3 py-2">
+              <div className="flex items-start gap-2 font-mono text-xs text-[var(--color-warning)]">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                <div>
+                  <p>
+                    Materials Project compounds are selected without the elemental reference
+                    phase for {mpMissingReferences.map((m) => m.element).join(", ")}. No
+                    formation energy can be computed for them, so those rows will report as
+                    unscored.
+                  </p>
+                  <Button
+                    onClick={addMissingMpReferences}
+                    variant="link"
+                    size="xs"
+                    className="mt-1 h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
+                  >
+                    Add the missing reference{mpMissingReferences.length === 1 ? "" : "s"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
-            {MLPEG_CATALOG.map((cat) => {
+            {ALL_CATEGORIES.map((cat) => {
               const compatibleEntries = cat.entries.filter(
                 (e) => !incompatibleIds.has(e.id)
               );

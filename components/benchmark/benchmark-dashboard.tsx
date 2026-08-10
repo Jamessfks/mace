@@ -3,7 +3,9 @@
 /**
  * BenchmarkDashboard — Tabbed results container for benchmark output.
  *
- * Five sub-tabs: Leaderboard, Forces, Timing, Energy Landscape, Agreement.
+ * Six sub-tabs: Leaderboard, Forces, Timing, Energy Landscape, Agreement, and
+ * vs Materials Project — the only tab that compares against an external
+ * published number rather than the models against each other.
  * Detects cross-family comparisons (MP-0 vs OFF) and warns that absolute
  * energy differences are not physically meaningful due to different
  * training DFT functionals (PBE vs ωB97M-D3BJ).
@@ -17,6 +19,7 @@ import {
   TrendingUp,
   Grid3X3,
   AlertTriangle,
+  Scale,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +29,10 @@ import { BenchmarkTiming } from "./benchmark-timing";
 import { BenchmarkEnergyLandscape } from "./benchmark-energy-landscape";
 import { BenchmarkHeatmap } from "./benchmark-heatmap";
 import { BenchmarkExport } from "./benchmark-export";
+import { BenchmarkMpComparison } from "./benchmark-mp-comparison";
 import type { BenchmarkResult } from "@/types/mace";
 
-type TabId = "leaderboard" | "forces" | "timing" | "energy" | "heatmap";
+type TabId = "leaderboard" | "forces" | "timing" | "energy" | "heatmap" | "materials-project";
 
 interface Tab {
   id: TabId;
@@ -42,6 +46,11 @@ const TABS: Tab[] = [
   { id: "timing", label: "Timing", icon: <Timer className="h-3.5 w-3.5" /> },
   { id: "energy", label: "Energy Landscape", icon: <TrendingUp className="h-3.5 w-3.5" /> },
   { id: "heatmap", label: "Agreement", icon: <Grid3X3 className="h-3.5 w-3.5" /> },
+  {
+    id: "materials-project",
+    label: "vs Materials Project",
+    icon: <Scale className="h-3.5 w-3.5" />,
+  },
 ];
 
 interface DashboardProps {
@@ -140,6 +149,9 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
           </TabsContent>
           <TabsContent value="heatmap">
             <BenchmarkHeatmap result={result} />
+          </TabsContent>
+          <TabsContent value="materials-project">
+            <BenchmarkMpComparison result={result} />
           </TabsContent>
         </div>
       </Tabs>
