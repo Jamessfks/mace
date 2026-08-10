@@ -452,9 +452,9 @@ function CalculatePageInner() {
 
           {/* Calculator */}
           <TabsContent value="calculator" className="mt-6">
-            <div className="grid gap-6 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               {/* Config */}
-              <aside className="space-y-6 lg:col-span-5">
+              <aside className="min-w-0 space-y-6 lg:col-span-5">
                 <FileUploadSection
                   files={uploadedFiles}
                   onFilesChange={handleFilesChange}
@@ -470,7 +470,7 @@ function CalculatePageInner() {
               </aside>
 
               {/* Run + results */}
-              <section className="space-y-6 lg:col-span-7">
+              <section className="min-w-0 space-y-6 lg:col-span-7">
                 {/* Run card */}
                 <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-5">
                   <Button

@@ -73,7 +73,7 @@ export default function SupportPage() {
       <main>
         {/* Hero — the standout donation call */}
         <section className="warm-bg border-b border-[var(--color-border-subtle)]">
-          <div className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-24">
+          <div className="mx-auto max-w-5xl px-6 py-20 text-center sm:py-24">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-accent-soft)] text-[var(--color-accent-primary)]">
               <Heart className="h-8 w-8" strokeWidth={1.75} />
             </span>
