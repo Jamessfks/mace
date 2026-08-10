@@ -116,7 +116,27 @@ export interface CalculationResult {
   };
   message?: string;
   params?: Partial<CalculationParams>;
+  /**
+   * Seconds the BACKEND spent on the calculation itself, measured around the
+   * dispatch in `run_calculation()` (`round(time.time() - calc_start, 3)`) —
+   * so it excludes structure parsing, model download and model load, which
+   * happen before the clock starts.
+   *
+   * This is the only field that carries a measured compute time. The browser's
+   * wall-clock round trip is a different quantity and lives in
+   * `clientRoundTrip`; the two must never be merged, and the number rendered
+   * must never carry more decimals than the value it came from.
+   *
+   * Absent on results produced before the backend reported it.
+   */
   timeTaken?: number;
+  /**
+   * Seconds of browser wall-clock round trip: request → HTTP → any model
+   * download → compute → JSON transfer → parse. Set on the client only; the
+   * backend never produces this key, and it is never a substitute for
+   * `timeTaken`. Millisecond source resolution (`Date.now()`).
+   */
+  clientRoundTrip?: number;
 
   /**
    * Non-fatal notices from the backend about what it actually did — a
@@ -144,6 +164,124 @@ export interface CalculationResult {
   smilesString?: string;
   /** How the structure was provided */
   inputSource?: "file" | "smiles" | "catalog";
+
+  /**
+   * Reproducibility manifest built by `mace-api/provenance.py`. OPTIONAL:
+   * results produced before it existed — including ones re-opened through a
+   * MACE Link — simply do not have it, and the UI must render nothing rather
+   * than an empty section.
+   */
+  provenance?: CalculationProvenance;
+
+  /**
+   * Advisory findings from `test_scripts/validate_calculation.py`, attached by
+   * `attach_validation()`. Never used to reject a calculation that completed.
+   * OPTIONAL for the same reason as `provenance`.
+   */
+  validation?: CalculationValidation;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Provenance (mace-api/provenance.py → result["provenance"])
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * The audit trail attached to a result: which weights, which library versions,
+ * which structure, which commit.
+ *
+ * Every leaf is nullable and every group is optional, deliberately. The
+ * backend never fabricates a field it could not measure — it writes `null` and
+ * appends a line to `notes` saying why (see `build_manifest()` and
+ * `unavailable_manifest()` in mace-api/provenance.py). Groups are optional on
+ * top of that so a manifest written by a different schema version cannot crash
+ * a reader; consumers should use optional chaining throughout.
+ */
+export interface CalculationProvenance {
+  /** Bumped by the backend when the manifest shape changes. Currently 1. */
+  schemaVersion?: number;
+  /** ISO-8601 UTC, e.g. "2026-08-10T02:38:41Z". */
+  timestampUtc?: string | null;
+  model?: {
+    type?: string | null;
+    size?: string | null;
+    checkpoint?: {
+      /** Basename only — server paths are never echoed. */
+      filename?: string | null;
+      sizeBytes?: number | null;
+      /** SHA256 of the file `torch.load()` actually opened. */
+      sha256?: string | null;
+      /** How that file was identified, e.g. "mace-cache-dir". */
+      resolvedBy?: string | null;
+    };
+  };
+  /**
+   * Installed versions of the distributions that decide the numbers, keyed by
+   * distribution name ("mace-torch", "torch", "ase", "numpy"). A package with
+   * no installed metadata reads as null.
+   */
+  packages?: Record<string, string | null>;
+  input?: {
+    filename?: string | null;
+    format?: string | null;
+    nAtoms?: number | null;
+    formula?: string | null;
+    /** SHA256 of the uploaded file's bytes. */
+    fileSha256?: string | null;
+    /** Format-independent SHA256 of the parsed structure. */
+    structureSha256?: string | null;
+    /** Recipe that produced `structureSha256`, e.g. "simpleatom-structure-v1". */
+    structureHashSpec?: string | null;
+  };
+  runtime?: {
+    device?: string | null;
+    precision?: string | null;
+    /** MD RNG seed. Null when the run had no stochastic step. */
+    seed?: number | null;
+    python?: string | null;
+    platform?: string | null;
+    executable?: string | null;
+  };
+  code?: {
+    gitCommit?: string | null;
+    /** Null (not false) when the dirty state could not be determined. */
+    gitDirty?: boolean | null;
+  };
+  /** Pointer to `result.params`; the effective parameters are not duplicated. */
+  paramsRef?: string;
+  /** One line for every field that came back null, saying why. */
+  notes?: string[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Validation (mace-api/calculate.py attach_validation → result["validation"])
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Issues/warnings from the parameter-sanity pass, when it ran. */
+export interface ValidationParamFindings {
+  valid?: boolean;
+  issues?: string[];
+  warnings?: string[];
+}
+
+export interface CalculationValidation {
+  /** "ran" — the validator executed; "unavailable" — it could not be loaded. */
+  status: "ran" | "unavailable";
+  /** Filename of the validator module, e.g. "validate_calculation.py". */
+  source?: string | null;
+  /** Why the findings are advisory. Rendered verbatim; set by the backend. */
+  policy?: string;
+  /** Overall verdict. Only present when `status === "ran"`. */
+  valid?: boolean;
+  /** Checks that failed. Advisory — a completed calculation is never rejected. */
+  issues?: string[];
+  /** Checks that passed but look suspicious. */
+  warnings?: string[];
+  /** Checks that passed, with the measured value. */
+  info?: string[];
+  /** Parameter-sanity findings, or null when the validator has no such pass. */
+  params?: ValidationParamFindings | null;
+  /** Set only when `status === "unavailable"`. */
+  unavailableReason?: string | null;
 }
 
 export interface UploadedStructure {

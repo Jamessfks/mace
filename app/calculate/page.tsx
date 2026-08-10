@@ -40,7 +40,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { CalculationParams, CalculationResult } from "@/types/mace";
+import type {
+  CalculationParams,
+  CalculationResult,
+  CalculationType,
+} from "@/types/mace";
 import { saveResult } from "@/lib/share";
 import {
   addHistory,
@@ -114,6 +118,103 @@ function estimatePhase(elapsed: number, estimated: number): number {
   if (ratio < 0.3) return 1;
   if (ratio < 0.85) return 2;
   return 3;
+}
+
+// ---------------------------------------------------------------------------
+// Effective run parameters
+// ---------------------------------------------------------------------------
+
+/**
+ * Parameters that describe EVERY run, whatever its type.
+ *
+ * `customModelName` is here because a custom checkpoint is part of the model
+ * identity regardless of what was computed with it.
+ */
+const COMMON_PARAM_KEYS = [
+  "calculationType",
+  "modelType",
+  "modelSize",
+  "precision",
+  "device",
+  "dispersion",
+  "customModelName",
+] as const satisfies readonly (keyof CalculationParams)[];
+
+/**
+ * Parameters that only mean something for a given calculation type.
+ *
+ * A single-point has no timestep, no thermostat and no convergence criterion —
+ * the backend never reads those keys on that path, so printing them describes
+ * a run that did not happen. This table is what stops the client form state
+ * (which always holds every field, defaults included) from leaking into the
+ * displayed configuration.
+ *
+ * Kept deliberately in step with what `mace-api/calculate.py` puts into
+ * `effective_params`: `_run_geometry_opt` adds forceThreshold/maxOptSteps and
+ * the convergence outcome; `_run_md` adds temperature/timeStep/friction/
+ * mdSteps/mdEnsemble/seed and comMomentumRemoved. `pressure` is the one MD
+ * input the backend does not echo (it is read straight into the NPT
+ * integrator), so the client copy is the only record of it.
+ */
+const PARAM_KEYS_BY_CALC_TYPE: Record<
+  CalculationType,
+  readonly (keyof CalculationParams)[]
+> = {
+  "single-point": [],
+  "geometry-opt": ["forceThreshold", "maxOptSteps", "converged", "optSteps", "finalFmax"],
+  "molecular-dynamics": [
+    "temperature",
+    "pressure",
+    "timeStep",
+    "friction",
+    "mdSteps",
+    "mdEnsemble",
+    "seed",
+    "comMomentumRemoved",
+  ],
+  // No backend implementation — a phonon request is rejected, never run, so
+  // there is no configuration to describe. See CLAUDE.md.
+  phonon: [],
+};
+
+/**
+ * The configuration to DISPLAY for a finished run.
+ *
+ * The backend echo (`result.params`) is the source of truth: it is a small
+ * allow-list of the parameters that were actually effective, with defaults
+ * resolved, the CUDA→CPU fallback applied, `dispersion` true only if a D3
+ * calculator was really built, and `precision` read back off the loaded model.
+ * It wins on every key it carries.
+ *
+ * Client form state is only consulted for keys the backend does not echo, and
+ * only after filtering to the calculation type that actually ran — so a
+ * single-point can no longer render a temperature, a timestep, a friction
+ * coefficient, an ensemble or an fmax target. When the echo is missing
+ * entirely (an older backend, or a remote API that predates it) the filtered
+ * request is all there is, and it is at least type-consistent.
+ */
+function effectiveRunParams(
+  requested: CalculationParams,
+  echoed: Partial<CalculationParams> | undefined,
+): Partial<CalculationParams> {
+  const ranType = echoed?.calculationType ?? requested.calculationType;
+  const allowed = new Set<keyof CalculationParams>([
+    ...COMMON_PARAM_KEYS,
+    ...(PARAM_KEYS_BY_CALC_TYPE[ranType] ?? []),
+  ]);
+
+  // Pressure is an input to the NPT integrator alone. On NVT/NVE nothing reads
+  // it, so "0 GPa" would state a constraint that was never imposed.
+  const ensemble = echoed?.mdEnsemble ?? requested.mdEnsemble;
+  if (ensemble !== "NPT") allowed.delete("pressure");
+
+  const filtered: Record<string, unknown> = {};
+  for (const key of allowed) {
+    const value = requested[key];
+    if (value !== undefined) filtered[key] = value;
+  }
+
+  return { ...(filtered as Partial<CalculationParams>), ...(echoed ?? {}) };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -342,18 +443,22 @@ function CalculatePageInner() {
       }
 
       const data: CalculationResult = await response.json();
-      const timeTaken = Math.round((Date.now() - startTime) / 1000);
-      // The backend's params win. It echoes the EFFECTIVE configuration —
-      // defaults resolved, CUDA→CPU fallback applied, `dispersion` true only
-      // if a D3 calculator was really built, `precision` read back off the
-      // loaded model, plus the MD seed and geometry-opt convergence. Spreading
-      // the request over the top (as this used to do) threw all of that away
-      // and re-asserted what was asked for. The request is kept underneath for
-      // the few keys the backend does not echo.
+
+      // Browser wall-clock: HTTP both ways, any model download, and the
+      // compute. It is NOT the compute time — `data.timeTaken` is, measured by
+      // the backend around the calculation itself — so it is kept in its own
+      // field and left at its native millisecond resolution. This used to be
+      // rounded to whole seconds and written over `data.timeTaken`, after
+      // which the dashboard rendered it with `.toFixed(1)` and invented a
+      // tenth of a second that no measurement supported.
+      const clientRoundTrip = (Date.now() - startTime) / 1000;
+
+      // The backend's echo describes the run; the form describes the request.
+      // Only the former belongs in a result. See effectiveRunParams().
       setResult({
         ...data,
-        params: { ...params, ...(data.params ?? {}) },
-        timeTaken,
+        params: effectiveRunParams(params, data.params),
+        clientRoundTrip,
       });
 
       // Record a compact summary in local (account-free) history.

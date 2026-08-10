@@ -32,6 +32,8 @@ import {
   Zap,
   ArrowRightLeft,
   AlertTriangle,
+  Check,
+  Copy,
   Download,
   Eye,
   Table2,
@@ -49,7 +51,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CalculationParams, CalculationResult } from "@/types/mace";
+import type {
+  CalculationParams,
+  CalculationProvenance,
+  CalculationResult,
+  CalculationValidation,
+} from "@/types/mace";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -264,9 +271,23 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
               {filename}
             </span>
           )}
+          {/* Compute time and round-trip time are different measurements and
+              are labelled as such. Neither is ever rendered with more digits
+              than the value it came from — see formatDuration(). */}
           {result.timeTaken != null && (
-            <span className="font-mono text-xs text-muted-foreground">
-              {result.timeTaken.toFixed(1)} s
+            <span
+              className="font-mono text-xs text-muted-foreground"
+              title="Backend-measured calculation time, timed around the calculation itself — structure parsing and model load happen before the clock starts."
+            >
+              {formatDuration(result.timeTaken)} compute
+            </span>
+          )}
+          {result.clientRoundTrip != null && (
+            <span
+              className="font-mono text-xs text-muted-foreground"
+              title="Wall-clock time measured in the browser: request, HTTP both ways, any model download, and the compute."
+            >
+              {formatDuration(result.clientRoundTrip)} round trip
             </span>
           )}
           {hasRef && (
@@ -548,6 +569,18 @@ function SummaryTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Advisory validation findings — a peer section, not a footnote.
+          Renders nothing when the backend attached none. */}
+      <ValidationFindings
+        validation={result.validation}
+        backendWarnings={result.warnings}
+      />
+
+      {/* Provenance — Materials Project treats "Property Origins" as a peer of
+          the data, and so does this. Renders nothing on results that predate
+          the manifest (older MACE Links). */}
+      <ProvenanceSection provenance={result.provenance} />
 
       {/* Limitations & uncertainty */}
       <div className="rounded-lg border border-border bg-muted px-4 py-3">
@@ -991,6 +1024,437 @@ function ResultWarnings({ warnings }: { warnings?: string[] }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Validation findings (result.validation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Advisory findings from `test_scripts/validate_calculation.py`, attached to
+ * every result by `attach_validation()` in mace-api/calculate.py.
+ *
+ * Its own block, deliberately, and NOT folded into <ResultWarnings/>. Those
+ * two lists have different authors and different meanings: `result.warnings`
+ * is the calculation reporting on itself ("D3 was requested but not applied",
+ * "the optimization hit its step ceiling"), while this is a separate validator
+ * re-reading the finished numbers and saying whether they look physical. A
+ * reader needs to know which one is speaking. The backend never copies one
+ * into the other, but any finding whose text is byte-identical to a warning
+ * already rendered above is dropped here rather than printed twice.
+ *
+ * Advisory means advisory: findings are never used to reject a calculation
+ * that completed, and the policy line from the backend says so on screen.
+ * Renders nothing on results produced before this field existed.
+ */
+function ValidationFindings({
+  validation,
+  backendWarnings,
+}: {
+  validation?: CalculationValidation;
+  backendWarnings?: string[];
+}) {
+  if (!validation) return null;
+
+  // The validator could not be loaded (it lives outside the Docker build
+  // context, for one). Say that, rather than implying silence means a pass.
+  if (validation.status !== "ran") {
+    return (
+      <Card className="gap-2 border-l-4 border-l-[var(--color-data-gray)] py-4">
+        <CardHeader className="px-4">
+          <CardTitle className="font-serif text-sm font-semibold text-foreground">
+            Validation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4">
+          <p className="font-mono text-xs leading-relaxed text-muted-foreground">
+            The validator did not run
+            {validation.unavailableReason ? ` — ${validation.unavailableReason}` : "."}{" "}
+            The calculation is unaffected; it simply has no second opinion attached.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const alreadyShown = new Set(backendWarnings ?? []);
+  const collect = (items?: string[], prefix = "") =>
+    (items ?? [])
+      .filter((text) => !alreadyShown.has(text))
+      .map((text) => `${prefix}${text}`);
+
+  const issues = [
+    ...collect(validation.issues),
+    ...collect(validation.params?.issues, "Parameters — "),
+  ];
+  const warnings = [
+    ...collect(validation.warnings),
+    ...collect(validation.params?.warnings, "Parameters — "),
+  ];
+  const info = collect(validation.info);
+
+  // `valid` is the validator's own verdict; trust it over a count of the lists,
+  // so a "not valid" result never gets summarised as a clean pass because its
+  // findings happened to be de-duplicated away.
+  const failed = validation.valid === false || issues.length > 0;
+  const clean = !failed && warnings.length === 0;
+  const counts = [
+    issues.length > 0
+      ? `${issues.length} ${issues.length === 1 ? "issue" : "issues"}`
+      : null,
+    warnings.length > 0
+      ? `${warnings.length} ${warnings.length === 1 ? "warning" : "warnings"}`
+      : null,
+  ].filter(Boolean);
+  const summary = clean
+    ? "All automated checks passed."
+    : counts.length > 0
+      ? counts.join(" · ")
+      : "Reported as not valid, with no findings listed.";
+
+  // Static class strings, not interpolated ones: Tailwind generates utilities
+  // by scanning the source text, so a class assembled at runtime never exists.
+  const severity = failed ? "issue" : warnings.length > 0 ? "warning" : "ok";
+  const accent = FINDING_STYLES[severity];
+
+  return (
+    <Card className={`gap-2 border-l-4 py-4 ${accent.border}`}>
+      <CardHeader className="px-4">
+        <CardTitle className={`font-serif text-sm font-semibold ${accent.text}`}>
+          Validation
+        </CardTitle>
+        <p className="font-mono text-xs text-muted-foreground">{summary}</p>
+      </CardHeader>
+      <CardContent className="space-y-2 px-4">
+        {issues.length > 0 && (
+          <FindingList items={issues} severity="issue" heading="Issues" />
+        )}
+        {warnings.length > 0 && (
+          <FindingList items={warnings} severity="warning" heading="Warnings" />
+        )}
+        {info.length > 0 && (
+          <FindingList items={info} severity="info" heading="Checks performed" />
+        )}
+        <p className="border-t border-border pt-2 font-mono text-[10px] leading-relaxed text-muted-foreground">
+          {validation.source ?? "validator"}
+          {validation.policy ? ` · ${validation.policy}` : ""}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Severity → static Tailwind classes. Written out in full so the class strings
+ * exist literally in the source for Tailwind to find.
+ */
+const FINDING_STYLES = {
+  issue: {
+    text: "text-[var(--color-error)]",
+    border: "border-l-[var(--color-error)]",
+  },
+  warning: {
+    text: "text-[var(--color-warning)]",
+    border: "border-l-[var(--color-warning)]",
+  },
+  ok: {
+    text: "text-[var(--color-success)]",
+    border: "border-l-[var(--color-success)]",
+  },
+  info: {
+    text: "text-muted-foreground",
+    border: "border-l-[var(--color-data-gray)]",
+  },
+} as const;
+
+function FindingList({
+  items,
+  severity,
+  heading,
+}: {
+  items: string[];
+  severity: keyof typeof FINDING_STYLES;
+  heading: string;
+}) {
+  return (
+    <div>
+      <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {heading}
+      </h4>
+      <ul className="mt-1 space-y-1 pl-4">
+        {items.map((item, i) => (
+          <li
+            key={i}
+            className={`list-disc font-mono text-xs leading-relaxed ${FINDING_STYLES[severity].text}`}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Provenance (result.provenance)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Characters of a digest shown before the ellipsis. */
+const HASH_PREFIX_CHARS = 16;
+const BYTES_PER_MIB = 1024 * 1024;
+
+/**
+ * A digest: truncated so it can be read, copyable so it stays evidence.
+ *
+ * The full value is on the element's `title` as well as behind the button, so
+ * it is recoverable even where the clipboard API is unavailable (an insecure
+ * origin, a denied permission).
+ */
+function HashValue({
+  value,
+  label,
+  prefixChars = HASH_PREFIX_CHARS,
+}: {
+  value: string;
+  label: string;
+  prefixChars?: number;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable — the full value is still on the title attribute.
+    }
+  };
+
+  const shown =
+    value.length > prefixChars ? `${value.slice(0, prefixChars)}…` : value;
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="break-all" title={value}>
+        {shown}
+      </span>
+      <button
+        type="button"
+        onClick={copy}
+        title={`Copy full ${label}: ${value}`}
+        aria-label={`Copy full ${label}`}
+        className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-[var(--color-accent-strong)]"
+      >
+        {copied ? (
+          <Check className="h-3 w-3 text-[var(--color-success)]" strokeWidth={2} />
+        ) : (
+          <Copy className="h-3 w-3" strokeWidth={1.75} />
+        )}
+      </button>
+    </span>
+  );
+}
+
+/**
+ * The reproducibility manifest, as a peer section of the data.
+ *
+ * Materials Project makes "Property Origins" a section in its own right rather
+ * than a footnote (docs/v2/bars/materials-project.md), and provenance earns
+ * the same treatment here for a specific reason: "MACE-OFF small" is not a
+ * reproducible identifier. It names a download URL whose contents can change,
+ * resolved through a cache with opaque filenames, and says nothing about which
+ * mace-torch/torch/ASE turned those weights into a number. The SHA256 of the
+ * checkpoint that `torch.load()` actually opened is the identifier — so it is
+ * shown, truncated for reading and copyable in full.
+ *
+ * Fields the backend could not measure come back null with a line in `notes`
+ * explaining why; those notes are rendered rather than swallowed. Renders
+ * nothing at all when there is no manifest (older results, older MACE Links).
+ */
+function ProvenanceSection({ provenance }: { provenance?: CalculationProvenance }) {
+  if (!provenance) return null;
+
+  const checkpoint = provenance.model?.checkpoint;
+  const input = provenance.input;
+  const runtime = provenance.runtime;
+  const code = provenance.code;
+  const notes = provenance.notes ?? [];
+  const packageEntries = Object.entries(provenance.packages ?? {});
+  const knownPackages = packageEntries.filter(([, version]) => version);
+
+  const rows: { label: string; value: React.ReactNode }[] = [];
+
+  if (checkpoint?.filename) {
+    const qualifiers = [
+      checkpoint.sizeBytes != null
+        ? `${(checkpoint.sizeBytes / BYTES_PER_MIB).toFixed(1)} MiB`
+        : null,
+      checkpoint.resolvedBy ?? null,
+    ].filter(Boolean);
+    rows.push({
+      label: "Checkpoint file",
+      value: (
+        <>
+          {checkpoint.filename}
+          {qualifiers.length > 0 && (
+            <span className="text-muted-foreground"> ({qualifiers.join(" · ")})</span>
+          )}
+        </>
+      ),
+    });
+  }
+
+  // Always shown: a missing checkpoint hash is the single most important thing
+  // this section can tell a reader, because without it the result cannot be
+  // reproduced exactly no matter what else is recorded.
+  rows.push({
+    label: "Checkpoint SHA-256",
+    value: checkpoint?.sha256 ? (
+      <HashValue value={checkpoint.sha256} label="checkpoint SHA-256" />
+    ) : (
+      <span className="text-[var(--color-warning)]">
+        not identified
+        {checkpoint?.resolvedBy ? ` (${checkpoint.resolvedBy})` : ""}
+      </span>
+    ),
+  });
+
+  if (input?.filename) {
+    rows.push({
+      label: "Input file",
+      value: (
+        <>
+          {input.filename}
+          {input.format && <span className="text-muted-foreground"> ({input.format})</span>}
+        </>
+      ),
+    });
+  }
+  if (input?.formula || input?.nAtoms != null) {
+    rows.push({
+      label: "Structure",
+      value: [input?.formula, input?.nAtoms != null ? `${input.nAtoms} atoms` : null]
+        .filter(Boolean)
+        .join(" · "),
+    });
+  }
+  if (input?.structureSha256) {
+    rows.push({
+      label: "Structure SHA-256",
+      value: (
+        <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+          <HashValue value={input.structureSha256} label="structure SHA-256" />
+          {input.structureHashSpec && (
+            <span className="text-muted-foreground">({input.structureHashSpec})</span>
+          )}
+        </span>
+      ),
+    });
+  }
+  if (input?.fileSha256) {
+    rows.push({
+      label: "Input file SHA-256",
+      value: <HashValue value={input.fileSha256} label="input file SHA-256" />,
+    });
+  }
+
+  if (knownPackages.length > 0) {
+    rows.push({
+      label: "Libraries",
+      value: (
+        <span className="inline-block text-right">
+          {knownPackages.map(([name, version]) => (
+            <span key={name} className="block">
+              {name} {version}
+            </span>
+          ))}
+        </span>
+      ),
+    });
+  }
+
+  // Random seed is reported for every calculation type, not just MD: "this run
+  // drew no random numbers" is a reproducibility statement too.
+  rows.push({
+    label: "Random seed",
+    value:
+      runtime?.seed != null ? (
+        `${runtime.seed}`
+      ) : (
+        <span className="text-muted-foreground">none — no stochastic step</span>
+      ),
+  });
+
+  if (runtime?.python || runtime?.platform) {
+    rows.push({
+      label: "Interpreter",
+      value: [
+        runtime?.python ? `Python ${runtime.python}` : null,
+        runtime?.platform ?? null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    });
+  }
+
+  if (code?.gitCommit) {
+    rows.push({
+      label: "Source commit",
+      value: (
+        <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+          <HashValue value={code.gitCommit} label="git commit" prefixChars={7} />
+          {code.gitDirty === true ? (
+            <span className="text-[var(--color-warning)]">uncommitted changes</span>
+          ) : code.gitDirty === false ? (
+            <span className="text-muted-foreground">clean</span>
+          ) : (
+            <span className="text-muted-foreground">dirty state unknown</span>
+          )}
+        </span>
+      ),
+    });
+  }
+
+  if (provenance.timestampUtc) {
+    // Rendered as the backend wrote it (ISO-8601 UTC): unambiguous, and free of
+    // the server/browser locale mismatch a reformat would introduce.
+    rows.push({ label: "Recorded", value: provenance.timestampUtc });
+  }
+
+  return (
+    <Card className="gap-2 border-l-4 border-l-[var(--color-data-purple)] py-4">
+      <CardHeader className="px-4">
+        <CardTitle className="font-serif text-sm font-semibold text-foreground">
+          Provenance
+        </CardTitle>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          What produced these numbers. A model name is not a reproducible
+          identifier — the hash of the checkpoint that was actually loaded is.
+        </p>
+      </CardHeader>
+      <CardContent className="px-4">
+        <PropertyRows rows={rows} />
+        {notes.length > 0 && (
+          <div className="mt-3 border-t border-border pt-2">
+            <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Manifest notes
+            </h4>
+            <ul className="mt-1 space-y-1 pl-4">
+              {notes.map((note, i) => (
+                <li
+                  key={i}
+                  className="list-disc font-mono text-[11px] leading-relaxed text-muted-foreground"
+                >
+                  {note}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -1175,6 +1639,31 @@ function formatParams(params: Partial<CalculationParams>): string {
   if (params.maxOptSteps != null) parts.push(`max ${params.maxOptSteps} steps`);
   if (params.dispersion) parts.push("D3 dispersion");
   return parts.length ? parts.join(" · ") : "Default parameters";
+}
+
+/**
+ * A duration in seconds, rendered at a precision the source actually has.
+ *
+ * The backend reports `timeTaken` as `round(t, 3)` seconds and the browser
+ * measures `clientRoundTrip` to the millisecond, so two decimals is the most
+ * either can support — and an integer input is printed as an integer, because
+ * a value that arrived rounded to whole seconds (which is what older shared
+ * results carry) must not grow a decimal on the way to the screen. Rendering
+ * FEWER digits than the source is always fine; more is fabrication.
+ */
+function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds)) return "N/A";
+  const magnitude = Math.abs(seconds);
+  // Digits the value itself actually carries. A whole-second value (what older
+  // shared results hold, from when the client's rounded round-trip was written
+  // into this field) therefore prints as a whole second.
+  const sourceDecimals = (String(seconds).split(".")[1] ?? "").length;
+  const readableDecimals =
+    magnitude < 1 ? 3 : magnitude < 10 ? 2 : magnitude < 100 ? 1 : 0;
+  const text = seconds.toFixed(Math.min(sourceDecimals, readableDecimals));
+  // A small non-zero duration must not be reported as a flat zero.
+  if (seconds > 0 && Number(text) === 0) return "< 0.001 s";
+  return `${text} s`;
 }
 
 /** Mean of a non-empty numeric array. */
