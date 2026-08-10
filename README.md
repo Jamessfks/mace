@@ -14,7 +14,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-2.0.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"/></a>
   <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
@@ -26,9 +26,61 @@
 
 Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
-[Documentation](https://mace-lake.vercel.app/docs) · [What's New in v2.0](#whats-new-in-v20) · [Scientific Integrity](#scientific-integrity) · [See It in Action](#see-it-in-action) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
+[Documentation](https://mace-lake.vercel.app/docs) · [What's New in v2.1](#whats-new-in-v21) · [Scientific Integrity](#scientific-integrity) · [See It in Action](#see-it-in-action) · [Key Features](#key-features) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Deploy](#deploy-online)
 
 </div>
+
+---
+
+## What's New in v2.1
+
+**Every result now carries a reproducibility manifest.**
+
+- Each calculation returns the **SHA-256 of the model checkpoint that was actually loaded**,
+  the versions of `mace-torch`, `torch`, `ase` and `numpy`, a hash of the input structure, the
+  device and precision, the MD seed, and the source commit with a dirty flag. `"MACE-OFF
+  small"` is not a reproducible identifier; a file digest is.
+- The checkpoint is identified by observing the load itself rather than re-deriving the cache
+  path, so it cannot drift out of step with upstream. It records *how* it identified the file,
+  and reports `null` with a reason rather than guessing.
+- Shown in the results panel with copyable hashes, and it travels with a shared link.
+- An advisory validation pass runs on every calculation and reports alongside the result. It
+  never blocks: its thresholds are plausibility heuristics, and a single-point on a strained
+  geometry is a legitimate request. The checks that *must* block already run before any model
+  loads.
+
+**Fixes to things the interface was stating incorrectly.**
+
+- **The Run Configuration described a run that never happened.** Client form state was merged
+  underneath the backend's record of what was effective, so a static single-point displayed
+  `300 K · Δt 1 fs · friction 0.005 /fs · 100 MD steps · NVT` — eight molecular-dynamics and
+  optimisation parameters for a calculation that had none. It propagated to PDF exports, CSV
+  exports and shared links.
+- **Reported timing was round-trip latency with a fabricated decimal.** A run the backend
+  timed at 0.132 s displayed "4.0 s" — wall clock including model download, rounded to a whole
+  second, then rendered to one decimal place. Compute time and round-trip are now separate and
+  separately labelled, and precision never exceeds the source.
+- `/calculate` overflowed its viewport on a phone: a grid declared columns only above the
+  `lg` breakpoint, so below it both panes fell into a single content-sized track and every
+  card inherited a width wider than the screen.
+
+**3D viewer.**
+
+- **Click atoms to measure.** Two atoms give a bond length in Å, three an angle in degrees
+  with the vertex named, four a signed dihedral. Selection order sets the vertex and the sign.
+  Two atoms report `Bond length` only when a bond was actually perceived — otherwise
+  `Distance`, with the distinction stated.
+- Ambient occlusion had never once rendered: the WebGL2 check probed the visible canvas, which
+  holds a blit target rather than a WebGL context whenever the viewer renders offscreen.
+- Structures were framed too small, and *bulkier* representations came out smaller than
+  slimmer ones — the padding term added the largest radius of any element present to the
+  outermost atom, so the error grew with the radii.
+- New settings menu: rotate, hide C–H bonds, clear selection, and PNG export (which
+  composites the now-transparent canvas onto an opaque background).
+- The canvas is transparent, so the molecule sits on the page instead of in a white box.
+
+**Housekeeping.** Removed a dead 417-line results component that still carried mislabelled
+energy. Corrected every remaining reference to a validator path that never existed.
 
 ---
 
