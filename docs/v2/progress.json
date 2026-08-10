@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
-  "branch": "v2.0",
-  "updated": "2026-08-09T14:52:50.954Z",
+  "branch": "v2.1",
+  "updated": "2026-08-10T00:43:12.001Z",
   "bars": [
     {
       "name": "Rowan",
@@ -32,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 3,
       "verdict": "Round 2: LOST to Rowan",
-      "gap": "Ambient occlusion has never actually run — the WebGL2 guard tests the visible canvas, which holds a bitmaprenderer context because upscale:true renders offscreen. Also: our canvas is an opaque white box on a warm page while Rowan renders with alpha:true straight onto theirs."
+      "gap": "Round 3 shipped: ambient occlusion enabled for the first time (the WebGL2 guard was probing the wrong canvas), canvas made transparent, framing re-solved on resize. Verified _webglversion=2 while the old check returned false. AO output still never seen rendered."
     },
     {
       "id": "viewer-interact",
@@ -74,10 +74,10 @@
         "app/page.tsx",
         "components/intro-section.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 2,
       "verdict": "Round 1: LOST to Rowan",
-      "gap": "A hard <br/> in the h1 fights the wrap and renders four staircase lines instead of two, pushing the only proof below the fold. Body copy and the primary CTA are 14px against the bar 16px."
+      "gap": "Round 2 shipped: hard <br/> removed, headline now three balanced lines; body and CTA at the bar 16px."
     },
     {
       "id": "config",
@@ -158,10 +158,10 @@
         "components/site-header.tsx",
         "components/site-footer.tsx"
       ],
-      "status": "building",
+      "status": "judging",
       "rounds": 2,
       "verdict": "Round 1: LOST to Rowan",
-      "gap": "Per-route chrome widths put the wordmark at three different x positions; clicking our own CTA slides the logo 120px. Rowan uses one width everywhere and accepts the misalignment. Reversing my earlier decision."
+      "gap": "Round 2 shipped: one chrome width site-wide, wordmark pinned at x=24 on every route. Footer reverted to a server component."
     },
     {
       "id": "benchmark",
@@ -223,7 +223,8 @@
     "ACEsuit/mace audit: the float64-for-Hessians rule in CLAUDE.md is not sourced from upstream and targets phonon, which SimpleAtom rejects, so it guards nothing. Upstream says use float64 for geometry optimisation, a feature SimpleAtom has.",
     "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails.",
     "CORRECTION: the claim that our shading beats the bar does not replicate. AO was never enabled (renderer._AOEnabled === false) and carbon tonality measures 237 distinct luminance levels for both viewers, not 117 vs 34.",
-    "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes."
+    "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes.",
+    "v2.1 continues the loop from main. Viewer, landing and nav all have their round-N fixes shipped and are awaiting re-judgment."
   ],
   "defectsFixed": [
     {
