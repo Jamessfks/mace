@@ -303,7 +303,21 @@ export function IntroSection() {
                 , the open-source machine-learning potential developed at
                 the University of Cambridge.
               </p>
-              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+              {/* Explicit 2x2 grid, not `flex flex-wrap`: at the 456px column
+                * width, flex-wrap fit only 3 of the 4 items on row one (76px
+                * left over — not enough for the 213px-wide fourth claim) and
+                * dropped "Runs entirely in your browser" alone onto row two,
+                * reading as an accidental orphan rather than a deliberate
+                * break. `grid-cols-[auto_auto]` (content-sized columns, not
+                * 1fr) sizes each column to its widest item — col 1 to
+                * "No account required", col 2 to "Runs entirely in your
+                * browser" — so both rows end up with exactly two items and
+                * the break reads as intentional. No claim's wording changed:
+                * shortening only the fourth item couldn't have closed a
+                * 213px item into 76px of free space, and shortening enough
+                * *other* items to compensate risked diluting claims that must
+                * stay independently true and verifiable as written. */}
+              <ul className="mt-3 grid grid-cols-[auto_auto] gap-x-4 gap-y-1.5">
                 {PROOF_CLAIMS.map((claim) => (
                   <li
                     key={claim}
