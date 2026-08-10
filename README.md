@@ -34,12 +34,6 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ## What's New in v2.0
 
-> v2.0 was built by measuring SimpleAtom against three real references rather than against
-> our own judgement: [Rowan](https://rowansci.com) for interface quality,
-> [the Materials Project](https://next-gen.materialsproject.org) for data presentation, and
-> [ACEsuit/mace](https://github.com/ACEsuit/mace) — the reference implementation — for
-> scientific correctness. The last one found bugs the first two never could.
-
 **Calculations now fail loudly instead of quietly returning the wrong thing.**
 
 - `calculationType` and `modelType` are validated against explicit allow-lists in the Python
