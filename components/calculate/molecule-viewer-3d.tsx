@@ -27,16 +27,19 @@
  *      (see watchPixelRatio) and re-resize when it changes with no relayout
  *      (browser zoom, dragging the window to a display of different density).
  *   2. Framing — the structure is measured in screen space and fitted to
- *      TARGET_FILL of the canvas short axis. 3Dmol's own zoomTo() leaves a
- *      small molecule at ~28% and cannot be corrected with a constant (see the
- *      framing block below).
+ *      TARGET_FILL of the canvas. 3Dmol's own zoomTo() leaves a small molecule
+ *      at ~28% and cannot be corrected with a constant (see the framing block
+ *      below). The fit is re-solved on every size change, including entering
+ *      and leaving fullscreen.
  *   3. Shading — renderer-level dark contact outline + screen-space ambient
  *      occlusion, so overlapping atoms separate and contacts darken.
  *   4. Colours — Jmol CPK (C grey, H off-white, N blue, O red), with a
  *      luminance ceiling so nothing renders at the background colour. 3Dmol's
  *      built-in default is the washed-out RasMol table (C #C8C8C8, N #8F8FFF).
- *   5. Background — the canvas uses the theme's elevated surface (pure white
- *      in the light theme) rather than the warm off-white page tint.
+ *   5. Background — the canvas is TRANSPARENT (backgroundAlpha 0), so the
+ *      molecule sits on whatever surface hosts the component instead of on an
+ *      opaque rectangle of its own. This component therefore draws no card and
+ *      no well: its callers own the surface.
  *
  * DEPENDENCIES:
  *   - 3dmol (npm)         — dynamically imported for 3Dmol.js mode
@@ -234,9 +237,22 @@ function readCanvasBackground(host: HTMLElement): string {
  */
 function rendersWithWebGL2(viewer: GLViewer): boolean {
   try {
-    const canvas = viewer.getRenderer()?.getCanvas() as
-      | HTMLCanvasElement
-      | undefined;
+    const renderer = viewer.getRenderer();
+    if (!renderer) return false;
+
+    // Ask the renderer what it actually created. Do NOT probe the visible
+    // canvas: `upscale: true` makes 3Dmol render into an OffscreenCanvas and
+    // blit the result, so the visible canvas holds a `bitmaprenderer` context
+    // and getContext("webgl2") returns null even on a WebGL2 machine. That
+    // false negative disabled ambient occlusion on every single load, which
+    // in turn made the AO radius constant dead code.
+    const version = (renderer as unknown as { _webglversion?: number })
+      ._webglversion;
+    if (typeof version === "number") return version === 2;
+
+    // Older 3Dmol builds do not expose _webglversion. Fall back to the visible
+    // canvas, which is only meaningful when we are not rendering offscreen.
+    const canvas = renderer.getCanvas?.() as HTMLCanvasElement | undefined;
     return !!canvas?.getContext?.("webgl2");
   } catch {
     return false;
@@ -566,6 +582,16 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
   const [representation, setRepresentation] = useState<Representation>("ball-and-stick");
   const [showForces, setShowForces] = useState(true);
+  // The viewer-init effect depends only on [result, engine], so its resize()
+  // closure would capture the representation from first render. These refs let
+  // resize() re-solve the fit against the CURRENT representation without
+  // rebuilding the viewer every time the user switches style.
+  const representationRef = useRef(representation);
+  const showForcesRef = useRef(showForces);
+  useEffect(() => {
+    representationRef.current = representation;
+    showForcesRef.current = showForces;
+  }, [representation, showForces]);
   const [spin, setSpin] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -618,6 +644,16 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
       const v = viewerInstance.current;
       if (!v) return;
       v.resize();
+      // Re-solve the fit. Without this a 1280 -> 375 change takes the fill from
+      // 0.705 to 0.998 with the molecule clipped at both edges, because the fit
+      // was solved for the old aspect ratio and zoom is not recomputed by
+      // resize(). Measured; Reset view recovered it, which is what identified
+      // this as a missing frameView() rather than a solver bug.
+      frameView(
+        v,
+        representationRef.current,
+        forceArrowTips(result, showForcesRef.current)
+      );
       v.render();
     };
 
@@ -632,7 +668,14 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
 
       const atomCount = result.symbols.length;
       const viewer = $3Dmol.createViewer(host, {
+        // Transparent canvas. The bar renders its molecule straight onto the
+        // page; ours was an opaque rectangle inside a card on a warm canvas —
+        // three background values and a hard-edged box, which read as a pasted
+        // screenshot rather than an object. backgroundColor is still supplied
+        // because 3Dmol reads it for PNG export, where transparency is usually
+        // not what a user wants in a figure.
         backgroundColor: readCanvasBackground(host),
+        backgroundAlpha: 0,
         // Retina. antialias defaults to true inside GLViewer today and upscale
         // defaults to antialias, but both are stated here so the >= 2x backing
         // store is a property of this component, not of a library default.

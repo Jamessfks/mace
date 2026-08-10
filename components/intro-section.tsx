@@ -8,21 +8,36 @@
  * a command line, or an HPC allocation. Sections:
  *   1. Hero            — split layout: positioning + CTAs on the left, a
  *                         real, live, interactive MACE structure on the
- *                         right (lazy-loaded so it never blocks first paint)
+ *                         right (lazy-loaded so it never blocks first paint),
+ *                         with a proof strip of checkable facts beneath
  *   2. Workflow        — the four-step path from structure to insight
  *   3. Capabilities    — what you can actually compute
  *   4. Foundation models — MACE-MP-0 vs MACE-OFF, described scientifically
  *   5. Accessibility   — why a browser-native interface matters
  *   6. Call to action  — enter the calculator
  *
- * Density/rhythm: container width, section padding, and corner radii are
- * tightened to a measured reference (docs/v2/bars/rowan.md) — 1024px
- * (max-w-5xl) content width, 24px gutters, an 8px card radius, and a 48px
- * / leading-none h1. Typeface, palette, and copy remain SimpleAtom's own.
+ * Density/rhythm follows a measured reference (docs/v2/bars/rowan.md):
+ * 1024px (max-w-5xl) content width, 24px gutters, 96px section rhythm, a
+ * 48px / leading-none h1, and 16px/24px body and button text.
+ *
+ * Radius scale — one dominant value with three deliberate exceptions,
+ * mirroring the reference's 6/4/8/pill distribution rather than our
+ * previous flat spread of six competing values:
+ *   6px   dominant — cards, tiles, icon chips, buttons
+ *   8px   the 3D viewer frame only (and its loading placeholder)
+ *   4px   small controls inside the viewer
+ *   pill  the eyebrow badge, the Support pill, list bullets
+ * Note: the 4px instances and the viewer frame live in
+ * components/calculate/molecule-viewer-3d.tsx, which currently renders that
+ * frame at `rounded-lg` (12px) — that file is owned elsewhere and still
+ * needs to come down to 8px for this scale to actually close.
+ *
+ * Typeface, palette, and copy remain SimpleAtom's own.
  */
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CalculationResult } from "@/types/mace";
 import {
@@ -83,6 +98,19 @@ const LazyMoleculeViewer3D = dynamic(
     ),
   }
 );
+
+/* ── Primary/secondary call-to-action sizing ──────────────────────────────
+ * The base `Button` (components/ui/button.tsx, shared — not edited here)
+ * ships a 14px label on a 10px radius. Both are one step off the measured
+ * reference, which sets buttons at 16px/24px on a 6px radius, so each
+ * landing CTA overrides them locally.
+ *
+ * `has-[>svg]:px-7` is not decoration: the shared `lg` size drops padding
+ * to 16px when the button contains an icon, so "Launch the calculator"
+ * (which has an arrow) was rendering visibly narrower-padded than the
+ * plain-text button beside it. This pins both to the same 28px.
+ */
+const CTA_CLASS = "h-11 rounded-[6px] px-7 text-base has-[>svg]:px-7";
 
 /* ── Four-step workflow (structure → method → run → results) ── */
 const WORKFLOW = [
@@ -152,12 +180,38 @@ const CAPABILITIES = [
   },
 ];
 
-/* ── Honest, defensible stats (no invented usage numbers) ── */
-const STATS = [
-  { value: "89", label: "Elements (MACE-MP-0)" },
-  { value: "DFT-level", label: "Accuracy at ML speed" },
-  { value: "Zero", label: "Installation required" },
-  { value: "No account", label: "Needed to run a calculation" },
+/* ── Proof strip ──────────────────────────────────────────────────────────
+ * Every figure here is checkable against this repository, which is the
+ * point — we have no usage numbers, user counts, or calculation counts,
+ * and inventing them is not an option. So the strip carries capability
+ * facts instead:
+ *
+ *   89   — elements covered by MACE-MP-0 (CLAUDE.md, model card)
+ *   3    — SUPPORTED_CALCULATION_TYPES in mace-api/calculate.py
+ *   4    — structure formats in lib/parse-structure.ts (XYZ, CIF,
+ *          POSCAR/CONTCAR, PDB); SMILES and the sketcher are additional
+ *          inputs, not file formats, so they are deliberately not counted
+ *   MIT  — LICENSE at the repository root
+ *
+ * None of it restates the "free / no account / no install" line above,
+ * which is what made the previous four tiles half echo.
+ *
+ * `whitespace-nowrap` on the model name is load-bearing: "MACE-MP-0"
+ * offers the browser two hyphen break opportunities, and at 375px it was
+ * splitting as "MACE-MP-" / "0".
+ */
+const PROOF: { value: string; label: ReactNode }[] = [
+  {
+    value: "89",
+    label: (
+      <>
+        Elements in <span className="whitespace-nowrap">MACE-MP-0</span>
+      </>
+    ),
+  },
+  { value: "3", label: "Calculation types" },
+  { value: "4", label: "Structure file formats" },
+  { value: "MIT", label: "Open-source license" },
 ];
 
 /* ── Foundation model cards ── */
@@ -198,9 +252,12 @@ export function IntroSection() {
                 Machine-learning interatomic potentials
               </span>
 
-              <h1 className="mt-6 font-serif text-4xl font-semibold leading-none tracking-tight text-[var(--color-text-primary)] sm:text-5xl">
-                Quantum-accurate chemistry,
-                <br /> right in your browser.
+              {/* No hard <br/>: at the 456px hero column an explicit break
+                * turned an intended two-line headline into four, ending on
+                * a lone word. `text-balance` lets the browser even out the
+                * rag instead, and reclaims a full 48px line of vertical. */}
+              <h1 className="mt-6 text-balance font-serif text-4xl font-semibold leading-none tracking-tight text-[var(--color-text-primary)] sm:text-5xl">
+                Quantum-accurate chemistry, right in your browser.
               </h1>
 
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
@@ -212,20 +269,27 @@ export function IntroSection() {
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="px-7">
+                <Button asChild size="lg" className={CTA_CLASS}>
                   <Link href="/calculate">
                     Launch the calculator
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="px-7">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className={CTA_CLASS}
+                >
                   <Link href="/calculate?demo=true">See a guided demo</Link>
                 </Button>
               </div>
 
+              {/* Attribution only. "Free / no account / no install" is the
+                * lead paragraph's job and the proof strip's job; saying it
+                * a third time here was the redundancy, not the substance. */}
               <p className="mt-5 text-sm text-[var(--color-text-muted)]">
-                Free and open source · No account required · Powered by MACE
-                from the University of Cambridge
+                Built on MACE, developed at the University of Cambridge.
               </p>
             </div>
 
@@ -238,18 +302,22 @@ export function IntroSection() {
             </div>
           </div>
 
-          {/* Stats strip */}
-          <div className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-[8px] border border-[var(--color-border-subtle)] bg-[var(--color-border-subtle)] sm:grid-cols-4">
-            {STATS.map((stat) => (
+          {/* Proof strip — kept tight to the hero (mt-12, not mt-16) so it
+            * lands inside the first screen rather than seven pixels below
+            * it. `justify-center` centres each tile's contents, so a label
+            * that wraps to two lines no longer leaves a visible void under
+            * its one-line neighbour at 375px. */}
+          <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border border-[var(--color-border-subtle)] bg-[var(--color-border-subtle)] sm:grid-cols-4">
+            {PROOF.map((item) => (
               <div
-                key={stat.label}
-                className="flex flex-col items-center bg-[var(--color-bg-elevated)] px-4 py-6 text-center"
+                key={item.value}
+                className="flex flex-col items-center justify-center bg-[var(--color-bg-elevated)] px-4 py-6 text-center"
               >
                 <span className="font-serif text-2xl font-semibold text-[var(--color-accent-strong)]">
-                  {stat.value}
+                  {item.value}
                 </span>
-                <span className="mt-1 text-xs leading-tight text-[var(--color-text-muted)]">
-                  {stat.label}
+                <span className="mt-1 text-sm leading-tight text-[var(--color-text-muted)]">
+                  {item.label}
                 </span>
               </div>
             ))}
@@ -279,10 +347,10 @@ export function IntroSection() {
                 <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-[6px] bg-[var(--color-accent-soft)] text-[var(--color-accent-primary)]">
                   <step.icon className="h-5 w-5" strokeWidth={1.75} />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">
+                <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                <p className="mt-2 text-base leading-relaxed text-[var(--color-text-secondary)]">
                   {step.description}
                 </p>
               </li>
@@ -308,15 +376,15 @@ export function IntroSection() {
             {CAPABILITIES.map((cap) => (
               <div
                 key={cap.title}
-                className="result-card rounded-[8px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-6"
+                className="result-card rounded-[6px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-6"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-[6px] bg-[var(--color-accent-soft)] text-[var(--color-accent-primary)]">
                   <cap.icon className="h-5 w-5" strokeWidth={1.75} />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">
+                <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
                   {cap.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                <p className="mt-2 text-base leading-relaxed text-[var(--color-text-secondary)]">
                   {cap.description}
                 </p>
               </div>
@@ -343,24 +411,24 @@ export function IntroSection() {
             {MODELS.map((model) => (
               <div
                 key={model.name}
-                className="rounded-[8px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-8"
+                className="rounded-[6px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-8"
               >
                 <div className="flex items-center gap-2">
                   <h3 className="font-mono text-lg font-semibold text-[var(--color-text-primary)]">
                     {model.name}
                   </h3>
                 </div>
-                <p className="mt-1 text-sm font-medium text-[var(--color-accent-strong)]">
+                <p className="mt-1 text-base font-medium text-[var(--color-accent-strong)]">
                   {model.domain}
                 </p>
-                <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                <p className="mt-3 text-base text-[var(--color-text-secondary)]">
                   {model.theory}
                 </p>
                 <ul className="mt-5 space-y-2.5">
                   {model.points.map((point) => (
                     <li
                       key={point}
-                      className="flex gap-2.5 text-sm leading-relaxed text-[var(--color-text-secondary)]"
+                      className="flex gap-2.5 text-base leading-relaxed text-[var(--color-text-secondary)]"
                     >
                       <span
                         className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-primary)]"
@@ -402,13 +470,13 @@ export function IntroSection() {
             no setup — results in seconds.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="px-7">
+            <Button asChild size="lg" className={CTA_CLASS}>
               <Link href="/calculate">
                 Launch the calculator
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="px-7">
+            <Button asChild size="lg" variant="outline" className={CTA_CLASS}>
               <Link href="/docs">Read the documentation</Link>
             </Button>
           </div>
