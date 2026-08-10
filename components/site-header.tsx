@@ -9,7 +9,7 @@
  * the "one obvious next action" hierarchy from docs/v2/bars/rowan.md
  * without copying its wording or type), collapses to a disclosure menu on
  * small screens, and sizes its content column per-route via
- * `contentWidthClass` so it lines up with the page beneath it.
+ * `CHROME_WIDTH_CLASS`, one width for every route.
  */
 
 import Link from "next/link";
@@ -28,32 +28,28 @@ const NAV = [
 
 const GITHUB_URL = "https://github.com/Jamessfks/mace";
 
-/**
- * Content-column width per route. Mirrors the max-w each page's own <main>
- * actually renders at, so the sticky header/footer edges line up with the
- * page beneath instead of floating outside it (the landing page matches
- * Rowan's measured 1024px column — see docs/v2/bars/rowan.md). The
- * calculator, benchmark, and shared-result ("MACE Link") views are
- * data-dense — tables, plots, the 3D viewer — and are deliberately wider
- * than the marketing/reading pages; that split is intentional, not
- * accidental drift. Exported so SiteFooter can stay in sync with SiteHeader.
- */
+/** Active-route test: exact match, or any nested path under it. */
 function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
-export function contentWidthClass(pathname: string): string {
-  if (isUnder(pathname, "/calculate") || isUnder(pathname, "/r")) {
-    return "max-w-screen-2xl"; // matches app/calculate, app/r/[id]
-  }
-  if (isUnder(pathname, "/benchmark")) {
-    return "max-w-7xl"; // matches app/benchmark
-  }
-  if (isUnder(pathname, "/support") || isUnder(pathname, "/docs")) {
-    return "max-w-6xl"; // matches app/support, app/docs/*
-  }
-  return "max-w-5xl"; // landing ("/"), /v2, and any future route
-}
+/**
+ * ONE width for the whole site, deliberately.
+ *
+ * This previously derived the chrome width per route so the header lined up
+ * with each page's own content column. That was measured and rejected: it put
+ * the wordmark at three different x positions (144.5 on `/`, 81 on `/docs`,
+ * 24 on `/calculate`), so clicking our own primary CTA slid the logo 120px
+ * left in the same frame the content changed.
+ *
+ * A jump in persistent chrome is noticed. A static misalignment between the
+ * header and the column beneath it is not. The bar (rowansci.com) makes the
+ * same trade — one `max-w-7xl` header on every route, accepting that it does
+ * not align with their narrower hero column.
+ *
+ * Exported so SiteFooter uses the identical value and the two cannot drift.
+ */
+export const CHROME_WIDTH_CLASS = "max-w-7xl";
 
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -82,7 +78,7 @@ export function SiteHeader() {
 
   const isActive = (href: string) => isUnder(pathname, href);
 
-  const widthClass = contentWidthClass(pathname);
+  const widthClass = CHROME_WIDTH_CLASS;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]/85 backdrop-blur-md">
