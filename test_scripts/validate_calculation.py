@@ -16,8 +16,23 @@ import math
 import warnings
 import logging
 
-warnings.filterwarnings("ignore")
-logging.disable(logging.CRITICAL)
+# NOTE: this module is imported by mace-api/calculate.py, which attaches
+# validate_result() to every calculation. Silencing warnings or disabling
+# logging at import time would therefore mutate global state inside the
+# calculation process — and specifically would re-break the fix that captures
+# MACE's "Default dtype ... does not match model dtype, converting models to
+# ..." warning into result["warnings"] (calculate.py::capture_model_warnings).
+# That warning is the only signal a checkpoint was silently downcast.
+#
+# The suppression is genuinely wanted when this file is run as a CLI, where
+# stdout must be pure JSON. So it happens in _quiet_cli_output(), called from
+# the __main__ block only.
+
+
+def _quiet_cli_output() -> None:
+    """Silence library noise so CLI stdout stays parseable JSON. CLI only."""
+    warnings.filterwarnings("ignore")
+    logging.disable(logging.CRITICAL)
 
 
 # Physical reasonableness bounds
@@ -353,6 +368,19 @@ def run_verification_tests():
             "forces": f_si.tolist(),
             "positions": si.get_positions().tolist(),
             "symbols": si.get_chemical_symbols(),
+            # `params` is what selects the model-aware energy bounds below.
+            # Omitting it made this self-test report "within reasonable range
+            # for unknown" — the tell that the MACE-OFF branch of the bounds
+            # was never exercised. calculate.py::_build_result() always emits
+            # params now; this fixture mirrors that.
+            "params": {
+                "modelType": "MACE-MP-0",
+                "modelSize": "small",
+                "calculationType": "single-point",
+                "precision": "float32",
+                "device": "cpu",
+                "dispersion": False,
+            },
         }
         validation = validate_result(sample_result)
         results.append({
@@ -379,6 +407,7 @@ def run_verification_tests():
 
 
 if __name__ == "__main__":
+    _quiet_cli_output()
     if len(sys.argv) > 1:
         if sys.argv[1] == "--test":
             output = run_verification_tests()

@@ -11,6 +11,8 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import provenance
+
 # Calculation types that have a real implementation below. This is the
 # security boundary: the API can be POSTed to directly, so the frontend check
 # is not sufficient. Anything outside this set MUST fail loudly — silently
@@ -405,7 +407,7 @@ def extract_reference_data(atoms) -> dict:
 
 
 def _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                  effective_params, trajectory=None, warnings=None):
+                  effective_params, trajectory=None, warnings=None, manifest=None):
     """
     Assemble the standard JSON result dict.
 
@@ -420,6 +422,11 @@ def _build_result(atoms, energy, forces, msg, calc_start, ref_data,
     `warnings` are appended to the message as well as exposed as
     result["warnings"], because the message is the one field that survives
     everywhere a result travels (UI, PDF export, MACE Link).
+
+    `manifest` is the reproducibility record from provenance.py — library
+    versions and the SHA256 of the checkpoint file that was actually loaded.
+    It is attached as result["provenance"], a NEW key: nothing existing is
+    renamed or restructured, so every reader of this dict keeps working.
     """
     symbols = [a.symbol for a in atoms]
     lattice = atoms.get_cell().tolist() if atoms.pbc.any() else None
@@ -443,7 +450,141 @@ def _build_result(atoms, energy, forces, msg, calc_start, ref_data,
         result["trajectory"] = trajectory
     if warnings:
         result["warnings"] = list(warnings)
+    if manifest is not None:
+        result["provenance"] = manifest
     result.update(ref_data)
+    return result
+
+
+_VALIDATION_POLICY = (
+    "advisory — findings are reported alongside the result and are never used "
+    "to reject a calculation that completed"
+)
+
+# Where validate_calculation.py may live, relative to this file. The validator
+# is intentionally NOT duplicated into mace-api/ — one copy, found at runtime.
+_VALIDATOR_CANDIDATES = (
+    Path(__file__).resolve().parent.parent / "test_scripts" / "validate_calculation.py",
+    Path(__file__).resolve().parent / "validate_calculation.py",
+)
+
+# Repo-relative names for the same paths. The "not found" reason is attached to
+# a result and travels into MACE Links and PDF exports, so it must not publish
+# the server's directory layout — same rule the manifest follows.
+_VALIDATOR_SEARCH_DISPLAY = tuple(
+    str(candidate).replace(str(Path(__file__).resolve().parent.parent) + "/", "")
+    for candidate in _VALIDATOR_CANDIDATES
+)
+
+# (module | None, reason | None), resolved once per process.
+_VALIDATOR_CACHE: tuple[object | None, str | None] | None = None
+
+
+def _load_validator():
+    """
+    Load test_scripts/validate_calculation.py as a module, or explain why not.
+
+    Loaded by path rather than by import name because it lives outside this
+    directory and outside any package. It is also genuinely absent in the
+    Docker image, whose build context is mace-api/ alone — that case has to
+    read as "validation unavailable, here is why", never as a crash in a
+    calculation that already succeeded.
+    """
+    global _VALIDATOR_CACHE
+    if _VALIDATOR_CACHE is not None:
+        return _VALIDATOR_CACHE
+
+    import importlib.util
+
+    for candidate in _VALIDATOR_CANDIDATES:
+        if not candidate.is_file():
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "simpleatom_validate_calculation", candidate
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            if not hasattr(module, "validate_result"):
+                _VALIDATOR_CACHE = (
+                    None,
+                    f"{candidate.name} has no validate_result() function",
+                )
+                return _VALIDATOR_CACHE
+            _VALIDATOR_CACHE = (module, None)
+            return _VALIDATOR_CACHE
+        except Exception as exc:  # noqa: BLE001
+            _VALIDATOR_CACHE = (None, f"{type(exc).__name__}: {exc}")
+            return _VALIDATOR_CACHE
+
+    _VALIDATOR_CACHE = (
+        None,
+        "validate_calculation.py not found (looked in: "
+        + ", ".join(_VALIDATOR_SEARCH_DISPLAY)
+        + "). The calculation is unaffected; it simply has no second opinion "
+        "attached.",
+    )
+    return _VALIDATOR_CACHE
+
+
+def attach_validation(result: dict) -> dict:
+    """
+    Run the scientific validator over a finished result and record its findings.
+
+    ADVISORY, NEVER BLOCKING — deliberately. Two reasons.
+
+    First, the validator's checks are plausibility heuristics with soft
+    thresholds (max force > 50 eV/Å, net force > 0.1 eV/Å, minimum interatomic
+    distance < 0.4 Å). Every one of them has a legitimate counterexample: a
+    single-point on a deliberately strained or clashing geometry is a normal
+    thing to ask MACE for, and it is exactly the case where the user most needs
+    the number. Throwing away a completed calculation because a heuristic
+    disliked it would be a worse failure than reporting it with a warning.
+
+    Second, the checks that MUST block already do, earlier and elsewhere:
+    validate_calculation_type(), validate_model_type(), resolve_precision() and
+    resolve_seed() reject bad requests before any model is loaded. Those are
+    the security boundary. This runs after the physics and is a second opinion
+    on it, which is a different job.
+
+    So: findings are attached to result["validation"], surfaced with the
+    result, and never used to reject it. The one thing this must not do is
+    fail — an exception inside the validator becomes status "unavailable" with
+    the reason, leaving the calculation intact.
+    """
+    module, reason = _load_validator()
+    if module is None:
+        result["validation"] = {
+            "status": "unavailable",
+            "source": None,
+            "policy": _VALIDATION_POLICY,
+            "unavailableReason": reason,
+        }
+        return result
+
+    try:
+        findings = module.validate_result(result)
+        param_findings = None
+        if hasattr(module, "validate_params"):
+            param_findings = module.validate_params(result.get("params", {}))
+        result["validation"] = {
+            "status": "ran",
+            "source": Path(module.__file__).name,
+            "policy": _VALIDATION_POLICY,
+            "valid": bool(findings.get("valid", False)),
+            "issues": list(findings.get("issues", [])),
+            "warnings": list(findings.get("warnings", [])),
+            "info": list(findings.get("info", [])),
+            "params": param_findings,
+            "unavailableReason": None,
+        }
+    except Exception as exc:  # noqa: BLE001 — see docstring: must never fail
+        result["validation"] = {
+            "status": "unavailable",
+            "source": getattr(module, "__file__", None) and Path(module.__file__).name,
+            "policy": _VALIDATION_POLICY,
+            "unavailableReason": f"{type(exc).__name__}: {exc}",
+        }
     return result
 
 
@@ -496,38 +637,44 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         )
         model_type = "custom"
 
-    if model_type == "custom":
-        # `precision` is deliberately NOT passed to MACECalculator: upstream
-        # then adopts the checkpoint's own dtype, which is the safest choice
-        # for a fine-tuned model. The dtype actually in use is read back below.
-        with capture_model_warnings() as collected:
-            calc = get_custom_calculator(model_path, device)
-        if precision_requested:
-            warnings.append(
-                f"Requested precision '{precision}' was not applied: a custom "
-                f"checkpoint keeps the dtype it was saved in."
-            )
-    else:
-        # Checked before the checkpoint is fetched and loaded: a missing D3
-        # backend is a property of the environment, not of this structure, and
-        # there is no reason to spend a model download to discover it. Only
-        # MACE-MP-0 reaches torch-dftd — the MACE-OFF and custom paths drop the
-        # flag with a warning a few lines below, which is the right physics.
-        if dispersion_requested and model_type == "MACE-MP-0":
-            require_dispersion_backend()
+    # Watch torch.load across BOTH loader branches. "MACE-OFF small" names a
+    # download URL, not a fixed set of weights; the file that torch.load
+    # actually opens is the only reproducible identifier, and the manifest
+    # hashes it below. Costs nothing when no checkpoint can be identified —
+    # the manifest then records null and says so.
+    with provenance.capture_checkpoint_loads() as checkpoints:
+        if model_type == "custom":
+            # `precision` is deliberately NOT passed to MACECalculator: upstream
+            # then adopts the checkpoint's own dtype, which is the safest choice
+            # for a fine-tuned model. The dtype actually in use is read back below.
+            with capture_model_warnings() as collected:
+                calc = get_custom_calculator(model_path, device)
+            if precision_requested:
+                warnings.append(
+                    f"Requested precision '{precision}' was not applied: a custom "
+                    f"checkpoint keeps the dtype it was saved in."
+                )
+        else:
+            # Checked before the checkpoint is fetched and loaded: a missing D3
+            # backend is a property of the environment, not of this structure, and
+            # there is no reason to spend a model download to discover it. Only
+            # MACE-MP-0 reaches torch-dftd — the MACE-OFF and custom paths drop the
+            # flag with a warning a few lines below, which is the right physics.
+            if dispersion_requested and model_type == "MACE-MP-0":
+                require_dispersion_backend()
 
-        recommended = upstream_default_precision(model_type, calc_type)
-        if precision_requested and precision == "float32" and recommended == "float64":
-            # Honoured, not overridden — upstream honours whatever default_dtype
-            # it is handed — but never left unsaid.
-            warnings.append(
-                f"Running in float32. Upstream MACE recommends float64 here "
-                f"({'mace_off() defaults to float64' if model_type in MACE_OFF_MODEL_TYPES else 'float32 is recommended for MD, float64 for geometry optimization'}); "
-                f"float32 was explicitly requested, so it was used."
-            )
-        with capture_model_warnings() as collected:
-            calc = get_mace_calculator(model_type, model_size, device,
-                                       dispersion_requested, precision)
+            recommended = upstream_default_precision(model_type, calc_type)
+            if precision_requested and precision == "float32" and recommended == "float64":
+                # Honoured, not overridden — upstream honours whatever default_dtype
+                # it is handed — but never left unsaid.
+                warnings.append(
+                    f"Running in float32. Upstream MACE recommends float64 here "
+                    f"({'mace_off() defaults to float64' if model_type in MACE_OFF_MODEL_TYPES else 'float32 is recommended for MD, float64 for geometry optimization'}); "
+                    f"float32 was explicitly requested, so it was used."
+                )
+            with capture_model_warnings() as collected:
+                calc = get_mace_calculator(model_type, model_size, device,
+                                           dispersion_requested, precision)
 
     atoms.calc = calc
 
@@ -572,34 +719,69 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         # Basename only — never echo the server-side temp path.
         effective_params["customModelName"] = Path(model_path).name
 
+    # ── Reproducibility manifest ────────────────────────────────────────────
+    # MUST be built here, before dispatch: geometry-opt and MD move the atoms,
+    # and input.structureSha256 has to identify the structure that was SUBMITTED,
+    # not the one that came out. Building it after the run would produce a hash
+    # that silently disagrees with the input file for two of the three
+    # calculation types.
+    checkpoint_path, checkpoint_resolved_by = checkpoints.select(
+        model_path if model_type == "custom" else None,
+        provenance.mace_cache_dir(),
+    )
+    try:
+        manifest = provenance.build_manifest(
+            model_type=model_type,
+            model_size=None if model_type == "custom" else model_size,
+            checkpoint_path=checkpoint_path,
+            checkpoint_resolved_by=checkpoint_resolved_by,
+            input_filename=filename,
+            input_path=filepath,
+            input_format=fmt,
+            atoms=atoms,
+            device=device,
+            precision=effective_params.get("precision"),
+            # Only MD consumes the seed. Reporting it for a single-point would
+            # imply a stochastic step that never happened.
+            seed=seed if calc_type == "molecular-dynamics" else None,
+        )
+    except Exception as exc:  # noqa: BLE001 — provenance must never break a run
+        manifest = provenance.unavailable_manifest(f"{type(exc).__name__}: {exc}")
+
     calc_start = time.time()
 
     if calc_type == "geometry-opt":
-        return _run_geometry_opt(atoms, params, filename, calc_start, ref_data,
-                                 effective_params, warnings)
-    if calc_type == "molecular-dynamics":
-        return _run_md(atoms, params, filename, calc_start, ref_data,
-                       effective_params, seed, warnings)
-    if calc_type == "single-point":
-        return _run_single_point(atoms, filename, calc_start, ref_data,
-                                 effective_params, warnings)
+        result = _run_geometry_opt(atoms, params, filename, calc_start, ref_data,
+                                   effective_params, warnings, manifest)
+    elif calc_type == "molecular-dynamics":
+        result = _run_md(atoms, params, filename, calc_start, ref_data,
+                         effective_params, seed, warnings, manifest)
+    elif calc_type == "single-point":
+        result = _run_single_point(atoms, filename, calc_start, ref_data,
+                                   effective_params, warnings, manifest)
+    else:
+        # Unreachable — validate_calculation_type() gates this above. Kept as a
+        # guard so that adding a type to SUPPORTED_CALCULATION_TYPES without a
+        # handler fails loudly instead of silently returning a single-point result.
+        raise ValueError(f"No handler implemented for calculationType '{calc_type}'")
 
-    # Unreachable — validate_calculation_type() gates this above. Kept as a
-    # guard so that adding a type to SUPPORTED_CALCULATION_TYPES without a
-    # handler fails loudly instead of silently returning a single-point result.
-    raise ValueError(f"No handler implemented for calculationType '{calc_type}'")
+    # Second opinion on the physics, attached to the result. Advisory only —
+    # see attach_validation(). Runs last so it sees the final geometry, the
+    # trajectory and the effective params.
+    return attach_validation(result)
 
 
-def _run_single_point(atoms, filename, calc_start, ref_data, effective_params, warnings=None):
+def _run_single_point(atoms, filename, calc_start, ref_data, effective_params,
+                      warnings=None, manifest=None):
     energy = atoms.get_potential_energy()
     forces = atoms.get_forces()
     msg = f"Calculation completed for {filename} using MACE"
     return _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                         effective_params, warnings=warnings)
+                         effective_params, warnings=warnings, manifest=manifest)
 
 
 def _run_geometry_opt(atoms, params, filename, calc_start, ref_data, effective_params,
-                      warnings=None):
+                      warnings=None, manifest=None):
     import numpy as np
     from ase.optimize import BFGS
 
@@ -666,14 +848,15 @@ def _run_geometry_opt(atoms, params, filename, calc_start, ref_data, effective_p
         "step": opt_steps,
     }
     result = _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                           effective_params, trajectory=trajectory, warnings=warnings)
+                           effective_params, trajectory=trajectory, warnings=warnings,
+                           manifest=manifest)
     # Top-level too: convergence is an outcome, not a parameter.
     result["converged"] = converged
     return result
 
 
 def _run_md(atoms, params, filename, calc_start, ref_data, effective_params, seed,
-            warnings=None):
+            warnings=None, manifest=None):
     import numpy as np
     from ase import units
     from ase.md.velocitydistribution import MaxwellBoltzmannDistribution, Stationary
@@ -808,4 +991,5 @@ def _run_md(atoms, params, filename, calc_start, ref_data, effective_params, see
         "step": traj_steps,
     }
     return _build_result(atoms, energy, forces, msg, calc_start, ref_data,
-                         effective_params, trajectory=trajectory, warnings=warnings)
+                         effective_params, trajectory=trajectory, warnings=warnings,
+                         manifest=manifest)

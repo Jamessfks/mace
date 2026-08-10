@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.1",
-  "updated": "2026-08-10T01:12:50.499Z",
+  "updated": "2026-08-10T01:49:54.000Z",
   "bars": [
     {
       "name": "Rowan",
@@ -131,10 +131,10 @@
         "mace-api/",
         "docs/v2/"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "judging",
+      "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Manifest and advisory validation ship in every result and persist through MACE Link. Remaining: nothing renders them, and types/mace.ts does not declare result.provenance or result.validation. The validator is also absent from the deployed container — mace-api/Dockerfile cannot reach ../test_scripts/, so hosted results report validation.status unavailable."
     },
     {
       "id": "share",
@@ -227,7 +227,9 @@
     "v2.1 continues the loop from main. Viewer, landing and nav all have their round-N fixes shipped and are awaiting re-judgment.",
     "FIRST WIN: nav. Critic measured Rowan uses the same mx-auto max-w-7xl px-6 with logo at x=24 and h1 at x=144.5 — a 120.5px offset against our 121px. Full-bleed chrome over a narrower column is the bar own pattern, not a defect.",
     "SETTLED by ablation: ambient occlusion is genuinely active. Disabling it changes 14,024 of 103,106 pixels, all strictly interior to the silhouette. The 117-vs-34 luminance claim is dead — 241 with AO on, 241 with AO off; that metric never measured shading.",
-    "The transparency fix alone was a pixel-level no-op: the well behind the canvas painted the identical white the opaque canvas had painted. Removing the well is what makes it mean anything."
+    "The transparency fix alone was a pixel-level no-op: the well behind the canvas painted the identical white the opaque canvas had painted. Removing the well is what makes it mean anything.",
+    "Provenance: the checkpoint is identified by watching torch.load rather than re-deriving upstream cache paths, which would go stale silently. e3nn loads its own constants.pt in the same window, so selection is by explicit rule and the rule that fired is recorded.",
+    "validate_calculation.py called logging.disable(CRITICAL) at MODULE scope. Importing it would have silently re-broken MACE warning capture process-wide and permanently in the FastAPI server. Moved into a CLI-only helper, with a regression test."
   ],
   "defectsFixed": [
     {
