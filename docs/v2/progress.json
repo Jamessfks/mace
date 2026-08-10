@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.1",
-  "updated": "2026-08-10T03:09:36.779Z",
+  "updated": "2026-08-10T06:39:09.054Z",
   "bars": [
     {
       "name": "Rowan",
@@ -32,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "building",
+      "status": "won",
       "rounds": 5,
-      "verdict": "Round 4: LOST to Rowan",
-      "gap": "CRITICAL: the DEFAULT result-viewer state fits force-arrow tips instead of atoms, so the molecule spans 12% of the box — a 4.03x shrink applied by default. Also Reset view does not reset rotation. AO is settled: running, 3.92% of canvas by ablation, round-trip diff 0."
+      "verdict": "WON — critic picked ours over Rowan",
+      "gap": "Arrows ON vs OFF give an identical bbox to the pixel, centroid moving 0.02px. Fill 0.8106, tighter than the bar ~0.74. Reset view restores byte-identically. Remaining: the arrow scale silently differs between models (0.82 vs 1.0 A per eV/A on the same geometry), so two results of one molecule have non-comparable arrow lengths."
     },
     {
       "id": "viewer-interact",
@@ -59,9 +59,9 @@
         "components/calculate/molecule-viewer-3d.tsx"
       ],
       "status": "building",
-      "rounds": 2,
-      "verdict": "Round 1: LOST narrowly to Rowan",
-      "gap": "All four gear items work and PNG export is verified (1328x1040, 100% opaque, composites the transparent canvas). Lost because two items leave framing worse: Hide C-H shrinks the molecule 0.8058 to 0.5911, and spin oscillates fill 0.7365 to 0.9221."
+      "rounds": 3,
+      "verdict": "Round 2: LOST to Rowan — and Hide C-H regressed",
+      "gap": "REGRESSION I shipped: Hide C-H now scales the molecule UP 1.44x and CLIPS at both canvas edges (bbox 0 to 1327 on a 1328px canvas). It previously shrank 0.806 to 0.591. Spin no longer clips at any angle, but apparent size is NOT constant: 843px static vs 593-663px spinning, so toggling rotate resizes 27-30%."
     },
     {
       "id": "landing",
@@ -73,9 +73,9 @@
         "components/intro-section.tsx"
       ],
       "status": "building",
-      "rounds": 4,
-      "verdict": "Round 3: LOST to Rowan",
-      "gap": "Round 3 confirmed correct: no br, three h1 lines, 16px lead, no stat tiles, provenance above the fold. Lost on the claim list orphaning its fourth item onto a second row with 76px unused above it."
+      "rounds": 5,
+      "verdict": "Round 4: LOST to Rowan",
+      "gap": "Layout numbers confirmed exact. Loses on content: the hero ends in a 4-line 12px monospace gesture manual (y702-766), the lowest element above the fold, where the bar shows a viewer with zero instructions. At 375 it becomes 6 lines and the entire 812px first screen is text with the molecule below the fold."
     },
     {
       "id": "config",
@@ -99,10 +99,10 @@
         "components/calculate/metrics-dashboard.tsx",
         "components/calculate/structure-info.tsx"
       ],
-      "status": "judging",
+      "status": "won",
       "rounds": 1,
-      "verdict": null,
-      "gap": "Built. No critic verdict yet."
+      "verdict": "WON — critic picked ours over the Materials Project",
+      "gap": "Run Configuration verified truthful: a single-point renders exactly five fields, no MD parameters. Timing separated and honest (0.135s compute vs 5.13s round trip, matching the JSON). RMS force independently confirmed to use sqrt(sum|Fi|^2/N), not the buggy variant. Remaining: one long scroll where MP pins its property card in a rail."
     },
     {
       "id": "honesty",
@@ -129,10 +129,10 @@
         "mace-api/",
         "docs/v2/"
       ],
-      "status": "judging",
-      "rounds": 1,
-      "verdict": null,
-      "gap": "Manifest and advisory validation ship in every result and persist through MACE Link. Remaining: nothing renders them, and types/mace.ts does not declare result.provenance or result.validation. The validator is also absent from the deployed container — mace-api/Dockerfile cannot reach ../test_scripts/, so hosted results report validation.status unavailable."
+      "status": "building",
+      "rounds": 2,
+      "verdict": "Round 1: LOST to the Materials Project",
+      "gap": "Content verified real — the critic ran shasum independently and it matched the displayed hash, the JSON, and the copy button. Lost on STRUCTURE: the bar makes provenance a peer section; ours is the last block of one tab at y1269 of a 2262px page, labelled with a DIV not a heading, with no id, no anchor and no TOC entry. And the hashes are not resolvable: no checkpoint download URL, no repo permalink for the commit."
     },
     {
       "id": "share",
@@ -232,7 +232,10 @@
     "SECOND WIN: selection and measurement. Bond length, named-vertex angle and signed dihedral all hand-verified; the non-bonded case refuses to claim a bond.",
     "SETTLED: ambient occlusion is running — 3.92% of canvas, 21.6% of molecule pixels, ablation round-trip diff exactly 0. The earlier 0.00% report was the broken guard.",
     "REFUTED my own doubt: PNG export works. 227KB, 1328x1040, 100% opaque, 13.67% non-white.",
-    "MY MEASUREMENT ERROR: I reported the landing claim list at 675-695. It is 675-721 across two wrapped rows; I measured one row and called it the element."
+    "MY MEASUREMENT ERROR: I reported the landing claim list at 675-695. It is 675-721 across two wrapped rows; I measured one row and called it the element.",
+    "THIRD AND FOURTH WINS: viewer render and results panel. Arrows ON/OFF now identical to the pixel; Run Configuration verified to show only the parameters that actually ran.",
+    "MY CLAIMS CONTRADICTED: the spin rotation-invariant envelope does NOT hold apparent size constant (843px static vs 593-663px spinning), and Hide C-H did not get fixed — it inverted, now scaling up 1.44x and clipping both edges.",
+    "Harness: Radix triggers (Select, Tabs, DropdownMenu) ignore el.click() and need real computer clicks; plain buttons respond to el.click(). Our canvas has preserveDrawingBuffer so getImageData works; the bar embed does not."
   ],
   "defectsFixed": [
     {
