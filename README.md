@@ -34,11 +34,11 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 ## What's New in v2.0
 
-> v2.0 was built by measuring SimpleAtom against three real references rather than against
-> our own judgement: [Rowan](https://rowansci.com) for interface quality,
-> [the Materials Project](https://next-gen.materialsproject.org) for data presentation, and
-> [ACEsuit/mace](https://github.com/ACEsuit/mace) — the reference implementation — for
-> scientific correctness. The last one found bugs the first two never could.
+> v2.0 is a correctness release. SimpleAtom was audited line by line against
+> [ACEsuit/mace](https://github.com/ACEsuit/mace), the reference implementation it wraps,
+> on the principle that where the two disagree, SimpleAtom is wrong. That audit found six
+> places where the code read as correct and silently did something else — and fixing them
+> mattered more than anything cosmetic.
 
 **Calculations now fail loudly instead of quietly returning the wrong thing.**
 
@@ -73,10 +73,10 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 **Fixes worth calling out.**
 
-- **CIF fractional coordinates were never converted through the unit cell.** Materials Project
-  CIFs use fractional coordinates, so loading one packed every atom into a 1 Å box — silicon
-  came out with a 0.433 Å nearest-neighbour distance instead of 2.3516 Å.
-  `public/demo/silicon.cif` now guards this.
+- **CIF fractional coordinates were never converted through the unit cell.** Most
+  crystallographic CIFs store fractional coordinates, so loading one packed every atom into
+  a 1 Å box — silicon came out with a 0.433 Å nearest-neighbour distance instead of
+  2.3516 Å. `public/demo/silicon.cif` now guards this.
 - **D3 dispersion never worked.** `torch-dftd` was in neither our requirements nor
   mace-torch's, so enabling it always failed — after downloading the model.
 - Precision now follows upstream's own defaults (float64 for MACE-OFF and for geometry

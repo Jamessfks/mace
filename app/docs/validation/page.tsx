@@ -31,7 +31,7 @@ export default function ValidationPage() {
         <h2 id="automated-suite">Automated validation suite</h2>
         <p>Run the full suite from the backend:</p>
         <pre>
-          <code>python mace-api/validate_calculation.py --test</code>
+          <code>python test_scripts/validate_calculation.py --test</code>
         </pre>
         <p>This runs five tests, all of which must pass:</p>
         <table>
@@ -79,10 +79,10 @@ export default function ValidationPage() {
         <p>You can also validate a single result directly:</p>
         <pre>
           <code>{`# From a JSON string
-python mace-api/validate_calculation.py '<result_json>'
+python test_scripts/validate_calculation.py '<result_json>'
 
 # From a file
-python mace-api/validate_calculation.py result.json`}</code>
+python test_scripts/validate_calculation.py result.json`}</code>
         </pre>
 
         <h2 id="what-it-checks">What the validator checks</h2>

@@ -5,7 +5,7 @@
 Run the full suite:
 
 ```bash
-python mace-api/validate_calculation.py --test
+python test_scripts/validate_calculation.py --test
 ```
 
 ### Tests
@@ -22,10 +22,10 @@ python mace-api/validate_calculation.py --test
 
 ```bash
 # From a JSON string
-python mace-api/validate_calculation.py '<result_json>'
+python test_scripts/validate_calculation.py '<result_json>'
 
 # From a file
-python mace-api/validate_calculation.py result.json
+python test_scripts/validate_calculation.py result.json
 ```
 
 ## What the validator checks

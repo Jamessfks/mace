@@ -78,7 +78,7 @@ npm run dev                    # starts the dev server`}</code>
           <Link href="/docs/validation">Validation &amp; reproducibility</Link>.
         </p>
         <pre>
-          <code>python mace-api/validate_calculation.py --test</code>
+          <code>python test_scripts/validate_calculation.py --test</code>
         </pre>
 
         <h2 id="providing-a-structure">Providing a structure</h2>

@@ -31,7 +31,7 @@ Visit `http://localhost:3000/calculate?demo=true` — it loads an ethanol molecu
 Run the automated scientific validation suite:
 
 ```bash
-python mace-api/validate_calculation.py --test
+python test_scripts/validate_calculation.py --test
 ```
 
 This runs 5 tests:
