@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
-  "branch": "v2.0",
-  "updated": "2026-08-09T14:52:50.954Z",
+  "branch": "v2.1",
+  "updated": "2026-08-10T02:00:52.680Z",
   "bars": [
     {
       "name": "Rowan",
@@ -32,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "building",
-      "rounds": 3,
-      "verdict": "Round 2: LOST to Rowan",
-      "gap": "Ambient occlusion has never actually run — the WebGL2 guard tests the visible canvas, which holds a bitmaprenderer context because upscale:true renders offscreen. Also: our canvas is an opaque white box on a warm page while Rowan renders with alpha:true straight onto theirs."
+      "status": "judging",
+      "rounds": 4,
+      "verdict": "Round 3: LOST to Rowan",
+      "gap": "Framing inversion fixed. Measured: ball-and-stick 0.772, stick 0.754, spacefill 0.769 — spread down from 0.063 to 0.018, no clipping. Still short of the 0.82 target and the bar 0.825."
     },
     {
       "id": "viewer-interact",
@@ -45,11 +45,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "judging",
+      "rounds": 1,
       "verdict": null,
-      "gap": null,
-      "blockedBy": "viewer-render"
+      "gap": "Built: ordered click selection with a green shell, bond-aware picking, Ctrl-drag box select, and bond length / angle / signed dihedral readout in A and degrees. Never seen running."
     },
     {
       "id": "viewer-chrome",
@@ -59,11 +58,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "judging",
+      "rounds": 1,
       "verdict": null,
-      "gap": null,
-      "blockedBy": "viewer-interact"
+      "gap": "Built: gear menu with rotate, hide C-H bonds, clear selection, download PNG. PNG composites onto the elevated surface because the canvas is transparent. Never seen running."
     },
     {
       "id": "landing",
@@ -75,9 +73,9 @@
         "components/intro-section.tsx"
       ],
       "status": "building",
-      "rounds": 2,
-      "verdict": "Round 1: LOST to Rowan",
-      "gap": "A hard <br/> in the h1 fights the wrap and renders four staircase lines instead of two, pushing the only proof below the fold. Body copy and the primary CTA are 14px against the bar 16px."
+      "rounds": 3,
+      "verdict": "Round 2: LOST to Rowan",
+      "gap": "Headline rag now beats the bar (423/353/360 vs their 456/475/97 orphan). Lost on the proof strip: it lands at y=791 so only 9px of 104px clears the fold, and single-digit tiles read as anti-proof where the bar shows twelve customer logos."
     },
     {
       "id": "config",
@@ -131,10 +129,10 @@
         "mace-api/",
         "docs/v2/"
       ],
-      "status": "pending",
-      "rounds": 0,
+      "status": "judging",
+      "rounds": 1,
       "verdict": null,
-      "gap": null
+      "gap": "Manifest and advisory validation ship in every result and persist through MACE Link. Remaining: nothing renders them, and types/mace.ts does not declare result.provenance or result.validation. The validator is also absent from the deployed container — mace-api/Dockerfile cannot reach ../test_scripts/, so hosted results report validation.status unavailable."
     },
     {
       "id": "share",
@@ -158,10 +156,10 @@
         "components/site-header.tsx",
         "components/site-footer.tsx"
       ],
-      "status": "building",
+      "status": "won",
       "rounds": 2,
-      "verdict": "Round 1: LOST to Rowan",
-      "gap": "Per-route chrome widths put the wordmark at three different x positions; clicking our own CTA slides the logo 120px. Rowan uses one width everywhere and accepts the misalignment. Reversing my earlier decision."
+      "verdict": "WON — critic picked ours over Rowan",
+      "gap": "Wordmark pinned at x=24 on every route, matching the bar to within half a pixel (our 121px chrome-to-content offset vs their 120.5px). Plus aria-current on the active route, which Rowan sets on none of its five top links. Remaining: /support uses max-w-3xl, giving a 225px offset — the only route exceeding the bar."
     },
     {
       "id": "benchmark",
@@ -223,7 +221,14 @@
     "ACEsuit/mace audit: the float64-for-Hessians rule in CLAUDE.md is not sourced from upstream and targets phonon, which SimpleAtom rejects, so it guards nothing. Upstream says use float64 for geometry optimisation, a feature SimpleAtom has.",
     "Fifth instance of the silent-fallthrough pattern: modelType joins calculationType, the validator bounds, the D3 toggle and the structure guardrails.",
     "CORRECTION: the claim that our shading beats the bar does not replicate. AO was never enabled (renderer._AOEnabled === false) and carbon tonality measures 237 distinct luminance levels for both viewers, not 117 vs 34.",
-    "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes."
+    "Round-2 critic verdicts: viewer ROWAN, landing ROWAN, nav ROWAN. Three losses, all with specific measured causes.",
+    "v2.1 continues the loop from main. Viewer, landing and nav all have their round-N fixes shipped and are awaiting re-judgment.",
+    "FIRST WIN: nav. Critic measured Rowan uses the same mx-auto max-w-7xl px-6 with logo at x=24 and h1 at x=144.5 — a 120.5px offset against our 121px. Full-bleed chrome over a narrower column is the bar own pattern, not a defect.",
+    "SETTLED by ablation: ambient occlusion is genuinely active. Disabling it changes 14,024 of 103,106 pixels, all strictly interior to the silhouette. The 117-vs-34 luminance claim is dead — 241 with AO on, 241 with AO off; that metric never measured shading.",
+    "The transparency fix alone was a pixel-level no-op: the well behind the canvas painted the identical white the opaque canvas had painted. Removing the well is what makes it mean anything.",
+    "Provenance: the checkpoint is identified by watching torch.load rather than re-deriving upstream cache paths, which would go stale silently. e3nn loads its own constants.pt in the same window, so selection is by explicit rule and the rule that fired is recorded.",
+    "validate_calculation.py called logging.disable(CRITICAL) at MODULE scope. Importing it would have silently re-broken MACE warning capture process-wide and permanently in the FastAPI server. Moved into a CLI-only helper, with a regression test.",
+    "Framing root cause: maxDrawnRadius() added the largest radius of ANY element present to the extreme projected coordinate, estimating max|x-c| + max r where the truth is max(|x-c| + r). The error scales with radii, so bulkier representations over-padded and under-zoomed more — that was the spacefill inversion."
   ],
   "defectsFixed": [
     {

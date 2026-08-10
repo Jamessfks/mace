@@ -156,9 +156,9 @@ python generate_surface.py '{"xyzData":"...","h":1,"k":1,"l":0,"slabThickness":1
 **validate_calculation.py** — scientific result validation:
 
 ```bash
-python validate_calculation.py --test              # Run full verification suite
-python validate_calculation.py '<result_json>'     # Validate a single result
-python validate_calculation.py result.json         # Validate from file
+python ../test_scripts/validate_calculation.py --test              # Run full verification suite
+python ../test_scripts/validate_calculation.py '<result_json>'     # Validate a single result
+python ../test_scripts/validate_calculation.py result.json         # Validate from file
 ```
 
 ---

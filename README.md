@@ -67,10 +67,10 @@ Contact: zhao.zic@northeastern.edu or zezepy070413@gmail.com
 
 **Fixes worth calling out.**
 
-- **CIF fractional coordinates were never converted through the unit cell.** Materials Project
-  CIFs use fractional coordinates, so loading one packed every atom into a 1 Å box — silicon
-  came out with a 0.433 Å nearest-neighbour distance instead of 2.3516 Å.
-  `public/demo/silicon.cif` now guards this.
+- **CIF fractional coordinates were never converted through the unit cell.** Most
+  crystallographic CIFs store fractional coordinates, so loading one packed every atom into
+  a 1 Å box — silicon came out with a 0.433 Å nearest-neighbour distance instead of
+  2.3516 Å. `public/demo/silicon.cif` now guards this.
 - **D3 dispersion never worked.** `torch-dftd` was in neither our requirements nor
   mace-torch's, so enabling it always failed — after downloading the model.
 - Precision now follows upstream's own defaults (float64 for MACE-OFF and for geometry
