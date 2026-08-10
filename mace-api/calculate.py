@@ -311,10 +311,27 @@ def dispersion_is_active(calc) -> bool:
 
 
 def detect_format(filename: str) -> str:
-    """Detect ASE file format from extension."""
+    """Detect ASE file format from extension.
+
+    `.xyz` maps to ASE's **extxyz** reader, not `xyz`. ASE's plain `xyz` reader
+    (`simple_read_xyz`) discards the comment line entirely, which is where
+    extended XYZ carries `Lattice="..."` and `pbc="T T T"`. Reading a periodic
+    extended-XYZ file as `xyz` therefore produced an Atoms object with ZERO
+    lattice vectors, and every crystal was computed as an isolated gas-phase
+    cluster: FCC copper came out at -0.93 eV/atom against a correct
+    -4.08 eV/atom, and the validator passed it as plausible because the number
+    is not absurd on its own. It affected every periodic upload.
+
+    `extxyz` is a strict superset for our purposes — verified on a free-text
+    comment file, on the shipped demo structures, and on a periodic cell: it
+    reads the first two identically to `xyz` and is the only one that recovers
+    the cell from the third. `_read_structure` still falls back to `xyz` if the
+    stricter parser rejects a file, so a malformed comment line degrades rather
+    than failing the run.
+    """
     ext = Path(filename).suffix.lower()
     if ext == ".xyz":
-        return "xyz"
+        return "extxyz"
     if ext == ".cif":
         return "cif"
     if ext in (".poscar", ".vasp", ".contcar"):
@@ -615,8 +632,27 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
 
     from ase.io import read
 
+    # Declared before the structure is read: the extended-XYZ fallback below is
+    # the first thing that can need to warn.
+    warnings: list[str] = []
+
     fmt = detect_format(filepath)
-    atoms = read(filepath, format=fmt)
+    try:
+        atoms = read(filepath, format=fmt)
+    except Exception as exc:
+        # extxyz is stricter than the plain xyz reader: a malformed comment line
+        # that simple_read_xyz would ignore can make it raise. Degrade to the
+        # permissive reader rather than failing the run — the cost is losing any
+        # cell the comment line declared, which is exactly what we had before.
+        if fmt != "extxyz":
+            raise
+        atoms = read(filepath, format="xyz")
+        warnings.append(
+            f"Could not parse '{Path(filepath).name}' as extended XYZ "
+            f"({type(exc).__name__}); fell back to the plain XYZ reader. Any "
+            "Lattice/pbc declared on the comment line was ignored, so this was "
+            "treated as a non-periodic structure."
+        )
     filename = Path(filepath).name
 
     ref_data = extract_reference_data(atoms)
@@ -627,8 +663,6 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
     precision, precision_requested = resolve_precision(
         params.get("precision"), model_type, calc_type
     )
-
-    warnings: list[str] = []
 
     if model_path and model_type != "custom":
         warnings.append(
