@@ -1,7 +1,7 @@
 {
   "version": "2.0.0-dev",
   "branch": "v2.1",
-  "updated": "2026-08-10T02:00:52.680Z",
+  "updated": "2026-08-10T03:09:36.779Z",
   "bars": [
     {
       "name": "Rowan",
@@ -32,10 +32,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "judging",
-      "rounds": 4,
-      "verdict": "Round 3: LOST to Rowan",
-      "gap": "Framing inversion fixed. Measured: ball-and-stick 0.772, stick 0.754, spacefill 0.769 — spread down from 0.063 to 0.018, no clipping. Still short of the 0.82 target and the bar 0.825."
+      "status": "building",
+      "rounds": 5,
+      "verdict": "Round 4: LOST to Rowan",
+      "gap": "CRITICAL: the DEFAULT result-viewer state fits force-arrow tips instead of atoms, so the molecule spans 12% of the box — a 4.03x shrink applied by default. Also Reset view does not reset rotation. AO is settled: running, 3.92% of canvas by ablation, round-trip diff 0."
     },
     {
       "id": "viewer-interact",
@@ -45,10 +45,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "judging",
+      "status": "won",
       "rounds": 1,
-      "verdict": null,
-      "gap": "Built: ordered click selection with a green shell, bond-aware picking, Ctrl-drag box select, and bond length / angle / signed dihedral readout in A and degrees. Never seen running."
+      "verdict": "WON — critic picked ours over Rowan",
+      "gap": "Every value hand-checked against the raw xyz and correct to displayed precision. The honesty path works: a non-bonded pair reads Distance with 3Dmol perceived no bond here. The bar makes no bonded/non-bonded distinction and does not name the angle vertex. Remaining: the green selection shell is nearly invisible — delta-G of only +2 while R and B drop 13."
     },
     {
       "id": "viewer-chrome",
@@ -58,10 +58,10 @@
       "files": [
         "components/calculate/molecule-viewer-3d.tsx"
       ],
-      "status": "judging",
-      "rounds": 1,
-      "verdict": null,
-      "gap": "Built: gear menu with rotate, hide C-H bonds, clear selection, download PNG. PNG composites onto the elevated surface because the canvas is transparent. Never seen running."
+      "status": "building",
+      "rounds": 2,
+      "verdict": "Round 1: LOST narrowly to Rowan",
+      "gap": "All four gear items work and PNG export is verified (1328x1040, 100% opaque, composites the transparent canvas). Lost because two items leave framing worse: Hide C-H shrinks the molecule 0.8058 to 0.5911, and spin oscillates fill 0.7365 to 0.9221."
     },
     {
       "id": "landing",
@@ -73,9 +73,9 @@
         "components/intro-section.tsx"
       ],
       "status": "building",
-      "rounds": 3,
-      "verdict": "Round 2: LOST to Rowan",
-      "gap": "Headline rag now beats the bar (423/353/360 vs their 456/475/97 orphan). Lost on the proof strip: it lands at y=791 so only 9px of 104px clears the fold, and single-digit tiles read as anti-proof where the bar shows twelve customer logos."
+      "rounds": 4,
+      "verdict": "Round 3: LOST to Rowan",
+      "gap": "Round 3 confirmed correct: no br, three h1 lines, 16px lead, no stat tiles, provenance above the fold. Lost on the claim list orphaning its fourth item onto a second row with 76px unused above it."
     },
     {
       "id": "config",
@@ -228,7 +228,11 @@
     "The transparency fix alone was a pixel-level no-op: the well behind the canvas painted the identical white the opaque canvas had painted. Removing the well is what makes it mean anything.",
     "Provenance: the checkpoint is identified by watching torch.load rather than re-deriving upstream cache paths, which would go stale silently. e3nn loads its own constants.pt in the same window, so selection is by explicit rule and the rule that fired is recorded.",
     "validate_calculation.py called logging.disable(CRITICAL) at MODULE scope. Importing it would have silently re-broken MACE warning capture process-wide and permanently in the FastAPI server. Moved into a CLI-only helper, with a regression test.",
-    "Framing root cause: maxDrawnRadius() added the largest radius of ANY element present to the extreme projected coordinate, estimating max|x-c| + max r where the truth is max(|x-c| + r). The error scales with radii, so bulkier representations over-padded and under-zoomed more — that was the spacefill inversion."
+    "Framing root cause: maxDrawnRadius() added the largest radius of ANY element present to the extreme projected coordinate, estimating max|x-c| + max r where the truth is max(|x-c| + r). The error scales with radii, so bulkier representations over-padded and under-zoomed more — that was the spacefill inversion.",
+    "SECOND WIN: selection and measurement. Bond length, named-vertex angle and signed dihedral all hand-verified; the non-bonded case refuses to claim a bond.",
+    "SETTLED: ambient occlusion is running — 3.92% of canvas, 21.6% of molecule pixels, ablation round-trip diff exactly 0. The earlier 0.00% report was the broken guard.",
+    "REFUTED my own doubt: PNG export works. 227KB, 1328x1040, 100% opaque, 13.67% non-white.",
+    "MY MEASUREMENT ERROR: I reported the landing claim list at 675-695. It is 675-721 across two wrapped rows; I measured one row and called it the element."
   ],
   "defectsFixed": [
     {
