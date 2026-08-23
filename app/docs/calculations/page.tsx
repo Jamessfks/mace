@@ -175,11 +175,95 @@ export default function CalculationsPage() {
             temperature against your target.
           </li>
         </ul>
-        <Callout type="note" title="Phonon spectrum — planned">
-          Phonon spectrum calculation is on the roadmap but not yet
-          supported in SimpleAtom. For now, vibrational analysis must be
-          performed on a fully converged geometry using an external
-          workflow.
+        <h2 id="vibrations">Vibrational analysis</h2>
+        <p>
+          Builds the mass-weighted Hessian by finite displacement and
+          diagonalises it, giving harmonic frequencies in cm<sup>&minus;1</sup>,
+          animatable normal modes, the zero-point energy and full ideal-gas
+          thermochemistry (U, H, S and G) at a chosen temperature and pressure.
+        </p>
+        <ul>
+          <li>
+            <strong>It refuses a non-stationary geometry.</strong> A Hessian is
+            only meaningful where the gradient vanishes; away from a stationary
+            point the eigenvalues mix curvature with slope and the
+            imaginary-mode count stops meaning anything. Enable{" "}
+            <em>Optimize first</em> and the structure is relaxed to
+            0.005&nbsp;eV/&Aring; before the Hessian is built, with the
+            before/after forces recorded.
+          </li>
+          <li>
+            <strong>Imaginary modes are the diagnosis.</strong> Zero means a
+            local minimum; exactly one means a first-order saddle, i.e. a
+            transition state. The result states which in plain language rather
+            than leaving you to count.
+          </li>
+          <li>
+            <strong>Cost is 6N force evaluations.</strong> A 9-atom molecule is
+            54 MACE calls. The limit is 50 atoms, plus a timing gate that
+            measures one force call on your actual structure and refuses if the
+            full Hessian would not fit the time budget.
+          </li>
+          <li>
+            <strong>Frequencies are harmonic.</strong> Experimental
+            fundamentals are anharmonic and sit several percent lower; on water,
+            MACE-OFF23 lands within 0.2&ndash;1.0% of the experimentally derived{" "}
+            <em>harmonic</em> values, but roughly +5% against the fundamentals.
+            Compare like with like.
+          </li>
+        </ul>
+        <Callout type="warning" title="No IR intensities">
+          SimpleAtom reports frequencies but not IR intensities, because MACE
+          cannot produce them. Intensities come from dipole derivatives, and the
+          calculators built by <code>mace_mp()</code> and{" "}
+          <code>mace_off()</code> do not implement{" "}
+          <code>get_dipole_moment()</code> &mdash; <code>dipole</code> is absent
+          from their <code>implemented_properties</code>. The stick spectrum
+          therefore draws every mode at uniform height and says so on the chart.
+          Stick heights are <em>not</em> intensities.
+        </Callout>
+
+        <h2 id="coordinate-scan">Coordinate scan</h2>
+        <p>
+          Steps one internal coordinate &mdash; a bond, angle or dihedral &mdash;
+          across a range, relaxing every other degree of freedom at each point,
+          and returns the energy profile. This is how you measure a rotation
+          barrier or map a bond-breaking curve.
+        </p>
+        <ul>
+          <li>
+            <strong>The scan is sequential.</strong> Each point starts from the
+            previous point&rsquo;s relaxed geometry, which is what makes it
+            affordable. The cost is hysteresis: where the surface bifurcates,
+            scanning the range in the opposite direction can land on a different
+            branch. The result says so rather than hiding it.
+          </li>
+          <li>
+            <strong>The constraint is verified, not assumed.</strong> Every
+            point reports how far the achieved coordinate drifted from the
+            requested one.
+          </li>
+        </ul>
+
+        <h2 id="irc">Intrinsic reaction coordinate</h2>
+        <p>
+          Starts from a transition state, displaces along the imaginary normal
+          mode in both directions and follows the path downhill in mass-weighted
+          coordinates, connecting a saddle point to the minima on either side.
+        </p>
+        <Callout type="note" title="It checks that your structure is a saddle">
+          An IRC from a geometry that is not a first-order saddle produces
+          output that looks entirely reasonable and means nothing. SimpleAtom
+          verifies there is exactly one imaginary frequency before it runs.
+        </Callout>
+
+        <Callout type="note" title="Phonon spectrum — still not supported">
+          Periodic phonon band structures remain unimplemented, and{" "}
+          <em>vibrational analysis is not a substitute</em>: a molecular Hessian
+          is not a force-constant mesh over q-points. A phonon request is
+          rejected with a message pointing molecules at vibrational analysis.
+          Nudged elastic band is implemented in the engine but not yet reachable
+          from this page, because it needs a second structure upload.
         </Callout>
 
         <h2 id="dispersion">D3 dispersion correction</h2>

@@ -802,6 +802,27 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None,
     # Read the dtype off the loaded model rather than echoing the request.
     effective_precision = detect_calculator_dtype(calc)
 
+    # Force torch's PROCESS-GLOBAL default dtype to agree with the model we
+    # just loaded, instead of trusting MACECalculator.__init__ to have done it.
+    #
+    # This matters only in the long-lived FastAPI process, which is why it does
+    # not reproduce through calculate_local.py: the CLI builds one calculator
+    # per process, while the server builds one per request in a process that
+    # may already have been left on another dtype by a previous caller. The
+    # dtype is global and shared across threads (verified), so it survives
+    # between requests. A float64 model running under a float32 global default
+    # is exactly the state vibrations_thermo refuses to build a Hessian in --
+    # correctly, since a finite-difference Hessian in float32 is noise at the
+    # low-frequency end.
+    #
+    # Admission control (one calculation at a time, main.py) is what makes this
+    # safe: setting a global would otherwise race with a concurrent request.
+    if effective_precision in ("float32", "float64"):
+        import torch
+        _wanted = torch.float64 if effective_precision == "float64" else torch.float32
+        if torch.get_default_dtype() != _wanted:
+            torch.set_default_dtype(_wanted)
+
     # Upstream's own warnings during model construction — notably the silent
     # checkpoint downcast — which used to be swallowed by logging.disable().
     for message in dict.fromkeys(collected.messages):

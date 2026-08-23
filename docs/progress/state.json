@@ -101,33 +101,51 @@
       "id": "ui",
       "name": "Frontend: inputs",
       "detail": "Calculation-type and model pickers that make the new capability discoverable.",
-      "status": "building",
-      "rounds": [],
-      "notes": ""
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Shows ASL non-commercial warning BEFORE the run - neither bar does this. Rowan still wins on breadth of workflows (13 vs our 7)."
+        }
+      ],
+      "notes": "Catalog-driven model picker with licence/theory/cost. NEB and phonon honestly disabled."
     },
     {
       "id": "results",
       "name": "Frontend: results",
       "detail": "Stick spectrum, thermochemistry table, scan and NEB energy profiles, mode animation.",
-      "status": "queued",
-      "rounds": [],
-      "notes": ""
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Mode animation shipped. IR stick heights carry an explicit 'not intensities' annotation - MolCalc plots real PM3 intensities, we refuse to fake ours."
+        }
+      ],
+      "notes": "Frequency table, stick spectrum (uniform height + on-chart honesty note), thermochem table, energy profiles, mode animation."
     },
     {
       "id": "tests",
       "name": "Mock + real scientific test",
       "detail": "Full mock pass over every route, then real MACE runs judged against CCCBDB.",
-      "status": "queued",
-      "rounds": [],
-      "notes": ""
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Mock test caught a real defect: every validation error returned HTTP 500. Now 400."
+        }
+      ],
+      "notes": "Mock test: all 7 routes + 7 refusal paths. Real test: water/methane/ethane vs experiment. Full stack verified through Next route."
     },
     {
       "id": "deploy",
       "name": "Deploy + live test",
       "detail": "Push to Vercel and run a real calculation against the live page.",
-      "status": "queued",
+      "status": "building",
       "rounds": [],
-      "notes": ""
+      "notes": "Space pushed (c04f8fd..03915cc). Rebuilding. Vercel next."
     }
   ],
   "log": [
@@ -166,6 +184,14 @@
     {
       "t": "honest",
       "msg": "MACE cannot produce IR intensities: mace_mp()/mace_off() build MACECalculator without model_type, so 'dipole' is absent from implemented_properties and get_dipole_moment() raises. We return intensities:null with the reason quoted from source rather than plotting a fabricated spectrum."
+    },
+    {
+      "t": "OUTAGE",
+      "msg": "Found the live site has been unable to run ANY calculation since 2026-08-10: the Space crashed on boot with ModuleNotFoundError: No module named 'provenance'. calculate.py imported it but it was never pushed to the Space repo, so Docker's COPY . . copied a build context missing the file."
+    },
+    {
+      "t": "deploy",
+      "msg": "Pushed mace-api/ to the Space including the missing provenance.py and the 3 new engine modules. Rebuilding now."
     }
   ]
 }
