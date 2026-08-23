@@ -1,0 +1,45 @@
+<svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cs-title cs-desc">
+  <title id="cs-title">Coordinate scan</title>
+  <desc id="cs-desc">The real relaxed torsion-scan energy profile for the ethane C-C dihedral: two staggered minima 60 degrees apart with an eclipsed barrier of 2.487 kcal/mol between them, next to a Newman-projection hint of the staggered conformation the minima correspond to.</desc>
+  <style>
+    .axis{stroke:var(--color-border-emphasis, #D8D2C6);stroke-width:1;}
+    .curve{stroke:var(--color-data-blue, #4477AA);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+    .pt{fill:var(--color-data-cyan, #66CCEE);stroke:var(--color-data-blue, #4477AA);stroke-width:1;}
+    .barrier{fill:var(--color-bg-elevated, #FFFFFF);stroke:var(--color-accent-strong, #3A7A40);stroke-width:2;}
+    .newmanBack{fill:none;stroke:var(--color-text-muted, #8A8478);stroke-width:1.4;stroke-dasharray:2.5 2.5;}
+    .frontBond{stroke:var(--color-text-primary, #262521);stroke-width:2;stroke-linecap:round;}
+    .backBond{stroke:var(--color-text-muted, #8A8478);stroke-width:1.6;stroke-linecap:round;}
+    .frontAtom{fill:var(--color-text-primary, #262521);}
+    .cap{fill:var(--color-text-muted, #8A8478);font-family:ui-monospace,"Geist Mono",monospace;font-size:8.5px;}
+  </style>
+
+  <line class="axis" x1="15" y1="160" x2="220" y2="160"/>
+
+  <polyline class="curve" points="15.0,160.0 32.1,155.9 49.2,144.7 66.2,128.8 83.3,112.4 100.4,99.8 117.5,95.0 134.6,99.7 151.7,112.4 168.8,128.9 185.8,144.7 202.9,155.9 220.0,160.0"/>
+  <circle class="pt" cx="15.0" cy="160.0" r="2.4"/>
+  <circle class="pt" cx="32.1" cy="155.9" r="2.4"/>
+  <circle class="pt" cx="49.2" cy="144.7" r="2.4"/>
+  <circle class="pt" cx="66.2" cy="128.8" r="2.4"/>
+  <circle class="pt" cx="83.3" cy="112.4" r="2.4"/>
+  <circle class="pt" cx="100.4" cy="99.8" r="2.4"/>
+  <circle class="barrier" cx="117.5" cy="95.0" r="3.6"/>
+  <circle class="pt" cx="134.6" cy="99.7" r="2.4"/>
+  <circle class="pt" cx="151.7" cy="112.4" r="2.4"/>
+  <circle class="pt" cx="168.8" cy="128.9" r="2.4"/>
+  <circle class="pt" cx="185.8" cy="144.7" r="2.4"/>
+  <circle class="pt" cx="202.9" cy="155.9" r="2.4"/>
+  <circle class="pt" cx="220.0" cy="160.0" r="2.4"/>
+
+  <text class="cap" x="98" y="86">2.487 kcal/mol</text>
+  <text class="cap" x="15" y="174">dihedral H-C-C-H, 300&#176;&#8211;420&#176;</text>
+
+  <!-- Newman-projection hint: staggered conformation at the profile minima -->
+  <circle class="newmanBack" cx="245" cy="45" r="22"/>
+  <line class="backBond" x1="264.1" y1="34.0" x2="271.0" y2="30.0"/>
+  <line class="backBond" x1="225.9" y1="34.0" x2="219.0" y2="30.0"/>
+  <line class="backBond" x1="245.0" y1="67.0" x2="245.0" y2="75.0"/>
+  <line class="frontBond" x1="245" y1="45" x2="245.0" y2="23.0"/>
+  <line class="frontBond" x1="245" y1="45" x2="225.9" y2="56.0"/>
+  <line class="frontBond" x1="245" y1="45" x2="264.1" y2="56.0"/>
+  <circle class="frontAtom" cx="245" cy="45" r="3"/>
+</svg>

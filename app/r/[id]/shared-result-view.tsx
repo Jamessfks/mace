@@ -313,7 +313,7 @@ export function SharedResultView({ shared }: Props) {
               </code>{" "}
               hides the caption strip.
             </p>
-            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-[11px] leading-relaxed text-[var(--color-text-secondary)]">
+            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)]">
               {embedSnippet}
             </pre>
             <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +342,7 @@ export function SharedResultView({ shared }: Props) {
               Built only from what this result carries — a line is omitted
               rather than filled in with a default.
             </p>
-            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-[11px] leading-relaxed text-[var(--color-text-secondary)]">
+            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)]">
               {citation}
             </pre>
             <CopyButton

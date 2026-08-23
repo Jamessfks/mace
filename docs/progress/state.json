@@ -143,9 +143,15 @@
       "id": "deploy",
       "name": "Deploy + live test",
       "detail": "Push to Vercel and run a real calculation against the live page.",
-      "status": "building",
-      "rounds": [],
-      "notes": "Space pushed (c04f8fd..03915cc). Rebuilding. Vercel next."
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Live Space reproduces local numbers exactly. Preview is behind Vercel Deployment Protection so only the owner can open it; production not promoted."
+        }
+      ],
+      "notes": "Space LIVE and verified (outage fixed). Vercel preview deployed; production promotion is the user\u2019s call."
     }
   ],
   "log": [
@@ -192,6 +198,22 @@
     {
       "t": "deploy",
       "msg": "Pushed mace-api/ to the Space including the missing provenance.py and the 3 new engine modules. Rebuilding now."
+    },
+    {
+      "t": "LIVE",
+      "msg": "Space redeployed and verified end-to-end. Water vibrational analysis on the live free CPU Space: 1632.7/3845.7/3949.9 cm-1 (-0.96%/+0.35%/+0.19% vs experimental harmonic), S=188.57 J/mol/K (-0.14% vs experiment)."
+    },
+    {
+      "t": "BUG",
+      "msg": "The first live call found a bug local testing could never reach: a float32 model left torch's process-global default dtype at float32, so the next request's float64 model ran under it and the Hessian guard correctly refused. Only reproduces in the long-lived FastAPI process. Fixed by forcing the global to match the dtype read back off the loaded model."
+    },
+    {
+      "t": "live",
+      "msg": "Live ethane torsion scan on the free Space: 2.487 kcal/mol, 13/13 points, constraint deviation 0.0, 6.1 s on 2 vCPU - identical to local."
+    },
+    {
+      "t": "green",
+      "msg": "Final sweep: 6/6 Python test files pass, validator 5/5, tsc clean, next build clean, live Space healthy serving 12 models."
     }
   ]
 }

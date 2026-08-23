@@ -91,7 +91,7 @@ export function BenchmarkDashboard({ result }: DashboardProps) {
           {result.summary.errorCount > 0 && (
             <Badge
               variant="outline"
-              className="rounded font-mono text-[10px] text-[var(--color-error)] border-[var(--color-error)]/30 bg-[var(--color-error)]/10"
+              className="rounded font-mono text-xs text-[var(--color-error)] border-[var(--color-error)]/30 bg-[var(--color-error)]/10"
             >
               {result.summary.errorCount} error{result.summary.errorCount !== 1 ? "s" : ""}
             </Badge>

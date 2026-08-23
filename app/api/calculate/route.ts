@@ -252,9 +252,28 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Calculation error:", error);
+    const message =
+      error instanceof Error ? error.message : "Calculation failed";
+
+    // Separate "you asked for something impossible" from "we broke".
+    //
+    // The backend refuses a bad modelType, an element the chosen model does
+    // not cover, a NEB with no product, or a Hessian on a non-stationary
+    // geometry — all of which are the CALLER's error and all of which arrive
+    // here as a thrown Error carrying the engine's own message. Reporting them
+    // as 500 tells the caller the server is broken and sends them looking in
+    // the wrong place; it also disagrees with mace-api/main.py, which returns
+    // 400 for exactly these. The calculationType mirror above already returns
+    // 400, so without this the same class of mistake got two different codes
+    // depending on which field was wrong.
+    const isClientError =
+      /^Unsupported (calculationType|modelType)|^Invalid (calculationType|modelType|seed|precision)|does not cover|requires an uploaded MACE|needs two structures|takes a single structure|Refusing to compute a Hessian|Refusing to run/.test(
+        message,
+      );
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Calculation failed" },
-      { status: 500 }
+      { error: message },
+      { status: isClientError ? 400 : 500 },
     );
   }
 }

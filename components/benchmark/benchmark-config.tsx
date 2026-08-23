@@ -371,7 +371,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
           {/* MACE-MP-0 */}
           <div className="mb-3">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+            <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
               MACE-MP-0 — Materials (89 elements)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -400,7 +400,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
           {/* MACE-OFF */}
           <div className="mb-3">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+            <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
               MACE-OFF — Organic (H, C, N, O, F, P, S, Cl, Br, I)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -429,7 +429,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
           {/* Custom model upload */}
           <div className="mb-3">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+            <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
               Custom Model
             </p>
             {customModel ? (
@@ -488,7 +488,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
           )}
 
           {/* Precision note */}
-          <div className="mt-3 flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+          <div className="mt-3 flex items-center gap-1.5 font-mono text-xs text-[var(--color-text-muted)]">
             <Info className="h-3 w-3 flex-shrink-0" />
             All calculations run at float64 precision on CPU for fair comparison.
           </div>
@@ -508,7 +508,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 onClick={selectAll}
                 variant="link"
                 size="xs"
-                className="h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
+                className="h-auto p-0 font-mono text-xs text-[var(--color-accent-primary)]"
               >
                 Select All
               </Button>
@@ -516,7 +516,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 onClick={selectMpSet}
                 variant="link"
                 size="xs"
-                className="h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
+                className="h-auto p-0 font-mono text-xs text-[var(--color-accent-primary)]"
                 title="Compounds plus every elemental reference phase they need"
               >
                 + MP set
@@ -525,7 +525,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                 onClick={clearAll}
                 variant="link"
                 size="xs"
-                className="h-auto p-0 font-mono text-[10px] text-[var(--color-text-muted)]"
+                className="h-auto p-0 font-mono text-xs text-[var(--color-text-muted)]"
               >
                 Clear
               </Button>
@@ -547,7 +547,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                     onClick={addMissingMpReferences}
                     variant="link"
                     size="xs"
-                    className="mt-1 h-auto p-0 font-mono text-[10px] text-[var(--color-accent-primary)]"
+                    className="mt-1 h-auto p-0 font-mono text-xs text-[var(--color-accent-primary)]"
                   >
                     Add the missing reference{mpMissingReferences.length === 1 ? "" : "s"}
                   </Button>
@@ -582,7 +582,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                       }`}
                     >
                       {cat.name}
-                      <span className="font-mono text-[10px] font-normal text-[var(--color-text-muted)]">
+                      <span className="font-mono text-xs font-normal text-[var(--color-text-muted)]">
                         ({incompatibleIds.size > 0
                           ? `${compatibleEntries.length}/${cat.entries.length}`
                           : cat.entries.length})
@@ -619,7 +619,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                           >
                             {entry.name}
                           </Label>
-                          <span className="ml-auto font-mono text-[10px] text-[var(--color-text-muted)]/60">
+                          <span className="ml-auto font-mono text-xs text-[var(--color-text-muted)]/60">
                             {entry.formula}
                           </span>
                         </div>
@@ -633,7 +633,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
 
           {/* User-uploaded structures */}
           <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-muted)]">
+            <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
               Your Structures
             </p>
 
@@ -648,7 +648,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                     <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-accent-strong)]">
                       {f.name}
                     </span>
-                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                    <span className="font-mono text-xs text-[var(--color-text-muted)]">
                       {(f.size / 1024).toFixed(1)} KB
                     </span>
                     <Button

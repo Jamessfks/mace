@@ -241,7 +241,7 @@ absent, and `phonon` is rejected with an error rather than quietly running somet
 </tr>
 </table>
 
-<sub><em>Screenshots above reflect earlier releases; the v1.3.0 interface is live at the links.</em></sub>
+<sub><em>Screenshots above reflect earlier releases; the v2.3.0 interface is live at the links.</em></sub>
 
 </div>
 
@@ -521,6 +521,6 @@ Built on the [MACE framework](https://github.com/ACEsuit/mace) by Batatia et al.
 
 <div align="center">
 
-**v1.3.0** · Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
+**v2.3.0** · Academic use · MACE-OFF under [Academic Software License](https://github.com/gabor1/ASL)
 
 </div>

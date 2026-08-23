@@ -110,7 +110,7 @@ export function BenchmarkTiming({ result }: TimingProps) {
               className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-4"
               style={{ borderLeftWidth: 3, borderLeftColor: s.color }}
             >
-              <p className="mb-1 font-mono text-[10px] uppercase tracking-wider" style={{ color: s.color }}>
+              <p className="mb-1 font-mono text-xs uppercase tracking-wider" style={{ color: s.color }}>
                 {s.label}
               </p>
               <p className="font-mono text-xl font-bold text-[var(--color-text-primary)]">

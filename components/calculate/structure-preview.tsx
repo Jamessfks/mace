@@ -209,7 +209,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                     type="button"
                     onClick={() => setEngine("weas")}
                     title="WEAS viewer (ml-peg compatible)"
-                    className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
+                    className={`flex h-6 items-center px-2 font-mono text-xs transition-colors ${
                       engine === "weas"
                         ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
                         : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"
@@ -221,7 +221,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                     type="button"
                     onClick={() => setEngine("3dmol")}
                     title="3Dmol.js viewer"
-                    className={`flex h-6 items-center px-2 font-mono text-[10px] transition-colors ${
+                    className={`flex h-6 items-center px-2 font-mono text-xs transition-colors ${
                       engine === "3dmol"
                         ? "bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]"
                         : "text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]"

@@ -123,7 +123,7 @@ function EmbedMessage({
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block font-mono text-[11px] text-[var(--color-accent-strong)] underline underline-offset-2"
+              className="inline-block font-mono text-xs text-[var(--color-accent-strong)] underline underline-offset-2"
             >
               Open on SimpleAtom
             </a>
@@ -223,7 +223,7 @@ export default async function EmbeddedResultPage({
                 </span>
               )}
             </p>
-            <p className="mt-0.5 font-mono text-[11px] leading-snug text-[var(--color-text-secondary)]">
+            <p className="mt-0.5 font-mono text-xs leading-snug text-[var(--color-text-secondary)]">
               {[
                 summary.energy,
                 summary.energyPerAtom,
@@ -233,7 +233,7 @@ export default async function EmbeddedResultPage({
                 .filter(Boolean)
                 .join(" · ")}
             </p>
-            <p className="mt-0.5 font-mono text-[10px] leading-snug text-[var(--color-text-muted)]">
+            <p className="mt-0.5 font-mono text-xs leading-snug text-[var(--color-text-muted)]">
               {[
                 summary.computedUtc
                   ? `Computed ${summary.computedUtc}`
@@ -256,7 +256,7 @@ export default async function EmbeddedResultPage({
             href={fullUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded-full border border-[var(--color-border-subtle)] px-2.5 py-1 font-mono text-[10px] font-medium text-[var(--color-accent-strong)] transition-colors hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-soft)]"
+            className="shrink-0 rounded-full border border-[var(--color-border-subtle)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--color-accent-strong)] transition-colors hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-soft)]"
           >
             SimpleAtom ↗
           </a>

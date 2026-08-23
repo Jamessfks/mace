@@ -21,6 +21,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/**
+ * Type scale.
+ *
+ * Measured on the calculator page before this change: of 58 text nodes,
+ * 23 rendered at 12px and 17 at 10px — 40 of 58 at or below 12px, against a
+ * nominal 16px body that almost nothing actually used. The page read as a
+ * dense instrument panel rather than something you would choose to sit in
+ * front of. The codebase reaches for the small end of the scale by habit:
+ * 183 `text-xs`, 89 `text-xs`, 22 `text-xs`.
+ *
+ * Rather than edit 294 call sites, the scale itself moves up roughly one step.
+ * Every existing `text-xs` becomes 13px, every `text-sm` becomes 15px, and so
+ * on, so the relative hierarchy the design already establishes is preserved
+ * exactly — only the floor rises. The hardcoded 10px/11px literals bypass this
+ * scale and were replaced separately.
+ *
+ * Line heights are set explicitly alongside each size because Tailwind v4 pairs
+ * them via the `--text-*--line-height` companion variable; omitting them would
+ * leave the v3 defaults attached to new sizes and make dense blocks crowd.
+ */
+@theme {
+  --text-xs: 0.8125rem;      /* 13px — was 12. Metadata, units, table captions. */
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;      /* 15px — was 14. Secondary copy, form labels.    */
+  --text-sm--line-height: 1.5;
+  --text-base: 1.0625rem;    /* 17px — was 16. Body.                           */
+  --text-base--line-height: 1.6;
+  --text-lg: 1.1875rem;      /* 19px — was 18.                                 */
+  --text-lg--line-height: 1.55;
+  --text-xl: 1.375rem;       /* 22px — was 20.                                 */
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.625rem;      /* 26px — was 24.                                 */
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;          /* 32px — was 30.                                 */
+  --text-3xl--line-height: 1.22;
+  --text-4xl: 2.5rem;        /* 40px — was 36.                                 */
+  --text-4xl--line-height: 1.15;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

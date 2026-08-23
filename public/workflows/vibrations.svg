@@ -1,0 +1,41 @@
+<svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="vib-title vib-desc">
+  <title id="vib-title">Vibrational analysis</title>
+  <desc id="vib-desc">Water's bending normal mode at 1632 cm^-1, drawn from a real MACE Hessian: arrows are the actual mass-weighted displacement eigenvector. Below it, a stick spectrum at the three real frequencies (1632, 3845, 3950 cm^-1); stick height is not intensity, since this model cannot produce IR intensities.</desc>
+  <defs>
+    <marker id="vib-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--color-accent-strong, #3A7A40)"/>
+    </marker>
+  </defs>
+  <style>
+    .bond{stroke:var(--color-text-secondary, #5C574E);stroke-width:2.4;stroke-linecap:round;}
+    .atomO{fill:var(--color-data-red, #EE6677);}
+    .atomH{fill:var(--color-bg-elevated, #FFFFFF);stroke:var(--color-text-secondary, #5C574E);stroke-width:1.3;}
+    .disp{stroke:var(--color-accent-strong, #3A7A40);stroke-width:1.7;stroke-linecap:round;fill:none;}
+    .axis{stroke:var(--color-border-emphasis, #D8D2C6);stroke-width:1;}
+    .stick{stroke:var(--color-data-purple, #AA3377);stroke-width:2.2;stroke-linecap:round;}
+    .cap{fill:var(--color-text-muted, #8A8478);font-family:ui-monospace,"Geist Mono",monospace;font-size:8.5px;}
+  </style>
+
+  <!-- bending normal mode, 1631.7 cm^-1 -->
+  <line class="bond" x1="60.0" y1="48.7" x2="101.8" y2="80.8"/>
+  <line class="bond" x1="60.0" y1="48.7" x2="18.2" y2="80.8"/>
+
+  <line class="disp" x1="60.0" y1="48.7" x2="60.0" y2="45.2" marker-end="url(#vib-arrow)"/>
+  <line class="disp" x1="101.8" y1="80.8" x2="80.8" y2="108.3" marker-end="url(#vib-arrow)"/>
+  <line class="disp" x1="18.2" y1="80.8" x2="39.2" y2="108.3" marker-end="url(#vib-arrow)"/>
+
+  <circle class="atomO" cx="60.0" cy="48.7" r="7"/>
+  <circle class="atomH" cx="101.8" cy="80.8" r="4.8"/>
+  <circle class="atomH" cx="18.2" cy="80.8" r="4.8"/>
+
+  <text class="cap" x="130" y="55">bend</text>
+  <text class="cap" x="130" y="66">1632 cm&#8315;&#185;</text>
+
+  <!-- real stick spectrum: positions are the three real frequencies; height is uniform, not intensity -->
+  <line class="axis" x1="20" y1="168" x2="270" y2="168"/>
+  <line class="stick" x1="114.3" y1="140" x2="114.3" y2="168"/>
+  <line class="stick" x1="235.6" y1="140" x2="235.6" y2="168"/>
+  <line class="stick" x1="241.3" y1="140" x2="241.3" y2="168"/>
+
+  <text class="cap" x="20" y="177">1632 &#183; 3845 &#183; 3950 cm&#8315;&#185; &#8212; no IR intensity</text>
+</svg>

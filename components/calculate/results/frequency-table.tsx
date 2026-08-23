@@ -84,11 +84,11 @@ export function FrequencyTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-mono text-[10px] uppercase tracking-wider">#</TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-wider">Frequency (cm⁻¹)</TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-wider">Energy (eV)</TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-wider">Reduced mass (amu)</TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-wider">Force constant (eV/Å²)</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider">#</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider">Frequency (cm⁻¹)</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider">Energy (eV)</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider">Reduced mass (amu)</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider">Force constant (eV/Å²)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -121,7 +121,7 @@ export function FrequencyTable({
                     {mode.imaginary && (
                       <Badge
                         variant="outline"
-                        className="ml-2 border-[var(--color-error)]/40 bg-[var(--color-error)]/10 text-[10px] text-[var(--color-error)]"
+                        className="ml-2 border-[var(--color-error)]/40 bg-[var(--color-error)]/10 text-xs text-[var(--color-error)]"
                       >
                         imaginary
                       </Badge>
@@ -143,11 +143,11 @@ export function FrequencyTable({
         </Table>
       </div>
       {onSelectMode && (
-        <p className="text-[10px] text-[var(--color-text-muted)]">
+        <p className="text-xs text-[var(--color-text-muted)]">
           Click a row to animate that normal mode below.
         </p>
       )}
-      <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+      <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
         {vibrations.nTranslationRotation} translation/rotation modes (near-zero
         frequency) were projected out and are not shown — they are not
         physical vibrations.

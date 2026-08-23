@@ -818,7 +818,7 @@ function CalculatePageInner() {
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-6">
           <div className="elevate pointer-events-auto max-w-lg rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-5">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[11px] text-[var(--color-accent-strong)]">
+              <span className="font-mono text-xs text-[var(--color-accent-strong)]">
                 Quick demo · Step {demoStep + 1}/{DEMO_STEPS.length}
               </span>
               <button
@@ -967,11 +967,11 @@ function RecentCalculations() {
                     <span className="truncate font-mono text-xs text-[var(--color-text-primary)]">
                       {e.filename ?? "structure"}
                     </span>
-                    <span className="shrink-0 text-[10px] text-[var(--color-text-muted)]">
+                    <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
                       {timeAgo(e.timestamp)}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-text-secondary)]">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-text-secondary)]">
                     <span>{e.modelType}</span>
                     <span aria-hidden>·</span>
                     <span>{CALC_LABEL[e.calculationType] ?? e.calculationType}</span>
@@ -983,7 +983,7 @@ function RecentCalculations() {
                     )}
                   </div>
                   {typeof e.energy === "number" && (
-                    <p className="mt-1 font-mono text-[11px] text-[var(--color-text-muted)]">
+                    <p className="mt-1 font-mono text-xs text-[var(--color-text-muted)]">
                       E = {e.energy.toFixed(4)} eV
                     </p>
                   )}
@@ -992,7 +992,7 @@ function RecentCalculations() {
                       href={e.shareUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--color-accent-strong)] hover:underline"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--color-accent-strong)] hover:underline"
                     >
                       <ExternalLink className="h-3 w-3" />
                       Open shared result

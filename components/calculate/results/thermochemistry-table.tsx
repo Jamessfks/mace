@@ -49,7 +49,7 @@ export function ThermochemistryTable({ thermochemistry: t }: ThermochemistryTabl
         <strong className="text-[var(--color-text-primary)]">{t.temperatureK} K</strong> /{" "}
         <strong className="text-[var(--color-text-primary)]">{t.pressurePa.toLocaleString()} Pa</strong>
         {t.pressureNote && (
-          <span className="mt-1 block text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+          <span className="mt-1 block text-xs leading-relaxed text-[var(--color-text-muted)]">
             {t.pressureNote}
           </span>
         )}

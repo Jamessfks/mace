@@ -125,42 +125,60 @@ type CalcTypeOption = {
   label: string;
   hint: string;
   disabled?: boolean;
+  /**
+   * Illustration in `public/workflows/`. Original SVGs authored for SimpleAtom,
+   * and — unlike the decorative artwork this pattern is borrowed from — drawn
+   * from data this app really produced: coordinate-scan.svg plots the measured
+   * ethane torsion profile with its true 2.487 kcal/mol barrier, and
+   * vibrations.svg uses water's real eigenvector and its three real
+   * frequencies. See public/workflows/README.md for the provenance of each.
+   * Omitted for types with no implementation, which render as a flat tile —
+   * an illustration would advertise a capability that is not there.
+   */
+  art?: string;
 };
 
 const CALC_TYPES: CalcTypeOption[] = [
   {
     value: "single-point",
+    art: "/workflows/single-point.svg",
     label: "Single-point energy",
     hint: "Energy and forces at the current geometry",
   },
   {
     value: "geometry-opt",
+    art: "/workflows/geometry-opt.svg",
     label: "Geometry optimization",
     hint: "Relax atomic positions to a local energy minimum",
   },
   {
     value: "molecular-dynamics",
+    art: "/workflows/molecular-dynamics.svg",
     label: "Molecular dynamics",
     hint: "Propagate atomic motion over time",
   },
   {
     value: "vibrations",
+    art: "/workflows/vibrations.svg",
     label: "Vibrational analysis",
     hint: "Harmonic frequencies, normal modes and ideal-gas thermochemistry (relaxes to a stationary point first)",
   },
   {
     value: "coordinate-scan",
+    art: "/workflows/coordinate-scan.svg",
     label: "Coordinate scan",
     hint: "Relaxed scan of a bond, angle or dihedral, with an energy profile",
   },
   {
     value: "neb",
+    art: "/workflows/neb.svg",
     label: "Nudged elastic band",
     hint: "Reaction path between two structures — needs a second (product) structure upload, which SimpleAtom does not have wired up yet. Coming soon.",
     disabled: true,
   },
   {
     value: "irc",
+    art: "/workflows/irc.svg",
     label: "Intrinsic reaction coordinate",
     hint: "Reaction path from an uploaded transition state toward reactant and product",
   },
@@ -444,7 +462,7 @@ export function ParameterPanel({
                       <p className="font-mono text-xs text-[var(--color-text-primary)]">
                         {customModelFile.name}
                       </p>
-                      <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      <p className="font-mono text-xs text-[var(--color-text-muted)]">
                         {(customModelFile.size / 1024 / 1024).toFixed(1)} MB
                       </p>
                     </div>
@@ -507,7 +525,7 @@ export function ParameterPanel({
               </SelectContent>
             </Select>
             {!isCustom && availableSizes.length < 3 && (
-              <p className="text-[10px] text-[var(--color-text-muted)]">
+              <p className="text-xs text-[var(--color-text-muted)]">
                 {activeEntry?.family ?? familyKey} only ships{" "}
                 {availableSizes.map((e) => e.modelSize).join(", ")}.
               </p>
@@ -549,7 +567,7 @@ export function ParameterPanel({
                   <SelectItem value="float64">float64 — precise</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+              <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
                 {isCustom
                   ? "Custom checkpoints run in the dtype they were saved in."
                   : `Auto follows upstream MACE: this family defaults to ${activeEntry?.upstreamDefaultDtype ?? "float32"}, and float64 for geometry optimization regardless of family. An explicit choice is always honoured — the result will say which dtype actually ran.`}
@@ -593,41 +611,70 @@ export function ParameterPanel({
                 v as CalculationParams["calculationType"],
               )
             }
-            className="gap-2"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
-            {CALC_TYPES.map((opt) => (
-              <label
-                key={opt.value}
-                htmlFor={`ct-${opt.value}`}
-                className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
-                  opt.disabled
-                    ? "cursor-not-allowed border-[var(--color-border-subtle)] opacity-55"
-                    : params.calculationType === opt.value
-                      ? "cursor-pointer border-[var(--color-accent-primary)] bg-[var(--color-accent-soft)]"
-                      : "cursor-pointer border-[var(--color-border-subtle)] hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-bg-secondary)]"
-                }`}
-              >
-                <RadioGroupItem
-                  value={opt.value}
-                  id={`ct-${opt.value}`}
-                  disabled={opt.disabled}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block text-sm font-medium text-[var(--color-text-primary)]">
-                    {opt.label}
-                    {opt.disabled && (
-                      <span className="ml-2 rounded-full bg-[var(--color-bg-secondary)] px-2 py-0.5 text-[10px] font-normal text-[var(--color-text-muted)]">
-                        soon
+            {CALC_TYPES.map((opt) => {
+              const selected = params.calculationType === opt.value;
+              return (
+                <label
+                  key={opt.value}
+                  htmlFor={`ct-${opt.value}`}
+                  className={`group relative flex flex-col overflow-hidden rounded-xl border transition-all ${
+                    opt.disabled
+                      ? "cursor-not-allowed border-[var(--color-border-subtle)] opacity-60"
+                      : selected
+                        ? "cursor-pointer border-[var(--color-accent-primary)] bg-[var(--color-accent-soft)] shadow-sm"
+                        : "cursor-pointer border-[var(--color-border-subtle)] hover:border-[var(--color-border-emphasis)] hover:shadow-sm"
+                  }`}
+                >
+                  {opt.art && (
+                    /*
+                     * Decorative: the label and hint below carry the meaning, so
+                     * announcing the illustration too would make a screen reader
+                     * read every card twice. Each SVG still has its own <title>
+                     * for anyone opening the file directly.
+                     */
+                    <span
+                      aria-hidden="true"
+                      className="block border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={opt.art}
+                        alt=""
+                        width={280}
+                        height={180}
+                        loading="lazy"
+                        className={`block h-auto w-full transition-opacity ${
+                          opt.disabled ? "opacity-45 grayscale" : "opacity-95 group-hover:opacity-100"
+                        }`}
+                      />
+                    </span>
+                  )}
+                  <span className="flex flex-1 items-start gap-2.5 p-3.5">
+                    <RadioGroupItem
+                      value={opt.value}
+                      id={`ct-${opt.value}`}
+                      disabled={opt.disabled}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-[var(--color-text-primary)]">
+                        {opt.label}
+                        {opt.disabled && (
+                          <span className="ml-2 rounded-full bg-[var(--color-bg-secondary)] px-2 py-0.5 text-xs font-normal text-[var(--color-text-muted)]">
+                            soon
+                          </span>
+                        )}
                       </span>
-                    )}
+                      <span className="mt-1 block text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                        {opt.hint}
+                      </span>
+                    </span>
                   </span>
-                  <span className="mt-0.5 block text-xs text-[var(--color-text-secondary)]">
-                    {opt.hint}
-                  </span>
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </RadioGroup>
 
           <div className="border-t border-[var(--color-border-subtle)] pt-5">
@@ -706,7 +753,7 @@ export function ParameterPanel({
                     </SelectContent>
                   </Select>
                   {isPeriodic === false && (
-                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                    <p className="text-xs text-[var(--color-text-muted)]">
                       NPT is unavailable — this structure has no periodic
                       cell (not a crystal/bulk structure). Only NVE/NVT apply.
                     </p>
@@ -872,7 +919,7 @@ export function ParameterPanel({
                       step={1}
                     />
                   ) : (
-                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                    <p className="text-xs text-[var(--color-text-muted)]">
                       Auto-detected from the relaxed geometry&apos;s point group.
                     </p>
                   )}
@@ -978,7 +1025,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
 
       {/* Element coverage */}
       <div>
-        <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+        <p className="mb-1.5 font-mono text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
           Element coverage ({entry.elementCount})
         </p>
         <div className="flex flex-wrap gap-1">
@@ -986,7 +1033,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
             <Badge
               key={el}
               variant="outline"
-              className="bg-[var(--color-bg-elevated)] font-mono text-[10px] font-normal text-[var(--color-text-secondary)]"
+              className="bg-[var(--color-bg-elevated)] font-mono text-xs font-normal text-[var(--color-text-secondary)]"
             >
               {el}
             </Badge>
@@ -995,7 +1042,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
             <button
               type="button"
               onClick={() => setShowAllElements(true)}
-              className="rounded-full border border-dashed border-[var(--color-border-emphasis)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
+              className="rounded-full border border-dashed border-[var(--color-border-emphasis)] px-2 py-0.5 font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
             >
               +{hiddenCount} more
             </button>
@@ -1004,7 +1051,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
             <button
               type="button"
               onClick={() => setShowAllElements(false)}
-              className="flex items-center gap-0.5 rounded-full px-2 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
+              className="flex items-center gap-0.5 rounded-full px-2 py-0.5 font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent-primary)]"
             >
               <ChevronUp className="h-3 w-3" /> collapse
             </button>
@@ -1023,7 +1070,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
         </span>
       </div>
       {isExpensive && (
-        <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-[var(--color-warning)]">
+        <p className="flex items-start gap-1.5 text-xs leading-relaxed text-[var(--color-warning)]">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
           <span>
             {entry.relativeCost.toFixed(1)}x the cost of the cheapest model in
@@ -1132,7 +1179,7 @@ function CoordinateScanForm({
           ))}
         </div>
         {!structureSymbols?.length && (
-          <p className="text-[10px] text-[var(--color-text-muted)]">
+          <p className="text-xs text-[var(--color-text-muted)]">
             Upload a structure to pick atoms by element instead of a bare index.
           </p>
         )}
@@ -1212,7 +1259,7 @@ function AtomIndexField({
   if (symbols && symbols.length > 0) {
     return (
       <div className="space-y-1">
-        <Label className="text-[10px] text-[var(--color-text-muted)]">{label}</Label>
+        <Label className="text-xs text-[var(--color-text-muted)]">{label}</Label>
         <Select
           value={String(Math.min(Math.max(value, 0), symbols.length - 1))}
           onValueChange={(v) => onChange(Number(v))}
@@ -1234,7 +1281,7 @@ function AtomIndexField({
 
   return (
     <div className="space-y-1">
-      <Label className="text-[10px] text-[var(--color-text-muted)]">{label}</Label>
+      <Label className="text-xs text-[var(--color-text-muted)]">{label}</Label>
       <Input
         type="number"
         className="no-spinner font-mono text-xs"
@@ -1371,17 +1418,17 @@ function NumberField({
         step={step ?? 1}
       />
       {hint && (
-        <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+        <p className="font-mono text-xs text-[var(--color-text-muted)]">
           {hint}
         </p>
       )}
       {rangeText && (
-        <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+        <p className="font-mono text-xs text-[var(--color-text-muted)]">
           {rangeText}
         </p>
       )}
       {warning && (
-        <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-[var(--color-warning)]">
+        <p className="flex items-start gap-1.5 text-xs leading-relaxed text-[var(--color-warning)]">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
           <span>{warning}</span>
         </p>

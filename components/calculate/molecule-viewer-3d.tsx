@@ -2970,7 +2970,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               aria-checked={is3Dmol}
               onClick={() => setEngine("3dmol")}
               title="3Dmol.js viewer (force arrows supported)"
-              className={`flex items-center justify-center rounded-l font-mono text-[10px] transition-colors ${
+              className={`flex items-center justify-center rounded-l font-mono text-xs transition-colors ${
                 coarse ? "h-11 px-3" : "h-8 px-2"
               } ${
                 is3Dmol
@@ -2986,7 +2986,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               aria-checked={!is3Dmol}
               onClick={() => setEngine("weas")}
               title="WEAS viewer (ml-peg compatible)"
-              className={`flex items-center justify-center rounded-r font-mono text-[10px] transition-colors ${
+              className={`flex items-center justify-center rounded-r font-mono text-xs transition-colors ${
                 coarse ? "h-11 px-3" : "h-8 px-2"
               } ${
                 !is3Dmol
@@ -3257,7 +3257,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                           </span>
                         )}
                       </p>
-                      <p className="truncate font-mono text-[10px] text-[var(--color-text-muted)]">
+                      <p className="truncate font-mono text-xs text-[var(--color-text-muted)]">
                         {measurement.path}
                         {measurement.note ? ` · ${measurement.note}` : ""}
                       </p>
@@ -3270,7 +3270,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                           : "1 atom"}{" "}
                         selected
                       </p>
-                      <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      <p className="font-mono text-xs text-[var(--color-text-muted)]">
                         add a 2nd atom for a distance in Å
                       </p>
                     </>
@@ -3304,10 +3304,10 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
               top: Math.max(24, hover.y - 8),
             }}
           >
-            <p className="font-mono text-[11px] font-bold text-[var(--color-text-primary)]">
+            <p className="font-mono text-xs font-bold text-[var(--color-text-primary)]">
               {hover.text}
             </p>
-            <p className="whitespace-nowrap font-mono text-[10px] text-[var(--color-text-muted)]">
+            <p className="whitespace-nowrap font-mono text-xs text-[var(--color-text-muted)]">
               {hover.detail}
             </p>
           </div>
@@ -3328,7 +3328,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
             <button
               type="button"
               onClick={() => setMarqueeArmed(false)}
-              className={`flex items-center gap-1.5 rounded border border-[var(--color-accent-primary)]/60 bg-[var(--color-bg-elevated)]/95 px-2 text-left font-mono text-[10px] text-[var(--color-accent-primary)] shadow-sm ${
+              className={`flex items-center gap-1.5 rounded border border-[var(--color-accent-primary)]/60 bg-[var(--color-bg-elevated)]/95 px-2 text-left font-mono text-xs text-[var(--color-accent-primary)] shadow-sm ${
                 coarse ? "min-h-[44px] py-2" : "py-1"
               }`}
             >
@@ -3369,7 +3369,7 @@ export function MoleculeViewer3D({ result }: MoleculeViewer3DProps) {
                 aria-label="Gestures and controls"
                 className="absolute bottom-full right-0 mb-2 w-[16rem] rounded border border-[var(--color-border-emphasis)] bg-[var(--color-bg-elevated)]/95 p-2.5 shadow-lg backdrop-blur-sm"
               >
-                <ul className="space-y-1 font-mono text-[11px] leading-snug text-[var(--color-text-muted)]">
+                <ul className="space-y-1 font-mono text-xs leading-snug text-[var(--color-text-muted)]">
                   {(is3Dmol
                     ? pointerFine
                       ? [

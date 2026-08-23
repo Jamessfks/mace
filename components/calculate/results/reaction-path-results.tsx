@@ -105,14 +105,14 @@ export function ReactionPathResults({ result }: ReactionPathResultsProps) {
               </div>
             )}
 
-            <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+            <p className="font-mono text-xs text-[var(--color-text-muted)]">
               {scan.pointConverged.filter(Boolean).length} of {scan.pointConverged.length}{" "}
               points converged to the force threshold
               {scan.sequential &&
                 " · each point started from the previous point's relaxed geometry (sequential scan)"}
             </p>
             {scan.hysteresisNote && (
-              <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+              <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
                 {scan.hysteresisNote}
               </p>
             )}

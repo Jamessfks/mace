@@ -118,7 +118,7 @@ export function IrStickSpectrum({ vibrations }: IrStickSpectrumProps) {
                 <summary className="cursor-pointer text-[var(--color-text-secondary)] underline-offset-2 hover:underline">
                   Why aren&apos;t intensities available?
                 </summary>
-                <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+                <p className="mt-1.5 font-mono text-xs leading-relaxed text-[var(--color-text-muted)]">
                   {infrared.reason}
                 </p>
               </details>

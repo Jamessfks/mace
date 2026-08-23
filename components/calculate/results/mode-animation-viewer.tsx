@@ -173,13 +173,13 @@ export function ModeAnimationViewer({
           onChange={(e) => { setPlaying(false); setCurrentFrame(Number(e.target.value)); }}
           className="flex-1 accent-[var(--color-accent-primary)]"
         />
-        <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+        <span className="font-mono text-xs text-[var(--color-text-muted)]">
           {mode.imaginary ? "−" : ""}
           {Math.abs(mode.frequencyCm1).toFixed(1)} cm⁻¹
         </span>
       </div>
 
-      <p className="text-[10px] leading-relaxed text-[var(--color-text-muted)]">
+      <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
         {animation?.note ??
           "Displacement is scaled for visibility. Direction and relative magnitude are physical; the overall scale is a display choice."}
       </p>

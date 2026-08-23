@@ -157,7 +157,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
 
           {/* Footer */}
           <div className="mt-4 flex items-center justify-between">
-            <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+            <p className="font-mono text-xs text-[var(--color-text-muted)]">
               Structures from{" "}
               <a
                 href="https://github.com/ddmms/ml-peg"
@@ -172,7 +172,7 @@ export function MlPegCatalog({ onSelect }: MlPegCatalogProps) {
             </p>
             <Link
               href="/benchmark"
-              className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--color-accent-strong)] transition-colors hover:text-[var(--color-accent-hover)]"
+              className="flex items-center gap-1.5 font-mono text-xs text-[var(--color-accent-strong)] transition-colors hover:text-[var(--color-accent-hover)]"
             >
               <FlaskConical className="h-3 w-3" strokeWidth={1.75} />
               Run full benchmark →
@@ -255,7 +255,7 @@ function EntryRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--color-text-primary)]">{entry.name}</span>
-          <span className="rounded bg-[var(--color-accent-primary)]/10 px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
+          <span className="rounded bg-[var(--color-accent-primary)]/10 px-1.5 py-0.5 text-xs text-[var(--color-accent-primary)]/70">
             {entry.formula}
           </span>
           <span className="text-[var(--color-text-muted)]">
@@ -264,7 +264,7 @@ function EntryRow({
         </div>
         <p className="mt-0.5 truncate text-[var(--color-text-muted)]">{entry.description}</p>
       </div>
-      <span className="shrink-0 rounded border border-[var(--color-border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--color-accent-primary)]/70">
+      <span className="shrink-0 rounded border border-[var(--color-border-subtle)] px-1.5 py-0.5 text-xs text-[var(--color-accent-primary)]/70">
         {entry.recommendedModel === "MACE-MP-0" ? "MP" : "OFF"}
       </span>
     </button>

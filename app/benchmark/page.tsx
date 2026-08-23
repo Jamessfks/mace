@@ -197,7 +197,7 @@ export default function BenchmarkPage() {
         </div>
 
         {/* Attribution */}
-        <p className="mt-12 border-t border-[var(--color-border-subtle)] pt-6 text-center font-mono text-[11px] text-[var(--color-text-muted)]">
+        <p className="mt-12 border-t border-[var(--color-border-subtle)] pt-6 text-center font-mono text-xs text-[var(--color-text-muted)]">
           Inspired by{" "}
           <a
             href="https://ml-peg.stfc.ac.uk"

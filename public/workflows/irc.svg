@@ -1,0 +1,33 @@
+<svg viewBox="0 0 280 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="irc-title irc-desc">
+  <title id="irc-title">Intrinsic reaction coordinate</title>
+  <desc id="irc-desc">A continuous steepest-descent path run in both directions from a transition state (the diamond at the saddle point), down to the reactant minimum on one side and the product minimum on the other, unlike NEB's discrete chain of images.</desc>
+  <defs>
+    <marker id="irc-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--color-accent-strong, #3A7A40)"/>
+    </marker>
+  </defs>
+  <style>
+    .axis{stroke:var(--color-border-emphasis, #D8D2C6);stroke-width:1;}
+    .curve{stroke:var(--color-data-blue, #4477AA);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+    .min{fill:var(--color-text-primary, #262521);}
+    .ts{fill:var(--color-bg-elevated, #FFFFFF);stroke:var(--color-accent-strong, #3A7A40);stroke-width:2.2;}
+    .dir{stroke:var(--color-accent-strong, #3A7A40);stroke-width:1.6;stroke-linecap:round;fill:none;opacity:0.9;}
+    .cap{fill:var(--color-text-muted, #8A8478);font-family:ui-monospace,"Geist Mono",monospace;font-size:8.5px;}
+  </style>
+
+  <line class="axis" x1="20" y1="120" x2="260" y2="120"/>
+
+  <polyline class="curve" points="20.0,113.0 24.1,112.5 28.1,111.8 32.2,111.1 36.3,110.2 40.3,109.2 44.4,108.0 48.5,106.5 52.5,104.8 56.6,102.8 60.7,100.4 64.7,97.7 68.8,94.5 72.9,91.0 76.9,86.9 81.0,82.5 85.1,77.7 89.2,72.5 93.2,67.0 97.3,61.2 101.4,55.4 105.4,49.5 109.5,43.8 113.6,38.3 117.6,33.2 121.7,28.7 125.8,24.8 129.8,21.8 133.9,19.6 138.0,18.3 142.0,18.0 146.1,18.7 150.2,20.3 154.2,22.8 158.3,26.0 162.4,30.0 166.4,34.5 170.5,39.3 174.6,44.5 178.6,49.8 182.7,55.0 186.8,60.2 190.8,65.1 194.9,69.7 199.0,74.0 203.1,77.8 207.1,81.2 211.2,84.2 215.3,86.8 219.3,88.9 223.4,90.7 227.5,92.1 231.5,93.3 235.6,94.1 239.7,94.7 243.7,95.2 247.8,95.5 251.9,95.6 255.9,95.7 260.0,95.6"/>
+
+  <!-- descent direction, both ways from the saddle -->
+  <line class="dir" x1="125.8" y1="24.8" x2="115.0" y2="36.7" marker-end="url(#irc-arrow)"/>
+  <line class="dir" x1="154.2" y1="22.8" x2="164.9" y2="32.6" marker-end="url(#irc-arrow)"/>
+
+  <circle class="min" cx="20.0" cy="113.0" r="4.4"/>
+  <circle class="min" cx="260.0" cy="95.6" r="4.4"/>
+  <path class="ts" d="M140,11.5 L147.5,18 L140,24.5 L132.5,18 Z"/>
+
+  <text class="cap" x="112" y="8">saddle point</text>
+  <text class="cap" x="14" y="128">reactant</text>
+  <text class="cap" x="228" y="128">product</text>
+</svg>

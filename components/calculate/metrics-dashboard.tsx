@@ -338,7 +338,7 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           {hasRef && (
             <Badge
               variant="outline"
-              className="border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-primary)]/10 font-mono text-[10px] text-[var(--color-accent-strong)]"
+              className="border-[var(--color-accent-primary)]/30 bg-[var(--color-accent-primary)]/10 font-mono text-xs text-[var(--color-accent-strong)]"
             >
               Reference data detected
             </Badge>
@@ -1265,7 +1265,7 @@ function ValidationFindings({
         {info.length > 0 && (
           <FindingList items={info} severity="info" heading="Checks performed" />
         )}
-        <p className="border-t border-border pt-2 font-mono text-[10px] leading-relaxed text-muted-foreground">
+        <p className="border-t border-border pt-2 font-mono text-xs leading-relaxed text-muted-foreground">
           {validation.source ?? "validator"}
           {validation.policy ? ` · ${validation.policy}` : ""}
         </p>
@@ -1308,7 +1308,7 @@ function FindingList({
 }) {
   return (
     <div>
-      <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
         {heading}
       </h4>
       <ul className="mt-1 space-y-1 pl-4">
@@ -1648,14 +1648,14 @@ function ProvenanceSection({ provenance }: { provenance?: CalculationProvenance 
         <PropertyRows rows={rows} />
         {notes.length > 0 && (
           <div className="mt-3 border-t border-border pt-2">
-            <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Manifest notes
             </h4>
             <ul className="mt-1 space-y-1 pl-4">
               {notes.map((note, i) => (
                 <li
                   key={i}
-                  className="list-disc font-mono text-[11px] leading-relaxed text-muted-foreground"
+                  className="list-disc font-mono text-xs leading-relaxed text-muted-foreground"
                 >
                   {note}
                 </li>
@@ -1734,7 +1734,7 @@ function EnergyReferenceNote({ result }: { result: CalculationResult }) {
 
   return (
     <div className="rounded-lg border border-border bg-muted px-4 py-3">
-      <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+      <p className="font-mono text-xs leading-relaxed text-muted-foreground">
         <span className="font-bold text-[var(--color-text-secondary)]">
           Note{modelType ? ` (${modelType}${modelSize ? `, ${modelSize}` : ""})` : ""}:
         </span>{" "}
@@ -1791,16 +1791,16 @@ function ForcesTable({
               <th className="px-3 py-2 text-left">#</th>
               <th className="px-3 py-2 text-left">Element</th>
               <th className="px-3 py-2 text-right">
-                Fx <span className="text-[10px] font-normal">(eV/Å)</span>
+                Fx <span className="text-xs font-normal">(eV/Å)</span>
               </th>
               <th className="px-3 py-2 text-right">
-                Fy <span className="text-[10px] font-normal">(eV/Å)</span>
+                Fy <span className="text-xs font-normal">(eV/Å)</span>
               </th>
               <th className="px-3 py-2 text-right">
-                Fz <span className="text-[10px] font-normal">(eV/Å)</span>
+                Fz <span className="text-xs font-normal">(eV/Å)</span>
               </th>
               <th className="px-3 py-2 text-right">
-                |F| <span className="text-[10px] font-normal">(eV/Å)</span>
+                |F| <span className="text-xs font-normal">(eV/Å)</span>
               </th>
             </tr>
           </thead>
@@ -1827,7 +1827,7 @@ function ForcesTable({
           </tbody>
         </table>
       </div>
-      <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+      <p className="mt-2 font-mono text-xs text-muted-foreground">
         {forces.length} atoms &middot; Max |F| highlighted
       </p>
     </>

@@ -101,7 +101,7 @@ export function FileUploadSection({
                 <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
                   or click to browse
                 </p>
-                <p className="mt-3 font-mono text-[11px] text-[var(--color-text-muted)]">
+                <p className="mt-3 font-mono text-xs text-[var(--color-text-muted)]">
                   {ACCEPTED_FORMATS.join("  ·  ")}
                 </p>
               </div>
@@ -161,7 +161,7 @@ export function FileUploadSection({
                   <p className="font-mono text-xs text-[var(--color-text-primary)]">
                     {files[0].name}
                   </p>
-                  <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                  <p className="font-mono text-xs text-[var(--color-text-muted)]">
                     {(files[0].size / 1024).toFixed(1)} KB
                   </p>
                 </div>
