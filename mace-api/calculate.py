@@ -11,24 +11,50 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import model_catalog
 import provenance
+import reaction_paths
+import vibrations_thermo
 
 # Calculation types that have a real implementation below. This is the
 # security boundary: the API can be POSTed to directly, so the frontend check
 # is not sufficient. Anything outside this set MUST fail loudly — silently
 # falling back to a single-point run would return a plausible-looking energy
 # for a calculation that never happened.
-SUPPORTED_CALCULATION_TYPES = ("single-point", "geometry-opt", "molecular-dynamics")
+SUPPORTED_CALCULATION_TYPES = (
+    "single-point",
+    "geometry-opt",
+    "molecular-dynamics",
+    vibrations_thermo.CALCULATION_TYPE,          # "vibrations"
+    *reaction_paths.SUPPORTED_REACTION_PATH_TYPES,  # coordinate-scan, neb, irc
+)
 
 # Model families that have a real loader in get_mace_calculator(). Same
 # security-boundary reasoning as SUPPORTED_CALCULATION_TYPES, applied to the
 # model instead of the calculation: an unrecognised modelType that falls
 # through to mace_mp() returns MACE-MP-0 numbers under another model's name,
 # and those numbers are shareable via MACE Link and exportable to PDF.
-SUPPORTED_MODEL_TYPES = ("MACE-MP-0", "MACE-OFF", "MACE-OFF23", "custom")
+# Derived from model_catalog rather than hand-listed. The catalog is the single
+# source of truth for which checkpoints the *installed* mace-torch can actually
+# load, so a family cannot be advertised here and be missing there. Aliases are
+# included because "MACE-OFF" is what the existing UI and every already-shared
+# MACE Link send; the catalog maps it onto MACE-OFF23.
+SUPPORTED_MODEL_TYPES = (
+    *model_catalog.list_model_types(),
+    *model_catalog.MODEL_TYPE_ALIASES,
+    "custom",
+)
 
-# modelType values that map to upstream's mace_off() loader.
-MACE_OFF_MODEL_TYPES = ("MACE-OFF", "MACE-OFF23")
+# modelType values that map to upstream's mace_off() loader. Derived from each
+# entry's loader field instead of hand-listed, so that adding an OFF-family
+# checkpoint to the catalog cannot leave the dispersion and dtype rules below
+# silently treating it as an MP model — which would enable D3 on a model that
+# already contains it.
+MACE_OFF_MODEL_TYPES = tuple(
+    name for name in SUPPORTED_MODEL_TYPES
+    if name != "custom"
+    and model_catalog.resolve_model(name).loader == model_catalog.LOADER_MACE_OFF
+)
 
 # Floating-point precisions MACE accepts as `default_dtype`.
 SUPPORTED_PRECISIONS = ("float32", "float64")
@@ -37,9 +63,18 @@ SUPPORTED_PRECISIONS = ("float32", "float64")
 # Rejecting these honestly is the correct behaviour; a stub returning numbers
 # would be worse than an error.
 _UNIMPLEMENTED_HINTS = {
+    # Molecular vibrational analysis now exists as "vibrations". "phonon" stays
+    # unimplemented because it is a genuinely different calculation — force
+    # constants on a q-point mesh of a periodic cell, not a 3N x 3N molecular
+    # Hessian — and pointing it at run_vibrational_analysis() would return a
+    # gamma-point molecular result under a name that promises a phonon band
+    # structure. Redirect, do not substitute.
     "phonon": (
-        "Phonon/vibrational analysis is not implemented in SimpleAtom. "
-        "It must be run through an external workflow on a fully converged geometry."
+        "Periodic phonon band structures are not implemented in SimpleAtom. "
+        "For a MOLECULE, use calculationType 'vibrations', which returns "
+        "harmonic frequencies, normal modes and ideal-gas thermochemistry. "
+        "For a periodic solid, phonons need a supercell force-constant "
+        "workflow that SimpleAtom does not run."
     ),
 }
 
@@ -353,32 +388,31 @@ def resolve_device(requested: str) -> str:
     return requested
 
 
-def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool, precision: str = "float32"):
+def get_mace_calculator(model_type: str, model_size: str, device: str, dispersion: bool,
+                        precision: str = "float32"):
     """
     Return an ASE calculator for a MACE foundation model.
 
-    There is no fall-through branch. An unrecognised model_type raises, so a
-    caller that bypasses validate_model_type() cannot get MACE-MP-0 results
-    under a different label.
+    Delegates to model_catalog, which owns the mapping from (model_type,
+    model_size) to an upstream loader and the exact `model=` string it expects.
+    There is still no fall-through branch: resolve_model() raises on anything
+    it does not know, so a caller that bypasses validate_model_type() cannot
+    get one model's weights under another model's name.
+
+    build_calculator() additionally re-reads the loaded checkpoint's z_table and
+    raises if it disagrees with the coverage the catalog published — the file
+    upstream actually downloaded is the only thing that can confirm the label.
     """
-    model_size = model_size or "medium"
+    entry = model_catalog.resolve_model(model_type, model_size or "medium")
 
-    if model_type in MACE_OFF_MODEL_TYPES:
-        from mace.calculators import mace_off
-        # Upstream's mace_off() has no `dispersion` parameter: MACE-OFF23 is
-        # trained on wB97M-D3BJ data, so D3 is already in the model. Dropping
-        # the flag here is the right physics; run_calculation() records that it
-        # was dropped instead of echoing it back as if it had been applied.
-        return mace_off(model=model_size, device=device, default_dtype=precision)
-
-    if model_type == "MACE-MP-0":
-        from mace.calculators import mace_mp
-        return mace_mp(model=model_size, device=device, dispersion=dispersion,
-                       default_dtype=precision)
-
-    raise ValueError(
-        f"No foundation-model loader for modelType '{model_type}'. "
-        f"Supported models: {', '.join(SUPPORTED_MODEL_TYPES)}."
+    # Dropped here rather than at the call site so every caller gets the same
+    # physics. MACE-OFF is trained on wB97M-D3(BJ) data: D3 is already inside
+    # the model and upstream's mace_off() has no `dispersion` parameter at all.
+    # run_calculation() reports that the flag was dropped instead of echoing it
+    # back as though it had been applied.
+    return model_catalog.build_calculator(
+        entry, device=device, precision=precision,
+        dispersion=dispersion and entry.dispersion_supported,
     )
 
 
@@ -605,7 +639,8 @@ def attach_validation(result: dict) -> dict:
     return result
 
 
-def run_calculation(filepath: str, params: dict, model_path: str | None = None) -> dict:
+def run_calculation(filepath: str, params: dict, model_path: str | None = None,
+                    product_path: str | None = None) -> dict:
     """
     Run a MACE calculation on a structure file.
 
@@ -613,6 +648,9 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         filepath: Path to atomic structure file (XYZ, CIF, POSCAR, PDB).
         params: Calculation parameters dict (matches CalculationParams TS type).
         model_path: Optional path to a custom .model checkpoint.
+        product_path: Second structure file. Required by, and accepted only by,
+            "neb" — a nudged elastic band needs both endpoints. Supplying it for
+            any other calculation type is rejected rather than ignored.
 
     Returns:
         Result dict with energy, forces, positions, trajectory, etc.
@@ -655,6 +693,25 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         )
     filename = Path(filepath).name
 
+    # The NEB product endpoint. Read with the same format detection as the
+    # reactant, and deliberately WITHOUT its own calculator: run_neb() shares
+    # the reactant's, because one MACE model evaluating every image is both
+    # correct and the only affordable option on 2 vCPU.
+    product_atoms = None
+    if product_path:
+        product_fmt = detect_format(product_path)
+        try:
+            product_atoms = read(product_path, format=product_fmt)
+        except Exception as exc:
+            if product_fmt != "extxyz":
+                raise
+            product_atoms = read(product_path, format="xyz")
+            warnings.append(
+                f"Could not parse the product structure "
+                f"'{Path(product_path).name}' as extended XYZ "
+                f"({type(exc).__name__}); fell back to the plain XYZ reader."
+            )
+
     ref_data = extract_reference_data(atoms)
 
     model_size = params.get("modelSize", "medium") or "medium"
@@ -670,6 +727,22 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
             f"the requested modelType '{model_type}'."
         )
         model_type = "custom"
+
+    # Element coverage is checked BEFORE the checkpoint is fetched. MACE-OFF23
+    # is a 10-element organic model: asking it for an Fe-containing structure is
+    # a request that can never succeed, and discovering that after a 55 MB
+    # download and a model load wastes the one resource every anonymous visitor
+    # on a shared 2-vCPU Space is queuing for. The catalog's message names the
+    # offending element and points at a family that does cover it.
+    catalog_entry = None
+    if model_type != "custom":
+        catalog_entry = model_catalog.resolve_model(model_type, model_size)
+        model_catalog.require_elements(catalog_entry, atoms.get_atomic_numbers())
+        if product_atoms is not None:
+            # Checked separately: a product containing an element the reactant
+            # does not would otherwise only fail deep inside the band.
+            model_catalog.require_elements(
+                catalog_entry, product_atoms.get_atomic_numbers())
 
     # Watch torch.load across BOTH loader branches. "MACE-OFF small" names a
     # download URL, not a fixed set of weights; the file that torch.load
@@ -753,6 +826,19 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
         # Basename only — never echo the server-side temp path.
         effective_params["customModelName"] = Path(model_path).name
 
+    # A model name alone does not let a reader judge an energy. The level of
+    # theory sets the energy reference (PBE+U and wB97M-D3BJ are not on the same
+    # scale, and r2SCAN is on a third), and the licence decides whether the
+    # number may be used commercially at all — MACE-OFF23, OMAT-0 and the MATPES
+    # models are ASL, which excludes commercial use. Both ride along with the
+    # result so they survive PDF export and MACE Link sharing, where the person
+    # reading the number is no longer the person who ran it.
+    if catalog_entry is not None:
+        effective_params["levelOfTheory"] = catalog_entry.level_of_theory
+        effective_params["trainingDataset"] = catalog_entry.training_dataset
+        effective_params["modelLicense"] = catalog_entry.license_id
+        effective_params["modelDisplayName"] = catalog_entry.display_name
+
     # ── Reproducibility manifest ────────────────────────────────────────────
     # MUST be built here, before dispatch: geometry-opt and MD move the atoms,
     # and input.structureSha256 has to identify the structure that was SUBMITTED,
@@ -793,6 +879,15 @@ def run_calculation(filepath: str, params: dict, model_path: str | None = None) 
     elif calc_type == "single-point":
         result = _run_single_point(atoms, filename, calc_start, ref_data,
                                    effective_params, warnings, manifest)
+    elif calc_type == vibrations_thermo.CALCULATION_TYPE:
+        result = vibrations_thermo.run_vibrational_analysis(
+            atoms, params, filename=filename, ref_data=ref_data,
+            effective_params=effective_params, warnings=warnings, manifest=manifest)
+    elif calc_type in reaction_paths.SUPPORTED_REACTION_PATH_TYPES:
+        result = reaction_paths.run_reaction_path(
+            calc_type, atoms, params, product=product_atoms, filename=filename,
+            calc_start=calc_start, ref_data=ref_data,
+            effective_params=effective_params, warnings=warnings, manifest=manifest)
     else:
         # Unreachable — validate_calculation_type() gates this above. Kept as a
         # guard so that adding a type to SUPPORTED_CALCULATION_TYPES without a

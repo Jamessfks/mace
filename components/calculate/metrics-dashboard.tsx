@@ -38,6 +38,8 @@ import {
   Eye,
   ExternalLink,
   Table2,
+  Waves,
+  Route,
 } from "lucide-react";
 import { computeRmsForce } from "@/lib/utils";
 import { MoleculeViewer3D } from "./molecule-viewer-3d";
@@ -47,6 +49,8 @@ import { ParityPlot } from "./charts/parity-plot";
 import { ErrorHistogram } from "./charts/error-histogram";
 import { EnergyConvergence } from "./charts/energy-convergence";
 import { DATA_COLORS } from "./charts/chart-config";
+import { VibrationsResults } from "./results/vibrations-results";
+import { ReactionPathResults } from "./results/reaction-path-results";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +62,7 @@ import type {
   CalculationResult,
   CalculationValidation,
 } from "@/types/mace";
+import { asExtended } from "@/types/mace-results-ext";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,7 +73,14 @@ interface MetricsDashboardProps {
   filename?: string;
 }
 
-type TabId = "summary" | "forces" | "energy" | "structure" | "data";
+type TabId =
+  | "summary"
+  | "vibrations"
+  | "reaction-path"
+  | "forces"
+  | "energy"
+  | "structure"
+  | "data";
 
 interface Tab {
   id: TabId;
@@ -187,11 +199,21 @@ function computeAccuracyMetrics(result: CalculationResult): AccuracyMetrics {
 export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabId>("summary");
 
-  const isMD = result.params?.calculationType === "molecular-dynamics";
+  const calcType = result.params?.calculationType;
+  const isMD = calcType === "molecular-dynamics";
+  // A coordinate scan's trajectory (one relaxed frame per scan point) is the
+  // same shape as an MD trajectory — same 3Dmol player, same energy-vs-step
+  // chart (potential energy only, since a scan has no kinetic energy).
+  const isScanTraj = calcType === "coordinate-scan";
   const hasTraj =
     !!result.trajectory &&
     result.trajectory.positions.length > 1 &&
     !!result.symbols?.length;
+
+  const extResult = useMemo(() => asExtended(result), [result]);
+  const hasVibrations = !!extResult.vibrations;
+  const hasProfile = !!extResult.profile;
+
   const hasRefForces = !!result.referenceForces?.length;
   const hasRefEnergy = result.referenceEnergy != null;
   const hasRef = hasRefForces || hasRefEnergy;
@@ -219,6 +241,12 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
 
   const tabs: Tab[] = [
     { id: "summary", label: "Summary", icon: <BarChart3 className="h-4 w-4" strokeWidth={1.75} /> },
+    ...(hasVibrations
+      ? [{ id: "vibrations" as const, label: "Vibrations", icon: <Waves className="h-4 w-4" strokeWidth={1.75} /> }]
+      : []),
+    ...(hasProfile
+      ? [{ id: "reaction-path" as const, label: "Reaction Path", icon: <Route className="h-4 w-4" strokeWidth={1.75} /> }]
+      : []),
     { id: "forces", label: "Forces", icon: <ArrowRightLeft className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "energy", label: "Energy", icon: <Zap className="h-4 w-4" strokeWidth={1.75} /> },
     { id: "structure", label: "Structure", icon: <Eye className="h-4 w-4" strokeWidth={1.75} /> },
@@ -375,6 +403,18 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
             />
           </TabsContent>
 
+          {hasVibrations && (
+            <TabsContent value="vibrations">
+              <VibrationsResults result={extResult} />
+            </TabsContent>
+          )}
+
+          {hasProfile && (
+            <TabsContent value="reaction-path">
+              <ReactionPathResults result={extResult} />
+            </TabsContent>
+          )}
+
           <TabsContent value="forces">
             <ForcesTab result={result} hasRefForces={hasRefForces} maxForceIdx={maxForceIdx} />
           </TabsContent>
@@ -384,7 +424,7 @@ export function MetricsDashboard({ result, filename }: MetricsDashboardProps) {
           </TabsContent>
 
           <TabsContent value="structure">
-            <StructureTab result={result} isMD={isMD} hasTraj={hasTraj} />
+            <StructureTab result={result} isMD={isMD} isScanTraj={isScanTraj} hasTraj={hasTraj} />
           </TabsContent>
 
           <TabsContent value="data">
@@ -950,10 +990,13 @@ function EnergyTab({
 function StructureTab({
   result,
   isMD,
+  isScanTraj,
   hasTraj,
 }: {
   result: CalculationResult;
   isMD: boolean;
+  /** True for coordinate-scan — its trajectory (one relaxed frame per scan point) plays back the same way an MD trajectory does. */
+  isScanTraj: boolean;
   hasTraj: boolean;
 }) {
   return (
@@ -962,11 +1005,11 @@ function StructureTab({
         <MoleculeViewer3D result={result} />
       </div>
 
-      {isMD && hasTraj && (
+      {(isMD || isScanTraj) && hasTraj && (
         <Card className="gap-3 py-5">
           <CardHeader className="px-5">
             <CardTitle className="font-serif text-base font-semibold text-foreground">
-              MD Trajectory Animation
+              {isScanTraj ? "Scan Path Animation" : "MD Trajectory Animation"}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5">

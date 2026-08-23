@@ -109,8 +109,20 @@ When spawning subagents or choosing model complexity, follow this tier system:
 - Model sizes: small (fastest) → medium (default) → large (most accurate)
 
 ### Energy Reference Conventions
-- **MACE-MP-0**: -1 to -15 eV/atom (DFT reference)
-- **MACE-OFF**: -100 to -600 eV/atom (different reference convention)
+- **MACE-MP-0**: typically -1 to -15 eV/atom (PBE+U reference), but this is a
+  *typical* band, not a bound. Measured single-atom references in the checkpoint
+  span -18.52 eV (Gd) to **+9.85 eV (Xe)** — a positive per-atom energy is not a
+  bug. `validate_calculation.py` therefore bounds MP at -20 to +100 eV/atom
+- **MACE-OFF**: total energies including core electrons, so the band is set by
+  composition, not by a fixed range. Measured E0s: H -13.5720, O -2043.9337,
+  Br -70045.2839 eV. **Water is -693.7 eV/atom** and bromobenzene is ~-6000 —
+  both outside the -100 to -600 figure this file used to quote, which was wrong.
+  `validate_calculation.py` bounds OFF at -800 to +100 eV/atom; prefer
+  `model_catalog.expected_energy_range()`, which derives a composition-aware
+  band from the checkpoint's own atomic energies
+- Never compare energies across levels of theory. PBE+U (MP), PBE (OMAT),
+  r2SCAN (MATPES) and wB97M-D3BJ (OFF) sit on four different zeros. Only
+  *differences within one model* are meaningful
 - Catalog reference energies are **EXPERIMENTAL**, not DFT — always note this in comparisons
 
 ### Supported Calculation Types

@@ -6,13 +6,43 @@
  */
 
 export type ModelSize = "small" | "medium" | "large";
-export type ModelType = "MACE-MP-0" | "MACE-OFF" | "custom";
+/**
+ * Model families the backend can actually load, mirroring
+ * `model_catalog.list_model_types()` plus its aliases and "custom".
+ * "MACE-OFF" is retained as an alias of "MACE-OFF23": it is what every
+ * already-shared MACE Link and the existing UI send, and the catalog maps it.
+ * Not every family offers every ModelSize — `list_model_sizes()` on the
+ * backend is authoritative, and /api/models exposes it to the client.
+ */
+export type ModelType =
+  | "MACE-MP-0"
+  | "MACE-MP-0b3"
+  | "MACE-MPA-0"
+  | "MACE-OMAT-0"
+  | "MACE-MATPES-PBE-0"
+  | "MACE-MATPES-R2SCAN-0"
+  | "MACE-OFF23"
+  | "MACE-OFF"
+  | "custom";
 export type Precision = "float32" | "float64";
 export type Device = "cpu" | "cuda";
 export type CalculationType =
   | "single-point"
   | "geometry-opt"
   | "molecular-dynamics"
+  /** Harmonic frequencies, normal modes and ideal-gas thermochemistry. */
+  | "vibrations"
+  /** Relaxed scan of one bond, angle or dihedral. */
+  | "coordinate-scan"
+  /** Climbing-image nudged elastic band. Requires a second structure. */
+  | "neb"
+  /** Intrinsic reaction coordinate from a transition state. */
+  | "irc"
+  /**
+   * Periodic phonon band structure. Present in the union and as a disabled UI
+   * option, but NOT implemented — the backend rejects it with a message
+   * redirecting molecules to "vibrations". It is not a synonym for that type.
+   */
   | "phonon";
 
 export interface CalculationParams {
@@ -52,6 +82,40 @@ export interface CalculationParams {
 
   // Advanced options
   maxOptSteps?: number;
+
+  // ── Vibrational analysis ("vibrations") ──
+  /**
+   * Relax to `fmaxTolerance` before building the Hessian. Without this a
+   * structure that is not at a stationary point is REFUSED rather than
+   * silently given non-harmonic "frequencies".
+   */
+  optimizeFirst?: boolean;
+  /** Max force (eV/Å) the geometry must satisfy before a Hessian is built. */
+  fmaxTolerance?: number;
+  /** Finite-difference displacement in Å. Larger = less noise, more anharmonic leakage. */
+  delta?: number;
+  /**
+   * Rotational symmetry number σ. Omit to let the backend DETECT it from the
+   * proper-rotation subgroup; set it only to override, which is recorded as a
+   * warning because σ shifts entropy by −k_B·ln σ.
+   */
+  symmetryNumber?: number;
+  spinMultiplicity?: number;
+
+  // ── Reaction paths ──
+  /** "bond" (2 indices) | "angle" (3) | "dihedral" (4). */
+  scanCoordinate?: "bond" | "angle" | "dihedral";
+  /** Zero-based atom indices defining the scanned coordinate. */
+  scanIndices?: number[];
+  /** Å for bonds, degrees for angles and dihedrals. */
+  scanStart?: number;
+  scanEnd?: number;
+  scanPoints?: number;
+  /** NEB band size, including both endpoints. */
+  nebImages?: number;
+  nebSpringConstant?: number;
+  /** Wall-clock ceiling in seconds. Returns partial results rather than hanging. */
+  timeBudgetSeconds?: number;
 
   // Custom model support — user-uploaded .model files
   customModelName?: string;

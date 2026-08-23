@@ -1,0 +1,171 @@
+{
+  "version": "2.20",
+  "goal": "Polish SimpleAtom's MACE computation, add frequencies/thermochemistry and reaction paths, expose every real MACE foundation model \u2014 all runnable anonymously on 2 vCPU.",
+  "bars": [
+    {
+      "name": "Rowan",
+      "url": "https://www.rowansci.com",
+      "role": "Breadth + polish. ~13 molecular-modelling workflows, ~40 engines. Requires an account.",
+      "status": "features captured"
+    },
+    {
+      "name": "MolCalc",
+      "url": "https://molcalc.org",
+      "role": "The true peer: free, zero sign-in, shared compute, <11 heavy atoms. Has frequencies, IR, thermochemistry, MOs \u2014 we have none of them.",
+      "status": "fetching capabilities"
+    }
+  ],
+  "measurable": {
+    "name": "NIST CCCBDB experimental fundamentals",
+    "rule": "Our harmonic frequencies and thermochemistry must land inside a tolerance justified from the literature, or the round failed.",
+    "status": "10 molecules verified against NIST CCCBDB. Tolerance: scale harmonics by 0.97, then +/-4% relative or +/-50 cm-1 absolute, whichever is larger. Water and CO2 also carry experimental HARMONIC frequencies - those are compared unscaled."
+  },
+  "constraints": [
+    "Free Hugging Face Space: 2 vCPU / 16 GB / CPU only",
+    "No sign-in, ever \u2014 that is the product",
+    "mace-torch 0.3.15, ase 3.27.0, torch 2.10.0",
+    "Every cap must be a measured number, not a guess"
+  ],
+  "pieces": [
+    {
+      "id": "catalog",
+      "name": "Model catalog",
+      "detail": "Expose every MACE foundation model the installed mace-torch really ships \u2014 with license, element coverage, theory level and measured cost.",
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Rowan exposes ONE MACE model (MP-0b2 large); MolCalc has one method (PM3). We ship 4 levels of theory with licence on every result."
+        }
+      ],
+      "notes": "12 models / 7 families / 4 levels of theory. All 12 load and run."
+    },
+    {
+      "id": "vib",
+      "name": "Frequencies + thermochemistry",
+      "detail": "Finite-difference Hessian, imaginary-mode diagnosis, ZPE, ideal-gas H/S/G, animatable normal modes.",
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Beats MolCalc's PM3 decisively on accuracy and matches its feature list, EXCEPT IR intensities, which MACE cannot produce at all (no dipole in implemented_properties). We show an honest stick spectrum with null intensities; MolCalc keeps that one."
+        }
+      ],
+      "notes": "H2O vs experimental HARMONIC: -1.02% / +0.33% / +0.16%. S=188.57 vs 188.83 J/mol/K (-0.14%)."
+    },
+    {
+      "id": "paths",
+      "name": "Reaction paths",
+      "detail": "Relaxed coordinate scan, climbing-image NEB, and IRC \u2014 or an honest refusal on IRC if it cannot be defended.",
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Scan mechanics are exact (periodicity 0.0003 kcal/mol, constraint deviation 0.0000) but MACE-OFF23 systematically underestimates the barrier. Non-monotonic in model size. Reported, not hidden."
+        }
+      ],
+      "notes": "Ethane torsion 2.487 kcal/mol vs 2.900 experimental (-14.2%, small). Medium -6.7%, large -9.4%."
+    },
+    {
+      "id": "dispatch",
+      "name": "Engine integration",
+      "detail": "Wire the new modules into calculate.py without weakening its security boundary.",
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "phonon still refused, and correctly so - it is a different calculation, not a rename of vibrations."
+        }
+      ],
+      "notes": "7 calculation types live. Circular import broken via lazy forwarder. 5/5 validator, all module tests pass."
+    },
+    {
+      "id": "budget",
+      "name": "CPU budget guard",
+      "detail": "Measured caps and honest refusals so an anonymous visitor cannot hang the shared Space.",
+      "status": "won",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "MolCalc caps at <11 heavy atoms. We reach 50 atoms and refuse honestly above it."
+        }
+      ],
+      "notes": "MAX_ATOMS=50 for vibrations + dynamic per-structure gate; scan/NEB/IRC caps all measured."
+    },
+    {
+      "id": "ui",
+      "name": "Frontend: inputs",
+      "detail": "Calculation-type and model pickers that make the new capability discoverable.",
+      "status": "building",
+      "rounds": [],
+      "notes": ""
+    },
+    {
+      "id": "results",
+      "name": "Frontend: results",
+      "detail": "Stick spectrum, thermochemistry table, scan and NEB energy profiles, mode animation.",
+      "status": "queued",
+      "rounds": [],
+      "notes": ""
+    },
+    {
+      "id": "tests",
+      "name": "Mock + real scientific test",
+      "detail": "Full mock pass over every route, then real MACE runs judged against CCCBDB.",
+      "status": "queued",
+      "rounds": [],
+      "notes": ""
+    },
+    {
+      "id": "deploy",
+      "name": "Deploy + live test",
+      "detail": "Push to Vercel and run a real calculation against the live page.",
+      "status": "queued",
+      "rounds": [],
+      "notes": ""
+    }
+  ],
+  "log": [
+    {
+      "t": "start",
+      "msg": "Ground truth established: mace-torch 0.3.15 exposes 17 mace_mp checkpoints, 3 mace_off, mace_anicc and mace_omol. The readthedocs page lists models this version does not have \u2014 mace_mdp and MACE-OFF24 are not offerable."
+    },
+    {
+      "t": "start",
+      "msg": "Five agents fanned out: two recon (bars, CCCBDB reference data), three builders (catalog, vibrations, reaction paths)."
+    },
+    {
+      "t": "budget",
+      "msg": "User set a 2M-token ceiling and a max of 2 concurrent tasks. Browser-recon agent killed (screenshot loops are the costliest per unit of insight); bar comparison now done from text sources. No further agents will be launched \u2014 remaining work runs inline."
+    },
+    {
+      "t": "verified",
+      "msg": "CCCBDB set landed and I re-checked it myself: all 10 molecules pass degeneracy-weighted mode counting (3N-6/3N-5) and the ZPE = half-sum-of-fundamentals identity. Symmetry numbers independently correct (CH4=12, C6H6=12, C2H4=4, NH3=3)."
+    },
+    {
+      "t": "finding",
+      "msg": "No published MACE-OFF23-vs-experiment frequency MAE exists. Closest is Pracht et al. JCTC 2024: ZPVE MAE 0.22-0.23 kcal/mol vs a B3LYP-3c reference, not experiment. Our measurement will be the first honest one."
+    },
+    {
+      "t": "landed",
+      "msg": "Model catalog integrated. 3 model families -> 7; 3 checkpoints -> 12. Results now carry level of theory and licence so a shared MACE Link says whether the number is ASL (non-commercial)."
+    },
+    {
+      "t": "fixed",
+      "msg": "CLAUDE.md's MACE-OFF energy band (-100 to -600 eV/atom) was wrong and would mislabel water (-693.7). Corrected from measured checkpoint E0s. The validator code was already correct at -800/+100, so nothing shipped broken."
+    },
+    {
+      "t": "measured",
+      "msg": "Water harmonic frequencies within 0.16-1.02% of experimental harmonic values; entropy within 0.14% of experiment. Ethane torsion barrier underestimated by 14% (small), 6.7% (medium), 9.4% (large) - non-monotonic in model size."
+    },
+    {
+      "t": "honest",
+      "msg": "MACE cannot produce IR intensities: mace_mp()/mace_off() build MACECalculator without model_type, so 'dipole' is absent from implemented_properties and get_dipole_moment() raises. We return intensities:null with the reason quoted from source rather than plotting a fabricated spectrum."
+    }
+  ]
+}

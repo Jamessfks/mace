@@ -22,12 +22,20 @@ const SUPPORTED_CALCULATION_TYPES = [
   "single-point",
   "geometry-opt",
   "molecular-dynamics",
+  "vibrations",
+  "coordinate-scan",
+  "neb",
+  "irc",
 ] as const;
 
 /** Types the UI type system knows about but the backend cannot compute. */
 const UNIMPLEMENTED_HINTS: Record<string, string> = {
+  // "vibrations" covers the molecular case. "phonon" stays unimplemented
+  // because it is a different calculation — force constants on a q-point mesh
+  // of a periodic cell — and routing it to the molecular Hessian would return
+  // a gamma-point result under a name that promises a phonon band structure.
   phonon:
-    "Phonon/vibrational analysis is not implemented in SimpleAtom. It must be run through an external workflow on a fully converged geometry.",
+    "Periodic phonon band structures are not implemented in SimpleAtom. For a molecule, use calculationType 'vibrations', which returns harmonic frequencies, normal modes and ideal-gas thermochemistry. For a periodic solid, phonons need a supercell force-constant workflow that SimpleAtom does not run.",
 };
 
 /**

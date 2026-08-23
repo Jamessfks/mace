@@ -61,20 +61,30 @@ def emit(payload: dict) -> None:
 
 
 if __name__ == "__main__":
-    # Parse arguments: <file> <params_json> [--model-path <path>]
+    # Parse arguments:
+    #   <file> <params_json> [--model-path <path>] [--product <path>]
     model_path = None
+    product_path = None
     args = sys.argv[1:]
 
-    if "--model-path" in args:
-        idx = args.index("--model-path")
-        if idx + 1 >= len(args):
-            emit({"status": "error", "message": "--model-path requires a file path argument"})
-            sys.exit(1)
-        model_path = args[idx + 1]
-        args = args[:idx] + args[idx + 2:]
+    # Parsed with the same shape as --model-path rather than positionally: a
+    # NEB's product is optional for every other calculation type, and a bare
+    # third positional would be silently swallowed by a scan or an IRC.
+    for flag, setter in (("--model-path", "model"), ("--product", "product")):
+        if flag in args:
+            idx = args.index(flag)
+            if idx + 1 >= len(args):
+                emit({"status": "error",
+                      "message": f"{flag} requires a file path argument"})
+                sys.exit(1)
+            if setter == "model":
+                model_path = args[idx + 1]
+            else:
+                product_path = args[idx + 1]
+            args = args[:idx] + args[idx + 2:]
 
     if not args:
-        emit({"status": "error", "message": "Usage: python calculate_local.py <file> [params_json] [--model-path <path>]"})
+        emit({"status": "error", "message": "Usage: python calculate_local.py <file> [params_json] [--model-path <path>] [--product <path>]"})
         sys.exit(1)
 
     filepath = args[0]
@@ -87,7 +97,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        result = run_calculation(filepath, params, model_path=model_path)
+        result = run_calculation(filepath, params, model_path=model_path,
+                                 product_path=product_path)
         emit(result)
     except Exception as e:
         err_msg = str(e)

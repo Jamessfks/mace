@@ -95,6 +95,24 @@ const PHASE_MAP: Record<string, string[]> = {
     "Running MD simulation",
     "Collecting trajectory",
   ],
+  vibrations: [
+    "Parsing structure",
+    "Loading MACE model",
+    "Relaxing & building Hessian",
+    "Computing thermochemistry",
+  ],
+  "coordinate-scan": [
+    "Parsing structure",
+    "Loading MACE model",
+    "Relaxing each scan point",
+    "Building energy profile",
+  ],
+  irc: [
+    "Parsing structure",
+    "Loading MACE model",
+    "Following the reaction path",
+    "Formatting results",
+  ],
 };
 
 /** Rough estimated total time (seconds) by calculation type. */
@@ -172,8 +190,29 @@ const PARAM_KEYS_BY_CALC_TYPE: Record<
     "seed",
     "comMomentumRemoved",
   ],
+  vibrations: [
+    "temperature",
+    "pressure",
+    "symmetryNumber",
+    "spinMultiplicity",
+    "delta",
+    "fmaxTolerance",
+    "optimizeFirst",
+  ],
+  "coordinate-scan": [
+    "scanCoordinate",
+    "scanIndices",
+    "scanStart",
+    "scanEnd",
+    "scanPoints",
+    "forceThreshold",
+    "timeBudgetSeconds",
+  ],
+  neb: ["nebImages", "nebSpringConstant", "forceThreshold", "timeBudgetSeconds"],
+  irc: ["timeBudgetSeconds"],
   // No backend implementation — a phonon request is rejected, never run, so
-  // there is no configuration to describe. See CLAUDE.md.
+  // there is no configuration to describe. "vibrations" is the molecular
+  // equivalent and is a separate entry above; this is not an alias for it.
   phonon: [],
 };
 
@@ -203,10 +242,17 @@ function effectiveRunParams(
     ...(PARAM_KEYS_BY_CALC_TYPE[ranType] ?? []),
   ]);
 
-  // Pressure is an input to the NPT integrator alone. On NVT/NVE nothing reads
-  // it, so "0 GPa" would state a constraint that was never imposed.
-  const ensemble = echoed?.mdEnsemble ?? requested.mdEnsemble;
-  if (ensemble !== "NPT") allowed.delete("pressure");
+  // Pressure means two different things depending on calculation type (see
+  // parameter-panel.tsx's guard for the same field): the NPT barostat target
+  // in GPa for molecular-dynamics, or the ideal-gas standard-state pressure
+  // in Pa for vibrations. For MD, it is further only an input to the NPT
+  // integrator — on NVT/NVE nothing reads it, so "0 GPa" would state a
+  // constraint that was never imposed. Vibrations always uses pressure, so
+  // it is never dropped there.
+  if (ranType === "molecular-dynamics") {
+    const ensemble = echoed?.mdEnsemble ?? requested.mdEnsemble;
+    if (ensemble !== "NPT") allowed.delete("pressure");
+  }
 
   const filtered: Record<string, unknown> = {};
   for (const key of allowed) {
@@ -375,7 +421,9 @@ function CalculatePageInner() {
         ? "Upload a MACE .model checkpoint to run a custom model — or switch to MACE-MP-0 or MACE-OFF. A foundation-model result labelled “custom” would attribute the numbers to a model that was never loaded."
         : params.calculationType === "phonon"
           ? "Phonon spectrum is not implemented. Choose single-point, geometry optimization, or molecular dynamics."
-          : null;
+          : params.calculationType === "neb"
+            ? "Nudged elastic band needs a second (product) structure. SimpleAtom does not have an upload for that yet, so this option stays disabled rather than failing on every run."
+            : null;
 
   const handleRunFoundation =
     useCallback(async (): Promise<CalculationResult | null> => {
@@ -571,6 +619,7 @@ function CalculatePageInner() {
                   onCustomModelChange={setCustomModelFile}
                   structureElements={parsedStructure?.elements}
                   isPeriodic={parsedStructure?.isPeriodic}
+                  structureSymbols={parsedStructure?.symbols}
                 />
               </aside>
 

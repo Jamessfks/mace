@@ -1,0 +1,1411 @@
+{
+  "metadata": {
+    "description": "Experimental gas-phase vibrational frequency and thermochemistry reference dataset for validating a MACE web app's vibrational-frequency/thermochemistry feature.",
+    "generated_date": "2026-08-23",
+    "primary_source": "NIST CCCBDB (https://cccbdb.nist.gov), 'Experimental Data' page per species (exp2x.asp?casno=<CAS number, no dashes>)",
+    "molecules_covered": [
+      "water",
+      "methane",
+      "ammonia",
+      "carbon_dioxide",
+      "formaldehyde",
+      "methanol",
+      "ethylene",
+      "acetylene",
+      "benzene",
+      "ethanol"
+    ],
+    "element_coverage_check": "All molecules use only H, C, N, O -- a strict subset of MACE-OFF23's supported elements (H,C,N,O,F,P,S,Cl,Br,I).",
+    "units": {
+      "frequency": "cm^-1",
+      "zero_point_energy": "cm^-1 (as-reported by CCCBDB), converted here also to kJ/mol and kcal/mol using 1 cm^-1 = 0.0119627 kJ/mol = 0.00285911 kcal/mol",
+      "entropy": "J mol^-1 K^-1 at 298.15 K, 1 bar",
+      "rotational_constants": "cm^-1"
+    },
+    "important_caveats": [
+      "CCCBDB's per-species 'vibrational zero-point energy' is computed as half the sum of the EXPERIMENTAL FUNDAMENTALS shown on the same page, not half the sum of true harmonic frequencies. It is a useful, fully-experimental number, but it is not the same quantity a harmonic MACE Hessian calculation produces (which sums half the HARMONIC frequencies). See each molecule's zero_point_energy.methodNote.",
+      "Rotational symmetry numbers are not tabulated per-species by CCCBDB; they were derived by combining the point group CCCBDB reports for each species with CCCBDB's own general symmetry-number-by-point-group table (thermox.asp). This derivation step is marked sourceType='computed' even though the underlying point group is experimental.",
+      "Methanol and ethanol both have a low-frequency CH3 (and, for ethanol, OH) internal rotation that is only approximately described as a harmonic torsional mode; CCCBDB lists it that way (200 cm^-1 for methanol; 251 and 200 cm^-1 for ethanol) but a rigorous treatment would use a hindered-rotor partition function with its own internal symmetry number (3 for a methyl top), separate from the overall external rotational symmetry number recorded here.",
+      "All numeric molecule data below was retrieved via automated fetch of the cited CCCBDB URLs; every fetched value was cross-checked for internal consistency (mode-count sums against 3N-6/3N-5, sum-of-fundamentals against the reported ZPE) and against well-established textbook/NIST-JANAF values before being included. No value was invented; where a page could not be retrieved this is stated instead of a fabricated number.",
+      "CCCBDB was reachable directly via automated fetch for every one of the 10 target species (exp2x.asp?casno=...); the NIST Chemistry WebBook fallback described in the task instructions was not needed for the core vibrational/entropy/ZPE dataset."
+    ]
+  },
+  "scaling_factor_guidance": {
+    "question": "What frequency scaling factor is appropriate when comparing computed harmonic frequencies to experimental fundamentals?",
+    "answer_summary": "Computed harmonic frequencies are systematically higher than experimental fundamental frequencies for two independent reasons: (1) the real potential energy surface is anharmonic (better approximated by a Morse-like potential near a bond-stretch minimum), which by itself lowers the observed fundamental (v=0->1) transition below the harmonic value omega_e; and (2) the electronic structure method/reference itself carries some error relative to the true PES. Because both effects push in the same direction, a single empirical multiplicative scale factor (typically in the range 0.8-1.0) is conventionally applied to harmonic frequencies before comparison to experiment. CCCBDB's own compiled scale factors for well-behaved methods cluster around 0.95-0.99 (HF ~0.90 -- large correction because HF also has large systematic method error on top of anharmonicity; MP2 ~0.94-0.96; B3LYP ~0.96-0.97; PBE-type GGA functionals ~0.98-0.99; CCSD(T) with a large basis ~0.98-0.99, i.e. closest to a pure anharmonicity-only correction since method error is small at that level). CCCBDB explicitly notes that different scale factors are appropriate for low- and high-frequency vibrations, i.e. a single flat number is itself an approximation, and that scale factors carry their own reported uncertainty.",
+    "why_anharmonicity_lowers_the_fundamental": "For a Morse-like oscillator with the same curvature (second derivative) at the minimum as the harmonic approximation, the vibrational levels G(v) = omega_e(v+1/2) - omega_e*x_e(v+1/2)^2 + ... are more closely spaced than harmonic levels; the anharmonic constant term is subtracted, so the observed 0->1 fundamental transition frequency is always somewhat below the underlying harmonic frequency omega_e. This is a physical effect present even for an exact solution of a given PES, distinct from any error in the electronic structure method used to generate that PES.",
+    "sources": [
+      {
+        "claim": "General framework: scale factors in range 0.8-1.0 correct for both approximate electronic structure and PES anharmonicity; Morse-potential / G(v) anharmonic term explanation.",
+        "url": "https://cccbdb.nist.gov/vibscalejust.asp"
+      },
+      {
+        "claim": "Different scale factors are appropriate for low- and high-frequency vibrations; scale factors are tabulated with associated uncertainties by method/basis set.",
+        "url": "https://cccbdb.nist.gov/vibscalejustx.asp"
+      },
+      {
+        "claim": "Representative literature scale factor value for a range-separated hybrid functional (wB97X-D/3-21G*) = 0.955, illustrating the ~0.95-0.98 band typical of high-quality DFT.",
+        "url": "https://cccbdb.nist.gov/vibscale2x.asp?method=60&basis=8"
+      },
+      {
+        "claim": "Widely-cited independent scale-factor compilation and recommended values/uncertainties for many electronic model chemistries (harmonic frequency, fundamental frequency, and ZPE scale factors treated as distinct quantities).",
+        "citation": "Alecu, I. M.; Zheng, J.; Zhao, Y.; Truhlar, D. G. Computational Thermochemistry: Scale Factor Databases and Scale Factors for Vibrational Frequencies Obtained from Electronic Model Chemistries. J. Chem. Theory Comput. 2010, 6, 2872-2887.",
+        "url": "https://pubs.acs.org/doi/10.1021/ct100326h"
+      }
+    ]
+  },
+  "mace_off23_documented_accuracy": {
+    "question": "What accuracy is MACE-OFF23 actually documented to achieve on vibrational frequencies?",
+    "answer_summary": "We could not find any published number for MACE-OFF23's frequency or ZPE error measured AGAINST EXPERIMENT. Every quantitative benchmark located compares MACE-OFF23 (or the wider MACE model family) against a DFT reference, not against experimental fundamentals. State plainly: no MACE-OFF23-vs-experiment frequency MAE currently exists in the literature that we could locate; any tolerance used to validate this feature is therefore necessarily informed by (a) MACE-vs-DFT benchmarks and (b) the independent, method-agnostic harmonic-vs-experimental-fundamental gap documented by CCCBDB/Truhlar-style scale-factor studies, not by a single MACE-specific ground-truth number.",
+    "findings": [
+      {
+        "source": "Kovacs, D. P. et al. MACE-OFF: Short-Range Transferable Machine Learning Force Fields for Organic Molecules. arXiv:2312.15211 (also published as J. Am. Chem. Soc. 2025, 147, 17598-17611).",
+        "url": "https://arxiv.org/abs/2312.15211",
+        "finding": "The original MACE-OFF23 paper's abstract references 'accurate secondary structure and vibrational spectrum' qualitatively (in the context of a solvated protein MD run) but does not report a quantitative vibrational-frequency MAE/RMSE figure. No numeric frequency accuracy claim from this primary paper could be confirmed."
+      },
+      {
+        "source": "Pracht, P.; Pillai, Y.; Kapil, V.; Csanyi, G.; Gonnheimer, N.; Vondrak, M.; Margraf, J. T.; Wales, D. J. Efficient Composite Infrared Spectroscopy: Combining the Double-Harmonic Approximation with Machine Learning Potentials. J. Chem. Theory Comput. 2024, 20 (24), 10986-11004.",
+        "url": "https://doi.org/10.1021/acs.jctc.4c01157",
+        "finding": "On the IR7193 benchmark set (7193 gas-phase molecules, 3-77 atoms, elements H,C,N,O,F,Cl,Br,S,P), MACE-OFF23 zero-point vibrational energy (ZPVE) was reported with MAE = 0.22-0.23 kcal/mol and RMSE = 0.30-0.31 kcal/mol relative to a B3LYP-3c DFT reference (NOT experiment). Small/medium/large MACE-OFF23 sizes performed similarly. This is the most concrete numeric MACE-OFF23 vibrational accuracy figure we located, but it is a DFT-reference ZPVE error, not a per-mode frequency MAE and not an experimental comparison."
+      },
+      {
+        "source": "Suarez-Dou, S.; Gallegos, M.; Han, K.; Brunig, F. N.; Berryman, J. T.; Tkatchenko, A. Quantum-Accurate Conformational Stabilities and Vibrational Dynamics in Molecules and Proteins with Machine-Learned Force Fields. arXiv:2601.09845 (2026).",
+        "url": "https://arxiv.org/abs/2601.09845",
+        "finding": "Introduces the QVib benchmark (293 molecules, 1365 conformers) referenced against PBE0+MBD DFT (again NOT experiment). Reports qualitatively that 'the MACE family provides the best overall agreement with the reference across both frequency MAE and IR-spectrum similarity metrics' among tested MLFFs, but flags that roughly 257/293 (~90%) of the benchmark molecules have close chemical analogues in MACE-OFF23's training set, i.e. the reported strong performance is largely interpolative. No MACE-OFF23-specific aggregate cm^-1 MAE value could be extracted from the accessible text; a worked single-molecule example for a different model (SO3LR, aspartame) gives MAE = 8.2 cm^-1 vs PBE0+MBD, illustrating the achievable order of magnitude for a well-trained MLFF but not a MACE-OFF23 number itself."
+      }
+    ],
+    "conclusion": "No experiment-referenced MACE-OFF23 frequency accuracy number exists in the literature we were able to retrieve. The only concrete MACE-OFF23 number found is a DFT-referenced ZPVE MAE of 0.22-0.23 kcal/mol (Pracht et al. 2024). Any pass/fail tolerance for this project's validator is therefore built from that DFT-reference figure plus the independent, well-established anharmonicity gap documented by CCCBDB (harmonic frequencies exceed experimental fundamentals by roughly 2-5%, larger in absolute cm^-1 for X-H stretches), not from a single MACE-OFF23-vs-experiment number, because that number does not appear to exist yet."
+  },
+  "recommended_validation_tolerance": {
+    "recommendation": "Do not compare a raw MACE harmonic frequency directly to an experimental fundamental with a flat pass/fail cutoff. Instead: (1) apply a fixed scaling factor of 0.97 to every MACE harmonic frequency before comparison (mid-point of the 0.96-0.99 band CCCBDB reports for high-quality DFT/CCSD(T)-level methods, appropriate because MACE-OFF23 is trained on a high-quality DFT reference, wB97M-D3BJ, so method error should be small relative to the anharmonicity gap that scaling primarily corrects for); then (2) apply a pass/fail band on the SCALED frequency of +/-4% relative OR +/-50 cm^-1 absolute, whichever is larger, treating modes below ~1000 cm^-1 (bends, torsions, skeletal/ring modes) with the absolute 50 cm^-1 floor and modes above ~1000 cm^-1 (X-H stretches, C=O/C=C stretches) with the 4% relative band.",
+    "why_not_a_single_flat_cm-1_number": "CCCBDB explicitly states that different scale factors are appropriate for low- and high-frequency vibrations, and the molecules in this dataset span torsions at ~200 cm^-1 (methanol, ethanol) to O-H/C-H stretches above 3600 cm^-1 (water, methanol, ethanol, benzene). A single absolute cm^-1 tolerance would be far too loose for a 200 cm^-1 torsion and far too tight for a 3800 cm^-1 stretch; a relative-percentage tolerance solves this but becomes unreasonably tight (a few cm^-1) for the lowest-frequency modes, hence the combined relative-OR-absolute floor.",
+    "quantitative_basis": [
+      "CCCBDB-reported literature scale factors for high-quality methods: B3LYP ~0.96-0.97, PBE-type GGA ~0.98-0.99, CCSD(T)/large basis ~0.98-0.99, wB97X-D/3-21G* = 0.955 (https://cccbdb.nist.gov/vibscalejustx.asp, https://cccbdb.nist.gov/vibscale2x.asp?method=60&basis=8).",
+      "Pracht et al. 2024 (10.1021/acs.jctc.4c01157) report MACE-OFF23 ZPVE MAE 0.22-0.23 kcal/mol and RMSE 0.30-0.31 kcal/mol vs a B3LYP-3c DFT reference on the 7193-molecule IR7193 set; expressed per-mode, a 0.22 kcal/mol ZPVE MAE corresponds to a total half-sum-of-frequency error of about 77 cm^-1 across all modes of a molecule, i.e. a handful of cm^-1 per mode when spread over a typical small-molecule mode count -- this bounds MACE's OWN error relative to its DFT reference, separate from the DFT-vs-experiment anharmonicity gap the 0.97 scale factor is meant to absorb.",
+      "Water worked example from this dataset: experimental fundamental vs CCCBDB-tabulated spectroscopic harmonic frequency differs by -175 cm^-1 (4.8%) for the symmetric stretch (3657 vs 3832 cm^-1) and -187 cm^-1 (4.9%) for the asymmetric stretch (3756 vs 3943 cm^-1), and by -54 cm^-1 (3.4%) for the bend (1595 vs 1649 cm^-1) -- directly demonstrating the 3-5% anharmonicity gap the 0.97 scale factor targets, using this project's own cited CCCBDB numbers rather than an external assumption."
+    ],
+    "caveat": "This tolerance is a considered engineering choice, not a validated MACE-OFF23-specific number, because (as documented above) no MACE-OFF23-vs-experiment frequency benchmark exists in the literature we could find. It should be revisited if such a benchmark is published, and it will likely need to be widened further for hindered-rotor modes (methanol/ethanol torsions below ~300 cm^-1), which a harmonic treatment handles poorly regardless of the underlying PES quality."
+  },
+  "molecules": {
+    "water": {
+      "name": "water",
+      "formula": "H2O",
+      "cas": "7732-18-5",
+      "point_group": "C2v",
+      "mode_count": {
+        "n_atoms": 3,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 3,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+      },
+      "rotational_symmetry_number": {
+        "value": 2,
+        "derivation": "Point group C2v is of type Cnv (n=2) -> sigma = n = 2",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Cnv -> sigma=n) applied to the C2v point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 3657,
+          "description": "OH symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 1595,
+          "description": "bend",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+        },
+        {
+          "mode": 3,
+          "symmetry": "B2",
+          "degeneracy": 1,
+          "frequency_cm-1": 3756,
+          "description": "OH asymmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+        }
+      ],
+      "harmonic_frequencies_cm-1_experimental_derivation": {
+        "note": "CCCBDB also lists spectroscopically-derived harmonic (deperturbed) frequencies alongside the fundamentals on this page.",
+        "values": [
+          {
+            "mode": 1,
+            "symmetry": "A1",
+            "harmonic_cm-1": 3832,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+          },
+          {
+            "mode": 2,
+            "symmetry": "A1",
+            "harmonic_cm-1": 1649,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+          },
+          {
+            "mode": 3,
+            "symmetry": "B2",
+            "harmonic_cm-1": 3943,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+          }
+        ]
+      },
+      "zero_point_energy": {
+        "value_cm-1": 4504.0,
+        "value_kJ_per_mol": 53.88,
+        "value_kcal_per_mol": 12.88,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 188.84,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+      },
+      "rotational_constants": {
+        "A": 27.877,
+        "B": 14.512,
+        "C": 9.285,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7732185"
+      },
+      "reference_note": "Herzberg (1966), as tabulated by CCCBDB."
+    },
+    "methane": {
+      "name": "methane",
+      "formula": "CH4",
+      "cas": "74-82-8",
+      "point_group": "Td",
+      "mode_count": {
+        "n_atoms": 5,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 9,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+      },
+      "rotational_symmetry_number": {
+        "value": 12,
+        "derivation": "Point group Td -> sigma = 12 (tabulated directly for Td)",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Td -> sigma=12) applied to the Td point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 2917,
+          "description": "symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+        },
+        {
+          "mode": 2,
+          "symmetry": "E",
+          "degeneracy": 2,
+          "frequency_cm-1": 1534,
+          "description": "degenerate deformation",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+        },
+        {
+          "mode": 3,
+          "symmetry": "T2",
+          "degeneracy": 3,
+          "frequency_cm-1": 3019,
+          "description": "degenerate stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+        },
+        {
+          "mode": 4,
+          "symmetry": "T2",
+          "degeneracy": 3,
+          "frequency_cm-1": 1306,
+          "description": "degenerate deformation",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 9480.0,
+        "value_kJ_per_mol": 113.41,
+        "value_kcal_per_mol": 27.1,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 186.37,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+      },
+      "rotational_constants": {
+        "A": 5.2412,
+        "B": 5.2412,
+        "C": 5.2412,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74828"
+      },
+      "reference_note": "Spherical top; single rotational constant reported by CCCBDB."
+    },
+    "ammonia": {
+      "name": "ammonia",
+      "formula": "NH3",
+      "cas": "7664-41-7",
+      "point_group": "C3v",
+      "mode_count": {
+        "n_atoms": 4,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 6,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+      },
+      "rotational_symmetry_number": {
+        "value": 3,
+        "derivation": "Point group C3v is of type Cnv (n=3) -> sigma = n = 3",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Cnv -> sigma=n) applied to the C3v point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 3337,
+          "description": "symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 950,
+          "description": "symmetric deformation (umbrella)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+        },
+        {
+          "mode": 3,
+          "symmetry": "E",
+          "degeneracy": 2,
+          "frequency_cm-1": 3444,
+          "description": "degenerate stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+        },
+        {
+          "mode": 4,
+          "symmetry": "E",
+          "degeneracy": 2,
+          "frequency_cm-1": 1627,
+          "description": "degenerate deformation",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 7214.5,
+        "value_kJ_per_mol": 86.3,
+        "value_kcal_per_mol": 20.63,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 192.77,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417",
+        "uncertainty_J_per_mol_K": 0.05
+      },
+      "rotational_constants": {
+        "A": 9.4443,
+        "B": 9.4443,
+        "C": 6.196,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=7664417"
+      },
+      "reference_note": "Symmetric top (A=B != C), consistent with C3v."
+    },
+    "carbon_dioxide": {
+      "name": "carbon dioxide",
+      "formula": "CO2",
+      "cas": "124-38-9",
+      "point_group": "D∞h",
+      "mode_count": {
+        "n_atoms": 3,
+        "linear": true,
+        "formula_used": "3N-5",
+        "expected_real_modes": 4,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+      },
+      "rotational_symmetry_number": {
+        "value": 2,
+        "derivation": "Linear, centrosymmetric (D∞h) molecule -> sigma = 2 (standard extension of the CCCBDB Dnh -> sigma=2n rule to the linear case; equivalent to the textbook rule sigma=2 for homonuclear/centrosymmetric linear molecules, sigma=1 for C∞v heteronuclear linear molecules)",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number tutorial) combined with the D∞h point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "Sigma_g+",
+          "degeneracy": 1,
+          "frequency_cm-1": 1333,
+          "description": "symmetric stretch (Fermi-resonance-shifted; IR-inactive, Raman-active)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+        },
+        {
+          "mode": 2,
+          "symmetry": "Sigma_u+",
+          "degeneracy": 1,
+          "frequency_cm-1": 2349,
+          "description": "asymmetric stretch (IR-active)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+        },
+        {
+          "mode": 3,
+          "symmetry": "Pi_u",
+          "degeneracy": 2,
+          "frequency_cm-1": 667,
+          "description": "doubly-degenerate bend (IR-active)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+        }
+      ],
+      "harmonic_frequencies_cm-1_experimental_derivation": {
+        "note": "CCCBDB also lists spectroscopically-derived harmonic frequencies alongside the fundamentals on this page.",
+        "values": [
+          {
+            "mode": 1,
+            "symmetry": "Sigma_g+",
+            "harmonic_cm-1": 1351,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+          },
+          {
+            "mode": 2,
+            "symmetry": "Sigma_u+",
+            "harmonic_cm-1": 2396,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+          },
+          {
+            "mode": 3,
+            "symmetry": "Pi_u",
+            "harmonic_cm-1": 672,
+            "sourceType": "experimental",
+            "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+          }
+        ]
+      },
+      "zero_point_energy": {
+        "value_cm-1": 2508.0,
+        "value_kJ_per_mol": 30.0,
+        "value_kcal_per_mol": 7.17,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 213.79,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389",
+        "uncertainty_J_per_mol_K": 0.01
+      },
+      "rotational_constants": {
+        "B": 0.39021,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=124389"
+      },
+      "reference_note": "Mode 1 (1333 cm-1) is the textbook example of Fermi resonance between the symmetric stretch and the first overtone of the bend; CCCBDB's fundamental value already reflects the resonance-mixed experimental band."
+    },
+    "formaldehyde": {
+      "name": "formaldehyde",
+      "formula": "H2CO",
+      "cas": "50-00-0",
+      "point_group": "C2v",
+      "mode_count": {
+        "n_atoms": 4,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 6,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+      },
+      "rotational_symmetry_number": {
+        "value": 2,
+        "derivation": "Point group C2v is of type Cnv (n=2) -> sigma = n = 2",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Cnv -> sigma=n) applied to the C2v point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 2782,
+          "description": "CH2 symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 1746,
+          "description": "CO stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        },
+        {
+          "mode": 3,
+          "symmetry": "A1",
+          "degeneracy": 1,
+          "frequency_cm-1": 1500,
+          "description": "CH2 scissors",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        },
+        {
+          "mode": 4,
+          "symmetry": "B1",
+          "degeneracy": 1,
+          "frequency_cm-1": 1167,
+          "description": "CH2 wag (out-of-plane)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        },
+        {
+          "mode": 5,
+          "symmetry": "B2",
+          "degeneracy": 1,
+          "frequency_cm-1": 2843,
+          "description": "CH2 asymmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        },
+        {
+          "mode": 6,
+          "symmetry": "B2",
+          "degeneracy": 1,
+          "frequency_cm-1": 1249,
+          "description": "CH2 rock",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 5643.5,
+        "value_kJ_per_mol": 67.51,
+        "value_kcal_per_mol": 16.14,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 218.76,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+      },
+      "rotational_constants": {
+        "A": 9.4053,
+        "B": 1.2953,
+        "C": 1.1342,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=50000"
+      },
+      "reference_note": null
+    },
+    "methanol": {
+      "name": "methanol",
+      "formula": "CH3OH",
+      "cas": "67-56-1",
+      "point_group": "Cs",
+      "mode_count": {
+        "n_atoms": 6,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 12,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+      },
+      "rotational_symmetry_number": {
+        "value": 1,
+        "derivation": "Overall molecular point group Cs (staggered heavy-atom frame) -> sigma = 1. NOTE: methanol has a nearly-free CH3 internal rotor; a separate INTERNAL rotational symmetry number of 3 is conventionally applied to that torsional mode in a hindered-rotor treatment of the partition function, but it is NOT part of the overall external symmetry number used with the rigid-rotor entropy formula.",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: C1/Cs/C-infinity-v -> sigma=1) applied to the Cs point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 3681,
+          "description": "OH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 3000,
+          "description": "CH3 degenerate stretch (component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 3,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 2844,
+          "description": "CH3 symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 4,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1477,
+          "description": "CH3 degenerate deformation (component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 5,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1455,
+          "description": "CH3 symmetric deformation",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 6,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1345,
+          "description": "OH bend (in-plane)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 7,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1060,
+          "description": "CH3 rock",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 8,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1033,
+          "description": "CO stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 9,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 2960,
+          "description": "CH3 degenerate stretch (component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 10,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 1477,
+          "description": "CH3 degenerate deformation (component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 11,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 1165,
+          "description": "CH3 rock",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        },
+        {
+          "mode": 12,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 200,
+          "description": "torsion (hindered internal rotation)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 10848.5,
+        "value_kJ_per_mol": 129.78,
+        "value_kcal_per_mol": 31.02,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 239.87,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+      },
+      "rotational_constants": {
+        "A": 4.2573,
+        "B": 0.82338,
+        "C": 0.79273,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=67561"
+      },
+      "reference_note": "The torsional mode (#12, 200 cm-1) is the hindered CH3 internal rotation; treating it as a harmonic mode (rather than a hindered rotor) is a known source of extra error for this molecule in any harmonic-oscillator comparison, including a MACE Hessian."
+    },
+    "ethylene": {
+      "name": "ethylene",
+      "formula": "C2H4",
+      "cas": "74-85-1",
+      "point_group": "D2h",
+      "mode_count": {
+        "n_atoms": 6,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 12,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+      },
+      "rotational_symmetry_number": {
+        "value": 4,
+        "derivation": "Point group D2h is of type Dnh (n=2) -> sigma = 2n = 4",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Dnh -> sigma=2n) applied to the D2h point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "Ag",
+          "degeneracy": 1,
+          "frequency_cm-1": 3026,
+          "description": "CH2 symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 2,
+          "symmetry": "Ag",
+          "degeneracy": 1,
+          "frequency_cm-1": 1623,
+          "description": "CC stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 3,
+          "symmetry": "Ag",
+          "degeneracy": 1,
+          "frequency_cm-1": 1342,
+          "description": "CH2 scissors",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 4,
+          "symmetry": "Au",
+          "degeneracy": 1,
+          "frequency_cm-1": 1023,
+          "description": "CH2 twist",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 5,
+          "symmetry": "B1u",
+          "degeneracy": 1,
+          "frequency_cm-1": 2989,
+          "description": "CH2 symmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 6,
+          "symmetry": "B1u",
+          "degeneracy": 1,
+          "frequency_cm-1": 1444,
+          "description": "CH2 scissors",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 7,
+          "symmetry": "B2g",
+          "degeneracy": 1,
+          "frequency_cm-1": 940,
+          "description": "CH2 wag",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 8,
+          "symmetry": "B2u",
+          "degeneracy": 1,
+          "frequency_cm-1": 3105,
+          "description": "CH2 asymmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 9,
+          "symmetry": "B2u",
+          "degeneracy": 1,
+          "frequency_cm-1": 826,
+          "description": "CH2 rock",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 10,
+          "symmetry": "B3g",
+          "degeneracy": 1,
+          "frequency_cm-1": 3086,
+          "description": "CH2 asymmetric stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 11,
+          "symmetry": "B3g",
+          "degeneracy": 1,
+          "frequency_cm-1": 1217,
+          "description": "CH2 rock",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        },
+        {
+          "mode": 12,
+          "symmetry": "B3u",
+          "degeneracy": 1,
+          "frequency_cm-1": 949,
+          "description": "CH2 wag",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 10784.7,
+        "value_kJ_per_mol": 129.01,
+        "value_kcal_per_mol": 30.84,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 219.32,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+      },
+      "rotational_constants": {
+        "A": 4.828,
+        "B": 1.0012,
+        "C": 0.8282,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74851"
+      },
+      "reference_note": null
+    },
+    "acetylene": {
+      "name": "acetylene",
+      "formula": "C2H2",
+      "cas": "74-86-2",
+      "point_group": "D∞h",
+      "mode_count": {
+        "n_atoms": 4,
+        "linear": true,
+        "formula_used": "3N-5",
+        "expected_real_modes": 7,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+      },
+      "rotational_symmetry_number": {
+        "value": 2,
+        "derivation": "Linear, centrosymmetric (D∞h) molecule -> sigma = 2",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number tutorial) combined with the D∞h point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "Sigma_g+",
+          "degeneracy": 1,
+          "frequency_cm-1": 3374,
+          "description": "CH symmetric stretch (Raman-active only)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+        },
+        {
+          "mode": 2,
+          "symmetry": "Sigma_g+",
+          "degeneracy": 1,
+          "frequency_cm-1": 1974,
+          "description": "CC stretch (Raman-active only)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+        },
+        {
+          "mode": 3,
+          "symmetry": "Sigma_u+",
+          "degeneracy": 1,
+          "frequency_cm-1": 3289,
+          "description": "CH asymmetric stretch (IR-active)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+        },
+        {
+          "mode": 4,
+          "symmetry": "Pi_g",
+          "degeneracy": 2,
+          "frequency_cm-1": 612,
+          "description": "doubly-degenerate trans bend (Raman-active only)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+        },
+        {
+          "mode": 5,
+          "symmetry": "Pi_u",
+          "degeneracy": 2,
+          "frequency_cm-1": 730,
+          "description": "doubly-degenerate cis bend (IR-active)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 5660.5,
+        "value_kJ_per_mol": 67.71,
+        "value_kcal_per_mol": 16.18,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 200.93,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+      },
+      "rotational_constants": {
+        "B": 1.1766,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=74862"
+      },
+      "reference_note": null
+    },
+    "benzene": {
+      "name": "benzene",
+      "formula": "C6H6",
+      "cas": "71-43-2",
+      "point_group": "D6h",
+      "mode_count": {
+        "n_atoms": 12,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 30,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+      },
+      "rotational_symmetry_number": {
+        "value": 12,
+        "derivation": "Point group D6h is of type Dnh (n=6) -> sigma = 2n = 12",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: Dnh -> sigma=2n) applied to the D6h point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A1g",
+          "degeneracy": 1,
+          "frequency_cm-1": 3062,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A1g",
+          "degeneracy": 1,
+          "frequency_cm-1": 992,
+          "description": "ring breathing",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 3,
+          "symmetry": "A2g",
+          "degeneracy": 1,
+          "frequency_cm-1": 1326,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 4,
+          "symmetry": "A2u",
+          "degeneracy": 1,
+          "frequency_cm-1": 673,
+          "description": "out-of-plane ring bend",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 5,
+          "symmetry": "B1u",
+          "degeneracy": 1,
+          "frequency_cm-1": 3068,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 6,
+          "symmetry": "B1u",
+          "degeneracy": 1,
+          "frequency_cm-1": 1010,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 7,
+          "symmetry": "B2g",
+          "degeneracy": 1,
+          "frequency_cm-1": 995,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 8,
+          "symmetry": "B2g",
+          "degeneracy": 1,
+          "frequency_cm-1": 703,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 9,
+          "symmetry": "B2u",
+          "degeneracy": 1,
+          "frequency_cm-1": 1310,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 10,
+          "symmetry": "B2u",
+          "degeneracy": 1,
+          "frequency_cm-1": 1150,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 11,
+          "symmetry": "E1g",
+          "degeneracy": 2,
+          "frequency_cm-1": 849,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 12,
+          "symmetry": "E1u",
+          "degeneracy": 2,
+          "frequency_cm-1": 3063,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 13,
+          "symmetry": "E1u",
+          "degeneracy": 2,
+          "frequency_cm-1": 1486,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 14,
+          "symmetry": "E1u",
+          "degeneracy": 2,
+          "frequency_cm-1": 1038,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 15,
+          "symmetry": "E2g",
+          "degeneracy": 2,
+          "frequency_cm-1": 3047,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 16,
+          "symmetry": "E2g",
+          "degeneracy": 2,
+          "frequency_cm-1": 1596,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 17,
+          "symmetry": "E2g",
+          "degeneracy": 2,
+          "frequency_cm-1": 1178,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 18,
+          "symmetry": "E2g",
+          "degeneracy": 2,
+          "frequency_cm-1": 606,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 19,
+          "symmetry": "E2u",
+          "degeneracy": 2,
+          "frequency_cm-1": 975,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        },
+        {
+          "mode": 20,
+          "symmetry": "E2u",
+          "degeneracy": 2,
+          "frequency_cm-1": 410,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 21392.5,
+        "value_kJ_per_mol": 255.91,
+        "value_kcal_per_mol": 61.16,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 269.3,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+      },
+      "rotational_constants": {
+        "A": 0.1896,
+        "B": 0.1896,
+        "C": 0.0948,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=71432"
+      },
+      "reference_note": "20 distinct experimental band frequencies represent all 30 normal modes once E1g/E1u/E2g/E2u double-degeneracies are counted (2+1+1+2+2+2+2+6+8+4=30=3N-6 for N=12); this is the standard Wilson-mode assignment for benzene."
+    },
+    "ethanol": {
+      "name": "ethanol",
+      "formula": "C2H5OH",
+      "cas": "64-17-5",
+      "point_group": "Cs",
+      "mode_count": {
+        "n_atoms": 9,
+        "linear": false,
+        "formula_used": "3N-6",
+        "expected_real_modes": 21,
+        "sourceType": "computed",
+        "source": "Standard normal-mode-counting rule (3N-5 linear / 3N-6 nonlinear) applied to the atom count of the species; cross-checked against the total number of listed modes (counting degeneracies) on the CCCBDB experimental page: https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+      },
+      "rotational_symmetry_number": {
+        "value": 1,
+        "derivation": "Overall molecular point group Cs (trans/anti conformer used by CCCBDB) -> sigma = 1. NOTE: as with methanol, the CH3 internal rotor is conventionally treated with its own internal symmetry number (3) in a hindered-rotor partition function; this is separate from the overall external symmetry number.",
+        "sourceType": "computed",
+        "source": "https://cccbdb.nist.gov/thermox.asp (CCCBDB symmetry-number-by-point-group table: C1/Cs/C-infinity-v -> sigma=1) applied to the Cs point group reported at https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+      },
+      "vibrational_modes": [
+        {
+          "mode": 1,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 3653,
+          "description": "OH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 2,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 2984,
+          "description": "CH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 3,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 2939,
+          "description": "CH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 4,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 2900,
+          "description": "CH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 5,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1490,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 6,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1464,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 7,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1412,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 8,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1371,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 9,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1256,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 10,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1091,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 11,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 1028,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 12,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 888,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 13,
+          "symmetry": "A'",
+          "degeneracy": 1,
+          "frequency_cm-1": 417,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 14,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 2991,
+          "description": "CH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 15,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 2910,
+          "description": "CH stretch",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 16,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 1446,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 17,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 1275,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 18,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 1161,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 19,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 812,
+          "description": null,
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 20,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 251,
+          "description": "internal rotation (CH3 torsion, component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        },
+        {
+          "mode": 21,
+          "symmetry": "A\"",
+          "degeneracy": 1,
+          "frequency_cm-1": 200,
+          "description": "internal rotation (OH torsion, component)",
+          "sourceType": "experimental",
+          "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+        }
+      ],
+      "zero_point_energy": {
+        "value_cm-1": 16968.4,
+        "value_kJ_per_mol": 202.99,
+        "value_kcal_per_mol": 48.52,
+        "methodNote": "CCCBDB's 'vibrational zero-point energy' for this species is computed as half the sum of the EXPERIMENTAL FUNDAMENTAL frequencies listed in vibrational_modes (not half the sum of harmonic frequencies). It therefore already contains the real anharmonic content of the fundamentals and is NOT directly comparable to a ZPE computed from a harmonic (e.g. MACE) Hessian without accounting for that difference.",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+      },
+      "entropy_298K_1bar": {
+        "value_J_per_mol_K": 281.62,
+        "temperature_K": 298.15,
+        "pressure": "1 bar (ideal gas standard state)",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+      },
+      "rotational_constants": {
+        "A": 1.16386,
+        "B": 0.3119,
+        "C": 0.27136,
+        "units": "cm-1",
+        "sourceType": "experimental",
+        "source": "https://cccbdb.nist.gov/exp2x.asp?casno=64175"
+      },
+      "reference_note": "CCCBDB reports the trans (anti) conformer. Two low-frequency modes (#20, #21) are hindered internal rotations (CH3 and OH torsions) rather than well-behaved small-amplitude harmonic vibrations; expect the largest MACE-vs-experiment mismatch here regardless of tolerance chosen."
+    }
+  }
+}
