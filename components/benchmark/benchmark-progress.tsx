@@ -70,7 +70,7 @@ export function BenchmarkProgress({
             key={sid}
             className="gap-0 rounded-lg bg-[var(--color-bg-elevated)] px-3 py-2"
           >
-            <p className="mb-1.5 truncate font-mono text-xs font-semibold text-[var(--color-text-secondary)]">
+            <p className="mb-1.5 truncate font-mono text-sm font-semibold text-[var(--color-text-secondary)]">
               {structureNames[sid] || sid}
             </p>
             <div className="flex gap-1.5">

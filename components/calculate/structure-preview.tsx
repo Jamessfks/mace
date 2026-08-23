@@ -267,7 +267,7 @@ export function StructurePreview({ files }: StructurePreviewProps) {
                   <span className="text-sm font-bold text-[var(--color-text-primary)]">
                     {parsed.empiricalFormula}
                   </span>
-                  <span className="text-xs text-[var(--color-text-secondary)]">
+                  <span className="text-sm text-[var(--color-text-secondary)]">
                     {parsed.atomCount} atoms
                   </span>
                 </div>

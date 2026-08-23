@@ -278,6 +278,14 @@ export default function CalculatePage() {
 function CalculatePageInner() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   /**
+   * The NEB product endpoint. Kept OUT of `uploadedFiles` on purpose: that array
+   * drives the structure preview, the 3D viewer and the element checks, all of
+   * which read index 0 and all of which should keep describing the reactant.
+   * It is appended as the second `files` entry only at submit time, which is
+   * exactly where mace-api/main.py and calculate_local.py expect to find it.
+   */
+  const [productFile, setProductFile] = useState<File | null>(null);
+  /**
    * Parsed form of the first uploaded structure. Feeds the parameter panel's
    * scientific guardrails — the MACE-OFF element check and the NPT
    * periodicity gate — which stay inert while this is null, so nothing warns
@@ -421,8 +429,8 @@ function CalculatePageInner() {
         ? "Upload a MACE .model checkpoint to run a custom model — or switch to MACE-MP-0 or MACE-OFF. A foundation-model result labelled “custom” would attribute the numbers to a model that was never loaded."
         : params.calculationType === "phonon"
           ? "Phonon spectrum is not implemented. Choose single-point, geometry optimization, or molecular dynamics."
-          : params.calculationType === "neb"
-            ? "Nudged elastic band needs a second (product) structure. SimpleAtom does not have an upload for that yet, so this option stays disabled rather than failing on every run."
+          : params.calculationType === "neb" && !productFile
+            ? "Nudged elastic band needs a second structure: upload the product geometry below. Its atoms must be listed in the same order as the reactant’s, or the barrier would be computed between mismatched atoms."
             : null;
 
   const handleRunFoundation =
@@ -475,6 +483,11 @@ function CalculatePageInner() {
     try {
       const formData = new FormData();
       uploadedFiles.forEach((file) => formData.append("files", file));
+      // Second structure = NEB product. The backend rejects a product sent with
+      // any other calculation type, so it is only attached when NEB is chosen.
+      if (params.calculationType === "neb" && productFile) {
+        formData.append("files", productFile);
+      }
       formData.append("params", JSON.stringify(params));
       if (customModelFile && params.modelType === "custom") {
         formData.append("model", customModelFile);
@@ -620,6 +633,8 @@ function CalculatePageInner() {
                   structureElements={parsedStructure?.elements}
                   isPeriodic={parsedStructure?.isPeriodic}
                   structureSymbols={parsedStructure?.symbols}
+                  productFile={productFile}
+                  onProductFileChange={setProductFile}
                 />
               </aside>
 
@@ -971,7 +986,7 @@ function RecentCalculations() {
                       {timeAgo(e.timestamp)}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-text-secondary)]">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-[var(--color-text-secondary)]">
                     <span>{e.modelType}</span>
                     <span aria-hidden>·</span>
                     <span>{CALC_LABEL[e.calculationType] ?? e.calculationType}</span>

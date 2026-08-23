@@ -165,6 +165,20 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     await writeFile(tmpPath, fileBuffer);
 
+    // A second structure is the NEB product endpoint. The remote branch above
+    // already forwards every uploaded file and mace-api/main.py reads files[1],
+    // so NEB has always worked against a hosted backend; only this local
+    // subprocess path dropped it. run_calculation() rejects a product supplied
+    // with any other calculation type rather than ignoring it, so forwarding it
+    // unconditionally is safe — a stray second file becomes a clear error, not
+    // a silently different calculation.
+    let productPath: string | undefined;
+    if (files.length > 1) {
+      const product = files[1];
+      productPath = join(tmpDir, `product-${product.name}`);
+      await writeFile(productPath, Buffer.from(await product.arrayBuffer()));
+    }
+
     // Handle custom model file if provided
     let modelPath: string | undefined;
     if (modelFile) {
@@ -180,6 +194,9 @@ export async function POST(request: NextRequest) {
       const args = [scriptPath, tmpPath, paramsStr];
       if (modelPath) {
         args.push("--model-path", modelPath);
+      }
+      if (productPath) {
+        args.push("--product", productPath);
       }
 
       let stdout: string;
@@ -244,6 +261,9 @@ export async function POST(request: NextRequest) {
         await unlink(tmpPath);
         if (modelPath) {
           try { await unlink(modelPath); } catch {}
+        }
+        if (productPath) {
+          try { await unlink(productPath); } catch {}
         }
         await rmdir(tmpDir);
       } catch {

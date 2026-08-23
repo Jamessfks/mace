@@ -291,7 +291,7 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
         onClick={downloadCSV}
         variant="outline"
         size="sm"
-        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
+        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
       >
         <Download className="h-3 w-3" /> Export CSV
       </Button>
@@ -299,7 +299,7 @@ export function BenchmarkExport({ result }: BenchmarkExportProps) {
         onClick={downloadJSON}
         variant="outline"
         size="sm"
-        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
+        className="gap-1.5 bg-[var(--color-bg-elevated)] font-mono text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)]/50 hover:text-[var(--color-accent-primary)]"
       >
         <Download className="h-3 w-3" /> Export JSON
       </Button>

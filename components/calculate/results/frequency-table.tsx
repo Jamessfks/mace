@@ -127,13 +127,13 @@ export function FrequencyTable({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--color-text-secondary)]">
+                  <TableCell className="font-mono text-sm text-[var(--color-text-secondary)]">
                     {mode.energyEv.toFixed(4)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--color-text-secondary)]">
+                  <TableCell className="font-mono text-sm text-[var(--color-text-secondary)]">
                     {mode.reducedMassAmu.toFixed(3)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--color-text-secondary)]">
+                  <TableCell className="font-mono text-sm text-[var(--color-text-secondary)]">
                     {mode.forceConstantEvPerAngstrom2.toFixed(3)}
                   </TableCell>
                 </TableRow>

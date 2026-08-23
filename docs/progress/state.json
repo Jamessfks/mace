@@ -1,6 +1,6 @@
 {
-  "version": "2.20",
-  "goal": "Polish SimpleAtom's MACE computation, add frequencies/thermochemistry and reaction paths, expose every real MACE foundation model \u2014 all runnable anonymously on 2 vCPU.",
+  "version": "2.3.0",
+  "goal": "Ship v2.3.0: lift the type scale off the floor, give every calculation type an original illustration drawn from real computed data, and ship to production.",
   "bars": [
     {
       "name": "Rowan",
@@ -152,6 +152,48 @@
         }
       ],
       "notes": "Space LIVE and verified (outage fixed). Vercel preview deployed; production promotion is the user\u2019s call."
+    },
+    {
+      "id": "typescale",
+      "name": "Type scale",
+      "detail": "40 of 58 text nodes measured at or below 12px, 17 of them at 10px. Scale moved up one step; all 113 hardcoded text-[Npx] literals folded onto it.",
+      "status": "won",
+      "notes": "Zero text below 13px. Zero hardcoded font sizes. No overflow at 375px or 1280px.",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Floor raised and hierarchy preserved, but 41 of 58 nodes now sit at 13px because the former 10px and 12px tiers collapsed together."
+        }
+      ]
+    },
+    {
+      "id": "artwork",
+      "name": "Calculation illustrations",
+      "detail": "Seven original SVGs in the shape Rowan uses, but drawn from data this app actually produced.",
+      "status": "won",
+      "notes": "coordinate-scan plots the real 2.487 kcal/mol ethane barrier; vibrations uses water's real eigenvector and states no IR intensity exists.",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Beats Rowan on substance - theirs are decorative, ours are real measurements. phonon deliberately has no art."
+        }
+      ]
+    },
+    {
+      "id": "ship23",
+      "name": "Ship v2.3.0",
+      "detail": "Full audit, then production deploy and a real scientific test against the live site.",
+      "status": "won",
+      "notes": "13/13 audit checks pass. Live production: water frequencies within 0.96% of experimental harmonic, entropy within 0.14%.",
+      "rounds": [
+        {
+          "n": 1,
+          "win": true,
+          "gap": "Audit found the Next route returned 500 for a bad modelType where the Python API returned 400. Both now 400."
+        }
+      ]
     }
   ],
   "log": [
@@ -214,6 +256,18 @@
     {
       "t": "green",
       "msg": "Final sweep: 6/6 Python test files pass, validator 5/5, tsc clean, next build clean, live Space healthy serving 12 models."
+    },
+    {
+      "t": "v2.3",
+      "msg": "Type scale lifted: text nodes at or below 12px went from 40/58 to 0. All 113 hardcoded text-[Npx] literals removed."
+    },
+    {
+      "t": "v2.3",
+      "msg": "Seven original workflow illustrations authored - no external image fetched, copied or traced. Real computed data encoded in coordinate-scan and vibrations."
+    },
+    {
+      "t": "SHIPPED",
+      "msg": "v2.3.0 deployed to production and aliased to mace-lake.vercel.app. Real test on live production: 1632.7/3845.7/3949.9 cm-1 (-0.96%/+0.35%/+0.19% vs experimental harmonic), S=188.57 J/mol/K (-0.14%)."
     }
   ]
 }

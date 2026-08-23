@@ -61,7 +61,7 @@ export function ReactionPathResults({ result }: ReactionPathResultsProps) {
               <Badge variant="outline" className="font-mono text-xs">
                 {COORDINATE_LABEL[scan.coordinate] ?? scan.coordinate}
               </Badge>
-              <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+              <span className="font-mono text-sm text-[var(--color-text-secondary)]">
                 atoms [{scan.indices.join(", ")}] (0-based)
               </span>
               <span className="font-mono text-xs text-[var(--color-text-muted)]">

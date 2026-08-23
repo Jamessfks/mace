@@ -435,7 +435,7 @@ function TrajectoryPlayer({
                 <Gauge className="h-3.5 w-3.5" />
               </ControlButton>
             </div>
-            <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-xs text-[var(--color-text-secondary)]">
+            <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-sm text-[var(--color-text-secondary)]">
               {speed}×
             </span>
             <input
@@ -488,7 +488,7 @@ function TrajectoryPlayer({
               <Gauge className="h-3.5 w-3.5" />
             </ControlButton>
           </div>
-          <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-xs text-[var(--color-text-secondary)]">
+          <span className="rounded bg-[var(--color-bg-surface)] px-1.5 py-0.5 font-mono text-sm text-[var(--color-text-secondary)]">
             {speed}×
           </span>
           <input

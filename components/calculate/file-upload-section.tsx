@@ -98,7 +98,7 @@ export function FileUploadSection({
                 <p className="text-sm font-medium text-[var(--color-text-primary)]">
                   Drag &amp; drop a structure file
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
                   or click to browse
                 </p>
                 <p className="mt-3 font-mono text-xs text-[var(--color-text-muted)]">
@@ -109,7 +109,7 @@ export function FileUploadSection({
 
             {/* Catalog */}
             <TabsContent value="catalog" className="mt-4">
-              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
+              <p className="mb-3 text-sm text-[var(--color-text-secondary)]">
                 Select a benchmark structure from the{" "}
                 <a
                   href="https://github.com/ddmms/ml-peg"
@@ -126,7 +126,7 @@ export function FileUploadSection({
 
             {/* SMILES */}
             <TabsContent value="smiles" className="mt-4">
-              <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
+              <p className="mb-3 text-sm text-[var(--color-text-secondary)]">
                 Enter a{" "}
                 <a
                   href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system"

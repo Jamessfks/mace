@@ -95,7 +95,7 @@ export function EnergyProfileChart({ profile, scan }: EnergyProfileChartProps) {
         useResizeHandler
         style={{ width: "100%", height: "360px" }}
       />
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-xs text-[var(--color-text-secondary)]">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-sm text-[var(--color-text-secondary)]">
         <span>
           Barrier:{" "}
           <strong className="text-[var(--color-text-primary)]">

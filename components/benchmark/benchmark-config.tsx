@@ -577,7 +577,7 @@ export function BenchmarkConfig({ onRun, isRunning }: BenchmarkConfigProps) {
                     />
                     <Label
                       htmlFor={`cat-${cat.id}`}
-                      className={`flex-1 gap-1.5 font-sans text-xs font-semibold text-[var(--color-text-secondary)] ${
+                      className={`flex-1 gap-1.5 font-sans text-sm font-semibold text-[var(--color-text-secondary)] ${
                         catIds.length === 0 ? "opacity-40" : "cursor-pointer"
                       }`}
                     >

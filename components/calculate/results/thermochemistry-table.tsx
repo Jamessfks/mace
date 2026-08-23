@@ -44,7 +44,7 @@ export function ThermochemistryTable({ thermochemistry: t }: ThermochemistryTabl
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-3 py-2 font-mono text-xs text-[var(--color-text-secondary)]">
+      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-3 py-2 font-mono text-sm text-[var(--color-text-secondary)]">
         Ideal-gas thermochemistry at{" "}
         <strong className="text-[var(--color-text-primary)]">{t.temperatureK} K</strong> /{" "}
         <strong className="text-[var(--color-text-primary)]">{t.pressurePa.toLocaleString()} Pa</strong>
@@ -76,7 +76,7 @@ export function ThermochemistryTable({ thermochemistry: t }: ThermochemistryTabl
       </div>
 
       {/* Symmetry number — detected vs. overridden, and its effect on entropy */}
-      <div className="flex items-start gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+      <div className="flex items-start gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]" />
         <div>
           <p>

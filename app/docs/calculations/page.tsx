@@ -262,9 +262,43 @@ export default function CalculationsPage() {
           <em>vibrational analysis is not a substitute</em>: a molecular Hessian
           is not a force-constant mesh over q-points. A phonon request is
           rejected with a message pointing molecules at vibrational analysis.
-          Nudged elastic band is implemented in the engine but not yet reachable
-          from this page, because it needs a second structure upload.
         </Callout>
+
+        <h2 id="neb">Nudged elastic band</h2>
+        <p>
+          Interpolates a band of images between a relaxed reactant and a relaxed
+          product, optimises it, and reports the barrier in both directions
+          along with the reaction energy. Select it and a second upload appears
+          for the product geometry.
+        </p>
+        <ul>
+          <li>
+            <strong>Climbing image, in two phases.</strong> The plain band is
+            relaxed first, then <code>climb</code> is switched on and the target
+            tightened &mdash; the standard CI-NEB protocol (Henkelman, Uberuaga
+            &amp; J&oacute;nsson, <em>J. Chem. Phys.</em> <b>113</b>, 9901
+            (2000)). The order matters: the climbing image is chosen as the
+            current highest-energy image, so enabling it too early climbs the
+            wrong one.
+          </li>
+          <li>
+            <strong>Atom order must correspond.</strong> Reactant and product are
+            checked element-by-element and a mismatch is refused. A silently
+            mismatched band returns a confident, wrong barrier &mdash; the worst
+            possible failure mode, because nothing about the output looks amiss.
+          </li>
+          <li>
+            <strong>Endpoints are relaxed first.</strong> A barrier measured from
+            unrelaxed endpoints is a barrier plus whatever strain the input
+            happened to carry. If they are not converged, they are relaxed and
+            the result records that it happened.
+          </li>
+          <li>
+            <strong>Cross-checked against the scan.</strong> On ethane&rsquo;s
+            rotation barrier the two independent methods agree to 0.004
+            kcal/mol &mdash; 2.487 from the relaxed scan, 2.491 from CI-NEB.
+          </li>
+        </ul>
 
         <h2 id="dispersion">D3 dispersion correction</h2>
         <p>

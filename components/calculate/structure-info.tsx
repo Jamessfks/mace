@@ -208,7 +208,7 @@ export function StructureInfo({ file }: StructureInfoProps) {
             <Badge
               key={el}
               variant="outline"
-              className="gap-0.5 bg-[var(--color-bg-surface)] font-mono text-xs font-normal text-[var(--color-text-secondary)]"
+              className="gap-0.5 bg-[var(--color-bg-surface)] font-mono text-sm font-normal text-[var(--color-text-secondary)]"
             >
               {el}
               <span className="text-[var(--color-accent-primary)]">

@@ -48,17 +48,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Info,
-  Upload,
-  X,
-  FileText,
-  AlertTriangle,
-  Lock,
-  Unlock,
-  Gauge,
-  ChevronUp,
-} from "lucide-react";
+import { AlertTriangle, Check, ChevronUp, FileText, Gauge, Info, Lock, Unlock, Upload, X } from "lucide-react";
 import type { CalculationParams } from "@/types/mace";
 import {
   MODEL_FAMILIES,
@@ -118,6 +108,9 @@ interface ParameterPanelProps {
    * absent.
    */
   structureSymbols?: string[];
+  /** NEB product endpoint, or null. Only read when calculationType is "neb". */
+  productFile?: File | null;
+  onProductFileChange?: (file: File | null) => void;
 }
 
 type CalcTypeOption = {
@@ -173,8 +166,7 @@ const CALC_TYPES: CalcTypeOption[] = [
     value: "neb",
     art: "/workflows/neb.svg",
     label: "Nudged elastic band",
-    hint: "Reaction path between two structures — needs a second (product) structure upload, which SimpleAtom does not have wired up yet. Coming soon.",
-    disabled: true,
+    hint: "Climbing-image reaction path between a reactant and a product geometry, reporting the barrier in both directions",
   },
   {
     value: "irc",
@@ -237,6 +229,8 @@ export function ParameterPanel({
   structureElements,
   isPeriodic,
   structureSymbols,
+  productFile,
+  onProductFileChange,
 }: ParameterPanelProps) {
   const updateParam = <K extends keyof CalculationParams>(
     key: K,
@@ -427,7 +421,7 @@ export function ParameterPanel({
 
           {isCustom && (
             <div className="space-y-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] p-4">
-              <p className="flex items-start gap-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+              <p className="flex items-start gap-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-accent-primary)]" />
                 <span>
                   Upload a MACE-compatible <code className="font-mono">.model</code>{" "}
@@ -450,7 +444,7 @@ export function ParameterPanel({
                     className="absolute inset-0 cursor-pointer opacity-0"
                   />
                   <Upload className="mx-auto mb-1 h-5 w-5 text-[var(--color-text-muted)]" />
-                  <p className="text-xs text-[var(--color-text-secondary)]">
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     Drop a .model file or click to browse
                   </p>
                 </div>
@@ -667,7 +661,7 @@ export function ParameterPanel({
                           </span>
                         )}
                       </span>
-                      <span className="mt-1 block text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                      <span className="mt-1 block text-sm leading-relaxed text-[var(--color-text-secondary)]">
                         {opt.hint}
                       </span>
                     </span>
@@ -938,9 +932,62 @@ export function ParameterPanel({
 
             {/* Intrinsic reaction coordinate — only documented parameter is the
                 wall-clock budget (see PARAM_KEYS_BY_CALC_TYPE in app/calculate/page.tsx). */}
+            {params.calculationType === "neb" && (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-primary)] p-4">
+                  <Label htmlFor="neb-product" className="text-sm font-medium">
+                    Product structure
+                  </Label>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                    The other end of the reaction. Its atoms must be listed in
+                    the same order as the reactant&apos;s — the backend checks
+                    this and refuses a mismatch, because a silently mismatched
+                    band returns a confident, wrong barrier.
+                  </p>
+                  <input
+                    id="neb-product"
+                    type="file"
+                    accept=".xyz,.cif,.poscar,.contcar,.pdb"
+                    onChange={(e) =>
+                      onProductFileChange?.(e.target.files?.[0] ?? null)
+                    }
+                    className="mt-3 block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-[var(--color-border-subtle)] file:bg-[var(--color-bg-secondary)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-text-primary)] hover:file:bg-[var(--color-bg-tertiary)]"
+                  />
+                  {productFile && (
+                    <p className="mt-2.5 flex items-center gap-2 text-sm text-[var(--color-accent-strong)]">
+                      <Check className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{productFile.name}</span>
+                      <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
+                        {(productFile.size / 1024).toFixed(1)} KB
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <NumberField
+                  label="Band images"
+                  hint="Including both endpoints. More images resolve the path better but cost proportionally more force evaluations — on 2 free vCPU, 5 to 7 is realistic."
+                  value={params.nebImages ?? 7}
+                  onChange={(v) => updateParam("nebImages", v)}
+                  min={3}
+                  max={11}
+                  step={1}
+                />
+                <NumberField
+                  label="Wall-clock budget"
+                  unit="s"
+                  hint="The run returns whatever it has completed at this ceiling rather than hanging indefinitely."
+                  value={params.timeBudgetSeconds ?? 240}
+                  onChange={(v) => updateParam("timeBudgetSeconds", v)}
+                  min={10}
+                  max={3600}
+                  step={10}
+                />
+              </div>
+            )}
+
             {params.calculationType === "irc" && (
               <div className="mt-5 space-y-4">
-                <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
                   Runs from the uploaded transition-state structure toward
                   both reactant and product using the backend&apos;s default
                   IRC step settings.
@@ -1033,7 +1080,7 @@ function ModelDetailsPanel({ entry }: { entry: ModelCatalogEntry }) {
             <Badge
               key={el}
               variant="outline"
-              className="bg-[var(--color-bg-elevated)] font-mono text-xs font-normal text-[var(--color-text-secondary)]"
+              className="bg-[var(--color-bg-elevated)] font-mono text-sm font-normal text-[var(--color-text-secondary)]"
             >
               {el}
             </Badge>
@@ -1161,7 +1208,7 @@ function CoordinateScanForm({
       </Field>
 
       <div className="space-y-2">
-        <Label className="text-xs font-medium text-[var(--color-text-secondary)]">
+        <Label className="text-sm font-medium text-[var(--color-text-secondary)]">
           Atom indices (0-based, in order — the {coordinate === "angle" ? "middle atom is the vertex" : "order sets the sign/direction"})
         </Label>
         <div
@@ -1309,7 +1356,7 @@ function Field({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
-        <Label className="text-xs font-medium text-[var(--color-text-secondary)]">
+        <Label className="text-sm font-medium text-[var(--color-text-secondary)]">
           {label}
         </Label>
         {tooltip && <InfoTip text={tooltip} />}
@@ -1373,7 +1420,7 @@ function NumberField({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium text-[var(--color-text-secondary)]">
+      <Label className="text-sm font-medium text-[var(--color-text-secondary)]">
         {label}
         {unit && (
           <span className="ml-1 font-normal text-[var(--color-text-muted)]">

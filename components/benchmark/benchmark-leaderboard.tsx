@@ -286,7 +286,7 @@ export function BenchmarkLeaderboard({ result }: LeaderboardProps) {
             <TableCell />
             {aggregates.map((agg, i) => (
               <TableCell key={i} className="text-right">
-                <div className="font-mono text-xs tabular-nums text-[var(--color-text-secondary)]">
+                <div className="font-mono text-sm tabular-nums text-[var(--color-text-secondary)]">
                   {agg.avgE != null ? `Avg: ${agg.avgE.toFixed(4)} eV` : "N/A"}
                 </div>
                 <div className="font-mono text-xs text-[var(--color-text-muted)]">

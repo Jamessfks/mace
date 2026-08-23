@@ -159,7 +159,7 @@ export function BenchmarkMpComparison({ result }: Props) {
               <dt className="font-sans text-xs font-semibold text-[var(--color-text-primary)]">
                 {c.title}
               </dt>
-              <dd className="mt-0.5 max-w-3xl text-xs leading-relaxed text-[var(--color-text-secondary)]">
+              <dd className="mt-0.5 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
                 {c.body}
               </dd>
             </div>
@@ -178,7 +178,7 @@ export function BenchmarkMpComparison({ result }: Props) {
           <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
             In the reference set but not in this run
           </h4>
-          <p className="mt-2 font-mono text-xs text-[var(--color-text-secondary)]">
+          <p className="mt-2 font-mono text-sm text-[var(--color-text-secondary)]">
             {comparison.compoundsNotRun.map((c) => `${c.formula} (${c.mpId})`).join(" · ")}
           </p>
           <p className="mt-1.5 text-xs text-[var(--color-text-muted)]">
@@ -277,7 +277,7 @@ function ModelBlock({ model }: { model: MpModelComparison }) {
       {!model.scorable && (
         <div className="flex items-start gap-2.5 border-b border-[var(--color-border-subtle)] px-5 py-3">
           <Ban className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--color-text-muted)]" />
-          <p className="max-w-3xl text-xs leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
             {model.notScorableReason}
           </p>
         </div>
@@ -287,7 +287,7 @@ function ModelBlock({ model }: { model: MpModelComparison }) {
       {model.scorable && model.missingElementReferences.length > 0 && (
         <div className="flex items-start gap-2.5 border-b border-[var(--color-border-subtle)] bg-[var(--color-warning)]/5 px-5 py-3">
           <MinusCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--color-warning)]" />
-          <p className="max-w-3xl text-xs leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
             No elemental reference ran for{" "}
             <span className="font-mono font-semibold">
               {model.missingElementReferences.join(", ")}
@@ -401,7 +401,7 @@ function ModelBlock({ model }: { model: MpModelComparison }) {
             <p className="font-mono text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
               Elemental references used — {model.modelLabel}, this run
             </p>
-            <p className="mt-1 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            <p className="mt-1 font-mono text-sm leading-relaxed text-[var(--color-text-secondary)]">
               {model.elementReferences
                 .map(
                   (r) =>
@@ -434,7 +434,7 @@ function Exclusions({
       <dl className="mt-3 space-y-2">
         {comparison.exclusions.map((ex) => (
           <div key={ex.structureId} className="sm:flex sm:gap-3">
-            <dt className="flex-shrink-0 font-mono text-xs font-semibold text-[var(--color-text-secondary)] sm:w-44">
+            <dt className="flex-shrink-0 font-mono text-sm font-semibold text-[var(--color-text-secondary)] sm:w-44">
               {ex.name}
             </dt>
             <dd className="max-w-2xl text-xs leading-relaxed text-[var(--color-text-muted)]">

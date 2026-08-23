@@ -115,7 +115,7 @@ function EmbedMessage({
           <p className="font-serif text-sm font-semibold text-[var(--color-text-primary)]">
             {title}
           </p>
-          <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
             {detail}
           </p>
           {href && (
@@ -223,7 +223,7 @@ export default async function EmbeddedResultPage({
                 </span>
               )}
             </p>
-            <p className="mt-0.5 font-mono text-xs leading-snug text-[var(--color-text-secondary)]">
+            <p className="mt-0.5 font-mono text-sm leading-snug text-[var(--color-text-secondary)]">
               {[
                 summary.energy,
                 summary.energyPerAtom,

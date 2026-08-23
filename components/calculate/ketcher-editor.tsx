@@ -141,7 +141,7 @@ export function KetcherEditorInner({ onStructureReady }: KetcherEditorProps) {
           <button
             onClick={handleCopySmiles}
             disabled={!isReady}
-            className="flex items-center gap-1.5 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2.5 font-mono text-xs text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)] hover:text-white disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] px-3 py-2.5 font-mono text-sm text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-primary)] hover:text-white disabled:opacity-40"
           >
             {copied ? (
               <>

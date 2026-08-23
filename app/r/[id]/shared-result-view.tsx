@@ -196,7 +196,7 @@ export function SharedResultView({ shared }: Props) {
               {summary.headline}
             </h1>
             {identity.length > 0 && (
-              <p className="mt-1 font-mono text-xs text-[var(--color-text-secondary)]">
+              <p className="mt-1 font-mono text-sm text-[var(--color-text-secondary)]">
                 {identity.join(" · ")}
               </p>
             )}
@@ -249,7 +249,7 @@ export function SharedResultView({ shared }: Props) {
 
         {/* Geometry-opt convergence, stated where it cannot be missed. */}
         {summary.convergence && (
-          <p className="font-mono text-xs text-[var(--color-text-secondary)]">
+          <p className="font-mono text-sm text-[var(--color-text-secondary)]">
             {summary.convergence}
           </p>
         )}
@@ -260,7 +260,7 @@ export function SharedResultView({ shared }: Props) {
             the reader is told that it is absent rather than being left to
             wonder whether a section failed to load. Results stored before these
             fields existed hit the second branch. */}
-        <p className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-4 py-2.5 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+        <p className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-4 py-2.5 text-sm leading-relaxed text-[var(--color-text-secondary)]">
           {summary.hasProvenance ? (
             <>
               <span className="font-medium text-[var(--color-text-primary)]">
@@ -300,7 +300,7 @@ export function SharedResultView({ shared }: Props) {
                 Embed this result
               </h2>
             </div>
-            <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
               The interactive viewer, with no site chrome, on a page of its own
               that any site may frame. Presentation is controlled by query
               parameters:{" "}
@@ -313,7 +313,7 @@ export function SharedResultView({ shared }: Props) {
               </code>{" "}
               hides the caption strip.
             </p>
-            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-sm leading-relaxed text-[var(--color-text-secondary)]">
               {embedSnippet}
             </pre>
             <div className="flex flex-wrap items-center gap-2">
@@ -338,11 +338,11 @@ export function SharedResultView({ shared }: Props) {
             <h2 className="font-serif text-lg font-semibold text-[var(--color-text-primary)]">
               Cite this result
             </h2>
-            <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
               Built only from what this result carries — a line is omitted
               rather than filled in with a default.
             </p>
-            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            <pre className="overflow-x-auto rounded-lg bg-[var(--color-bg-secondary)] p-4 font-mono text-sm leading-relaxed text-[var(--color-text-secondary)]">
               {citation}
             </pre>
             <CopyButton
