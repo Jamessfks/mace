@@ -1,0 +1,156 @@
+{
+  "note": "Open defect backlog, machine-readable so test_scripts/daily_gate.py can order the day's queue. Extracted 2026-09-11 from the 'Known defects, deliberately unfixed' section of docs/v2/CONTINUE.md, which was last written at 9efa649 and is six commits stale. Anything marked verify:true may already be fixed by 9187abc, 88aa676, bdfb7af, 63d5b70 or 9e1dca0 — confirm by execution before working it, and close it here if it is gone. Set status to 'fixed' with the commit, never delete the row.",
+  "updated": "2026-09-11",
+  "defects": [
+    {
+      "id": "D1",
+      "severity": "CRITICAL",
+      "status": "open",
+      "what": "The foundation-model comparison picks its baseline by substring-matching the uploaded FILENAME for 'off'/'organic', so a periodic crystal named e.g. offcut.cif is compared against MACE-OFF. That crosses two incompatible energy conventions (-1..-15 vs -100..-600 eV/atom) and the delta it prints is meaningless.",
+      "where": "app/calculate/page.tsx ~259",
+      "verify": false,
+      "howToVerify": "Load a periodic structure from a file whose name contains 'off' and read which baseline the comparison chose.",
+      "source": "audit finding 8"
+    },
+    {
+      "id": "D2",
+      "severity": "HIGH",
+      "status": "open",
+      "what": "The validator is absent from the deployed container: mace-api/Dockerfile's build context is mace-api/, so `COPY . .` cannot reach ../test_scripts/. Hosted results report validation.status 'unavailable' — degrading correctly, but degraded. The live site runs without the scientific gate the repo advertises.",
+      "where": "mace-api/Dockerfile",
+      "verify": false,
+      "howToVerify": "Run a calculation against the hosted API and read result.validation.status.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D3",
+      "severity": "HIGH",
+      "status": "open",
+      "what": "code.gitCommit is null in the deployed container because there is no .git in the image, so the live provenance manifest cannot pin the code that produced a result. NOMAD stamps nomad_version and nomad_commit into every public entry at build time; SimpleAtom only manages it locally.",
+      "where": "mace-api/provenance.py git_info(), mace-api/Dockerfile",
+      "verify": false,
+      "howToVerify": "Read provenance.code.gitCommit on a result from the hosted API. Fix by baking the SHA in as a build arg.",
+      "source": "found 2026-09-11 against the NOMAD bar"
+    },
+    {
+      "id": "D4",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "mace-api/main.py returns HTTP 500 instead of 400 for a rejected calculationType, so the hosted FastAPI path reports a server fault for what is correct input validation. The refusal itself works; only the status is wrong.",
+      "where": "mace-api/main.py",
+      "verify": false,
+      "howToVerify": "POST {'calculationType':'phonon'} to the running FastAPI and read the status code.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D5",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "Geometry-opt trajectories contain a duplicated frame 0 with off-by-one step labels, so the result message and the trajectory it ships contradict each other.",
+      "where": "mace-api/calculate.py _run_geometry_opt",
+      "verify": true,
+      "howToVerify": "Run a geometry-opt and compare len(trajectory) against the step count in result.message.",
+      "source": "audit finding 6"
+    },
+    {
+      "id": "D6",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "Upstream computes stress on every call and SimpleAtom discards it; properties.pressure is declared in the type and never populated. Materials Project shows a unit on every value it prints — a declared field that is always null is the opposite of that.",
+      "where": "mace-api/calculate.py, types/mace.ts",
+      "verify": true,
+      "howToVerify": "Run a periodic single-point and read properties.pressure.",
+      "source": "audit finding 10"
+    },
+    {
+      "id": "D7",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "lattice and properties.volume are declared non-nullable in TypeScript but the backend sends null for both on non-periodic systems. The type asserts something the API does not guarantee.",
+      "where": "types/mace.ts, mace-api/calculate.py",
+      "verify": false,
+      "howToVerify": "Run a molecule (non-periodic) and read lattice and properties.volume against their declared types.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D8",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "ASE's get_temperature() divides by 3N even with centre-of-mass momentum pinned, so reported MD temperature reads about 11 percent low for a 9-atom molecule. The MD chart shows it as-is, with no note.",
+      "where": "mace-api/calculate.py MD path, components/calculate/trajectory/",
+      "verify": false,
+      "howToVerify": "Run NVT at 300 K on ethanol and read the plateau temperature off the chart.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D9",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "The force-arrow scale silently differs between models — 0.82 vs 1.0 A per eV/A on the same geometry — so two results for one molecule render non-comparable arrow lengths with no indication of the change.",
+      "where": "components/calculate/molecule-viewer-3d.tsx",
+      "verify": false,
+      "howToVerify": "Render the same structure under MACE-MP-0 and MACE-OFF and measure arrow length per unit force.",
+      "source": "progress.json viewer-render gap"
+    },
+    {
+      "id": "D10",
+      "severity": "MEDIUM",
+      "status": "open",
+      "what": "21 interactive targets are under 44x44 and nav links are 17px tall, so the site fails the platform minimum touch target on mobile. Partly addressed inside the viewer; unaddressed elsewhere.",
+      "where": "site-wide; components/site-header.tsx",
+      "verify": true,
+      "howToVerify": "Measure every interactive element's bounding box at 375px in the browser pane.",
+      "source": "CONTINUE.md mobile piece"
+    },
+    {
+      "id": "D11",
+      "severity": "LOW",
+      "status": "open",
+      "what": "Force arrows are drawn for hidden C-H hydrogens, leaving arrows with no visible atom at their base.",
+      "where": "components/calculate/molecule-viewer-3d.tsx",
+      "verify": true,
+      "howToVerify": "Toggle Hide C-H with force vectors on and look for orphaned arrows. Commit 9e1dca0 touched exactly this area — check it first.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D12",
+      "severity": "LOW",
+      "status": "open",
+      "what": "components/ui/card.tsx CardHeader is a bare grid with no explicit columns unless a CardAction child is present — the same unsafe pattern that caused the /calculate mobile overflow, one level deeper. ResultsSkeleton has it too, currently inert.",
+      "where": "components/ui/card.tsx",
+      "verify": false,
+      "howToVerify": "Render a CardHeader with two children and no CardAction at 375px.",
+      "source": "CONTINUE.md"
+    },
+    {
+      "id": "D13",
+      "severity": "LOW",
+      "status": "open",
+      "what": "The green selection shell in the viewer is nearly invisible — delta-G of only +2 while R and B drop 13.",
+      "where": "components/calculate/molecule-viewer-3d.tsx",
+      "verify": false,
+      "howToVerify": "Select an atom, screenshot, and sample the shell pixel against the unselected atom.",
+      "source": "progress.json viewer-interact gap"
+    },
+    {
+      "id": "D14",
+      "severity": "LOW",
+      "status": "open",
+      "what": "Installed mace-torch is 0.3.15 while the reference-conformance bar is pinned at ACEsuit/mace v0.3.16, so conformance findings are being judged against a version the local environment is not running.",
+      "where": "requirements.txt, local env",
+      "verify": false,
+      "howToVerify": "python3 -c \"import mace; print(mace.__version__)\" against the bar's pinned tag.",
+      "source": "found 2026-09-11"
+    },
+    {
+      "id": "D15",
+      "severity": "LOW",
+      "status": "open",
+      "what": "Audit findings 6, 9 and 12 from docs/v2/audit-vs-acesuit.md were never closed out. Findings 7, 10 and 11 are recorded as done.",
+      "where": "docs/v2/audit-vs-acesuit.md",
+      "verify": true,
+      "howToVerify": "Read the audit and confirm which findings are still live against current code.",
+      "source": "CONTINUE.md reference-conformance piece"
+    }
+  ]
+}

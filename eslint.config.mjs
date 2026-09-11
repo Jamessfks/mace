@@ -20,6 +20,13 @@ const eslintConfig = defineConfig([
     "venv/**",
     "site/**",
     "**/__pycache__/**",
+    // Agent worktrees under .claude/worktrees/ carry their own .next/ build
+    // output. ".next/**" above only matches the repo root, so without these
+    // ESLint walks every worktree's compiled bundles and dies with
+    // "JavaScript heap out of memory" before reporting a single problem —
+    // the lint gate fails for a reason that has nothing to do with the code.
+    "**/.next/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 
