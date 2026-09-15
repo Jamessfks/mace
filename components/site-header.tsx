@@ -26,7 +26,7 @@ const NAV = [
   { href: "/docs", label: "Docs" },
 ];
 
-const GITHUB_URL = "https://github.com/Jamessfks/mace";
+const GITHUB_URL = "https://github.com/Jamessfks/simpleatom";
 
 /** Active-route test: exact match, or any nested path under it. */
 function isUnder(pathname: string, base: string): boolean {

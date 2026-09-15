@@ -56,7 +56,7 @@ export default function GettingStartedPage() {
           18+ for the frontend and Python 3.10+ for the backend.
         </p>
         <pre>
-          <code>{`git clone https://github.com/Jamessfks/mace.git && cd mace
+          <code>{`git clone https://github.com/Jamessfks/simpleatom.git && cd simpleatom
 npm install                    # frontend dependencies
 pip install mace-torch ase     # backend (MACE + ASE)
 

@@ -25,7 +25,7 @@ const RESOURCE_LINKS = [
   { href: "https://mace-docs.readthedocs.io/en/latest/", label: "MACE docs" },
   { href: "https://github.com/ACEsuit/mace", label: "MACE on GitHub" },
   { href: "https://wiki.fysik.dtu.dk/ase/", label: "ASE" },
-  { href: "https://github.com/Jamessfks/mace", label: "Source code" },
+  { href: "https://github.com/Jamessfks/simpleatom", label: "Source code" },
 ];
 
 export function SiteFooter() {
@@ -108,7 +108,7 @@ export function SiteFooter() {
             </a>{" "}
             framework (Batatia et al., NeurIPS 2022). Built by{" "}
             <a
-              href="https://github.com/Jamessfks/mace"
+              href="https://github.com/Jamessfks/simpleatom"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[var(--color-text-secondary)] underline-offset-2 hover:underline"

@@ -3,8 +3,8 @@
 Last updated 2026-08-10, on `main` at `9efa649`. Everything described here is committed and
 pushed; there is no unsaved work. Live dashboard: `/v2` (renders `docs/v2/progress.json`).
 
-Releases: [v2.0.0](https://github.com/Jamessfks/mace/releases/tag/v2.0.0) ·
-[v2.1.0](https://github.com/Jamessfks/mace/releases/tag/v2.1.0) · live at mace-lake.vercel.app
+Releases: [v2.0.0](https://github.com/Jamessfks/simpleatom/releases/tag/v2.0.0) ·
+[v2.1.0](https://github.com/Jamessfks/simpleatom/releases/tag/v2.1.0) · live at mace-lake.vercel.app
 (Vercel deploys from `main` automatically on push).
 
 ---

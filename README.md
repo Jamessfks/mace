@@ -14,8 +14,8 @@
 </p>
 
 <p>
-  <a href="https://github.com/Jamessfks/mace/releases"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"/></a>
-  <a href="https://github.com/Jamessfks/mace/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
+  <a href="https://github.com/Jamessfks/simpleatom/releases"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"/></a>
+  <a href="https://github.com/Jamessfks/simpleatom/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Academic-green?style=flat-square" alt="License"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16"/></a>
   <a href="https://github.com/ACEsuit/mace"><img src="https://img.shields.io/badge/MACE--MP--0-89%20elements-purple?style=flat-square" alt="MACE-MP-0"/></a>
@@ -317,7 +317,7 @@ The interface is built with accessibility as a first principle, not an afterthou
 ## Quick Start
 
 ```bash
-git clone https://github.com/Jamessfks/mace.git && cd mace
+git clone https://github.com/Jamessfks/simpleatom.git && cd simpleatom
 npm install                          # frontend dependencies
 pip install -r mace-api/requirements.txt   # backend: MACE + ASE + torch-dftd
 npm run dev                          # → http://localhost:3000

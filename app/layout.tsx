@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     "foundation models",
     "ASE",
   ],
-  authors: [{ name: "Zicheng Zhao", url: "https://github.com/Jamessfks/mace" }],
+  authors: [{ name: "Zicheng Zhao", url: "https://github.com/Jamessfks/simpleatom" }],
   openGraph: {
     title: "SimpleAtom — Quantum-accurate chemistry in your browser",
     description:

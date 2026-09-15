@@ -3,8 +3,8 @@ site_url: https://mace-web.readthedocs.io/
 site_description: Browser-based interface for MACE machine learning interatomic potentials
 site_author: Zicheng Zhao
 
-repo_name: Jamessfks/mace
-repo_url: https://github.com/Jamessfks/mace
+repo_name: Jamessfks/simpleatom
+repo_url: https://github.com/Jamessfks/simpleatom
 
 theme:
   name: material

@@ -1291,7 +1291,7 @@ const HASH_PREFIX_CHARS = 16;
 const BYTES_PER_MIB = 1024 * 1024;
 
 /** Same repository components/site-header.tsx links to as "View source on GitHub". */
-const REPO_URL = "https://github.com/Jamessfks/mace";
+const REPO_URL = "https://github.com/Jamessfks/simpleatom";
 
 /**
  * Where each model family's foundation-model weights are published upstream —

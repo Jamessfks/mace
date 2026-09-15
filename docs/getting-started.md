@@ -9,7 +9,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/Jamessfks/mace.git && cd mace
+git clone https://github.com/Jamessfks/simpleatom.git && cd simpleatom
 npm install                    # frontend dependencies
 pip install mace-torch ase     # backend (MACE + ASE)
 ```
